@@ -2,9 +2,13 @@
 
 Outil autonome (un seul fichier HTML) qui génère un tableau de bord d'activité à partir des exports Excel de l'outil de compta **Louty** de CABESTAN.
 
+## 🔗 Accès direct
+
+**→ [Ouvrir le dashboard](https://juletna.github.io/dashboard-louty/dashboard-louty.html)**
+
 ## Utilisation
 
-Ouvre [`dashboard-louty.html`](dashboard-louty.html), puis dépose tes deux exports Louty :
+Ouvre le dashboard via le lien ci-dessus (ou le fichier [`dashboard-louty.html`](dashboard-louty.html) en local), puis dépose tes deux exports Louty :
 
 - **`RES_U_Résultat d'Activité`** (`.xlsx`, obligatoire) — marge brute, chiffre d'affaires, achats, charges, comparaisons N-1…
 - **`BAL_A_Balance Analytique`** (`.xlsx`, facultatif) — trésorerie, dettes, position nette (carte « Santé financière »).
