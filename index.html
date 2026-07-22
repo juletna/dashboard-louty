@@ -372,6 +372,7 @@
 
   /* --- v3.7 : bridge trésorerie/dettes/position --- */
   .sante-card { height: 100%; display: flex; flex-direction: column; }
+  .sante-asof { display: block; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--text-faint); font-size: 11.5px; margin-top: 3px; }
   .bridge-head { font-size: 12px; color: var(--text-faint); font-weight: 700; margin-bottom: 4px; }
   .bridge-wrap { position: relative; flex: 1; min-height: 168px; }
 
@@ -751,7 +752,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
     </div>
     <div class="topbar-actions">
       <div class="data-status" id="data-status" style="display:none" title="Tes données sont mémorisées sur cet ordinateur — inutile de les re-déposer à chaque ouverture.">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg><span>Généré le <strong id="ds-date">—</strong></span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg><span><span id="ds-label">Généré le</span> <strong id="ds-date">—</strong></span>
       </div>
       <button class="btn ghost" id="change-file" style="display:none" title="Déposer des exports Louty plus récents"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.5 9a9 9 0 0 1 14.9-3.4L23 10M1 14l4.6 4.4A9 9 0 0 0 20.5 15"/></svg><span>Mettre à jour</span></button>
       <button class="btn btn-icon" id="toggle-theme" title="Basculer clair / sombre"></button>
@@ -2207,9 +2208,12 @@ function renderSante(data, cur) {
     ? '<div class="sante-detail"><button type="button" class="sante-detail-toggle">Détail des dettes exigibles →</button><div class="sante-detail-body" style="display:none">' + detailHTML + '</div></div>'
     : '';
 
+  var balExport = data.bal_export_iso ? fmtDateTime(data.bal_export_iso) : null;
   wrap.innerHTML =
     '<div class="card sante-card">' +
-      '<h3>Santé financière<span class="sp-help" data-tip="Photo de ta trésorerie à la date de la balance : ce qui est vraiment à toi (position nette) une fois les dettes exigibles retirées, plus tes réserves, créances et résultat.">?</span></h3>' +
+      '<h3>Santé financière<span class="sp-help" data-tip="Photo de ta trésorerie à la date de la balance : ce qui est vraiment à toi (position nette) une fois les dettes exigibles retirées, plus tes réserves, créances et résultat.">?</span>' +
+        (balExport ? '<span class="sante-asof">Balance exportée le ' + balExport + (asOfDate !== '—' ? ' · arrêtée au ' + asOfDate : '') + '</span>' : '') +
+      '</h3>' +
       '<div class="sante-oneline">' +
         '<div class="sante-gauge">' +
           '<div class="pn-top">' +
@@ -2373,7 +2377,8 @@ function saveData(data) {
     localStorage.setItem(DATA_KEY, JSON.stringify({
       years: data.years, labels_missing: data.labels_missing, charges_detail: data.charges_detail,
       sante: data.sante, sante_error: data.sante_error,
-      file_mtime_iso: data.file_mtime_iso, res_name: data.res_name, bal_name: data.bal_name
+      file_mtime_iso: data.file_mtime_iso, res_name: data.res_name, bal_name: data.bal_name,
+      res_export_iso: data.res_export_iso, bal_export_iso: data.bal_export_iso
     }));
   } catch (e) { /* quota / mode privé -> on ignore */ }
 }
@@ -2388,16 +2393,39 @@ function loadSavedData() {
 }
 function clearSavedData() { try { localStorage.removeItem(DATA_KEY); } catch (e) {} }
 
-// Met en avant la date de génération dans la barre du haut
+// Déduit la date/heure d'export Louty du nom de fichier : ..._aammjj_hhmmss.xlsx
+function parseExportDate(name) {
+  var m = /_(\d{2})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})\.xlsx$/i.exec(name || '');
+  if (!m) return null;
+  var d = new Date(2000 + (+m[1]), (+m[2]) - 1, +m[3], +m[4], +m[5], +m[6]);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}
+function fmtDateTime(iso) {
+  if (!iso) return '—';
+  var d = new Date(iso);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) +
+         ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+}
+
+// Met en avant la date d'export Louty dans la barre du haut (déduite du nom de fichier RES,
+// à défaut la date de dépôt). Le survol détaille l'export de chaque fichier.
 function updateDataStatus(data) {
   var ds = document.getElementById('ds-date');
+  var lab = document.getElementById('ds-label');
   var box = document.getElementById('data-status');
-  if (ds && data.file_mtime_iso) {
-    var d = new Date(data.file_mtime_iso);
-    ds.textContent = d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) +
-                     ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  var iso = data.res_export_iso || data.file_mtime_iso;
+  if (ds && iso) ds.textContent = fmtDateTime(iso);
+  if (lab) lab.textContent = data.res_export_iso ? 'Export Louty du' : 'Généré le';
+  if (box) {
+    var parts = [];
+    if (data.res_export_iso) parts.push('Résultat d\'Activité exporté le ' + fmtDateTime(data.res_export_iso));
+    if (data.bal_export_iso) parts.push('Balance exportée le ' + fmtDateTime(data.bal_export_iso));
+    box.title = parts.length
+      ? parts.join('\n') + '\n(déduit du nom de fichier Louty · données mémorisées sur cet ordinateur)'
+      : 'Tes données sont mémorisées sur cet ordinateur — inutile de les re-déposer à chaque ouverture.';
+    box.style.display = 'inline-flex';
   }
-  if (box) box.style.display = 'inline-flex';
 }
 
 // Avertit si des postes attendus manquent dans le fichier RES
@@ -2529,8 +2557,9 @@ function ingest(fileList) {
       }
       data.file_mtime_iso = new Date().toISOString();
       data.res_name = c.resBook.name;
+      data.res_export_iso = parseExportDate(c.resBook.name);
       if (c.balBook) {
-        try { data.sante = CabestanParser.parseBAL(XLSX, c.balBook.wb); data.bal_name = c.balBook.name; }
+        try { data.sante = CabestanParser.parseBAL(XLSX, c.balBook.wb); data.bal_name = c.balBook.name; data.bal_export_iso = parseExportDate(c.balBook.name); }
         catch (e) { data.sante_error = e.message; }
       }
       setFileStatus(c.resBook.name, c.balBook ? c.balBook.name : null);
@@ -2540,6 +2569,7 @@ function ingest(fileList) {
       try {
         LAST_DATA.sante = CabestanParser.parseBAL(XLSX, c.balBook.wb);
         LAST_DATA.bal_name = c.balBook.name;
+        LAST_DATA.bal_export_iso = parseExportDate(c.balBook.name);
         delete LAST_DATA.sante_error;
       } catch (e) { throw new Error("Balance illisible : " + e.message); }
       setFileStatus(LAST_DATA.res_name || null, c.balBook.name);
@@ -2611,7 +2641,7 @@ document.getElementById('welcome-back').addEventListener('click', function () {
 })();
 
 // Mise à jour automatique : si le fichier hébergé est plus récent, on recharge la dernière version
-var APP_VERSION = "20260722-162129";
+var APP_VERSION = "20260722-171646";
 function showUpdateBanner(base, v) {
   if (document.getElementById('update-banner')) return;
   var d = document.createElement('div');
