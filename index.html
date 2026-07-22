@@ -213,16 +213,20 @@
   .donut-cap strong { color: var(--text); font-weight: 800; }
 
   /* Tableaux */
-  table.cmp { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-  table.cmp th, table.cmp td { padding: 10px 12px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.cmp th, table.cmp td { padding: 9px 8px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; font-variant-numeric: tabular-nums; }
   table.cmp thead th { border-bottom: 1px solid var(--border-strong); }
   table.cmp th:first-child, table.cmp td:first-child { text-align: left; }
   table.cmp th { font-weight: 700; color: var(--text-faint); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
-  table.cmp tbody tr:nth-child(even) { background: var(--bg-inset); }
-  table.cmp tbody tr:hover { background: var(--bg-soft); }
-  table.cmp tbody td:nth-child(3) { font-weight: 800; color: var(--text); }
+  table.cmp tbody td { color: var(--text-dim); }
+  table.cmp tbody td:first-child { color: var(--text); font-weight: 700; }
+  table.cmp tbody td:nth-child(2) { font-weight: 800; color: var(--text); }
   table.cmp tr:last-child td { border-bottom: none; }
-  table.cmp .muted-col, table.cmp th.muted-col { color: var(--text-faint); font-size: 12.5px; font-weight: 500; }
+  table.cmp .muted-col, table.cmp th.muted-col { color: var(--text-faint); font-size: 12px; font-weight: 500; }
+  .cmp-pill { display: inline-block; font-size: 11.5px; font-weight: 800; padding: 3px 10px; border-radius: 999px; font-variant-numeric: tabular-nums; }
+  .cmp-pill.pos { color: var(--green); background: var(--green-bg); }
+  .cmp-pill.neg { color: var(--red); background: var(--red-bg); }
+  .cmp-pill.zero { color: var(--text-dim); background: var(--bg-inset); }
 
   /* Heatmap */
   .heatmap { display: grid; grid-template-columns: repeat(12, 1fr); gap: 7px; }
@@ -819,6 +823,9 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
       <div id="repartition-legend" class="repart-legend"></div>
     </div>
     <div class="card">
+      <h3>Répartition du CA par année<span class="sp-help" data-tip="Comment se répartit chaque euro de CA (achats, salaire, charges, contribution coopérative, frais km, résultat) pour chaque année, à la même période (jan → dernier mois renseigné). Barres normalisées à 100 % pour comparer les parts.">?</span></h3>
+      <div class="chart-wrap" style="height:190px"><canvas id="chart-repart-years"></canvas></div>
+      <div class="rl-cap" id="repart-years-cap" style="margin:8px 0 20px"></div>
       <h3>Tableau comparatif N-1 / N<span class="sp-help" data-tip="Tes indicateurs 2026 (à date) face à la même période de l'an dernier, avec l'écart et, en repère, le total de l'année précédente.">?</span></h3>
       <div id="bloc4"></div>
     </div>
@@ -1456,6 +1463,7 @@ function render(data) {
   renderBanner(data, cur, prev);
   renderSante(data, cur);
   renderTableCmp(cy, py, cur);
+  renderRepartYears(cur, years);
   renderMonthlyChart(cy, years, currentYear);
   renderCumulChart(years, currentYear);
   renderWaterfall(cur, cy);
@@ -1961,27 +1969,17 @@ renderWaterfall = function (cur, cy) {
     var chargesRest = Math.max(0, charges - pulledSum);
     var extraCols = [COLORS.gray, '#9C6ADE', '#4FB0C6', '#E08A5B', '#B0863C'];
 
-    // Comparatif même période N-1 / N-2 : on somme chaque poste sur les mêmes mois (jan → dernier renseigné)
-    var refYears = (cur.reference_years || []).filter(function (y) { return DATA && DATA.years && DATA.years[y]; });
-    var nMonths = cur.mois_renseignes;
-    function sameYtd(yObj, k) { return yObj.monthly[k].slice(0, nMonths).reduce(function (a, v) { return a + (v || 0); }, 0); }
-    var fraisKmPulled = pulled.some(function (r) { return r.account === '62510150'; });
-
     var chargesLabel = pulled.length ? 'Charges de fonct. (autres)' : 'Charges de fonctionnement';
     var segs = [
-      { label: 'Achats matières', val: cur.ytd_achats, col: COLORS.red, cmp: function (y) { return sameYtd(y, 'achats_matieres'); } },
-      { label: 'Salaire (rémunérations)', val: ytdK('remunerations'), col: COLORS.blue, cmp: function (y) { return sameYtd(y, 'remunerations'); } },
-      { label: chargesLabel, val: chargesRest, col: COLORS.orange, detail: restDet, cmp: function (y) { return sameYtd(y, 'charges_fonct') - (fraisKmPulled ? sameYtd(y, 'frais_km') : 0); } },
-      { label: 'Contribution coopérative', val: ytdK('contribution_coop'), col: COLORS.teal, cmp: function (y) { return sameYtd(y, 'contribution_coop'); } }
+      { label: 'Achats matières', val: cur.ytd_achats, col: COLORS.red },
+      { label: 'Salaire (rémunérations)', val: ytdK('remunerations'), col: COLORS.blue },
+      { label: chargesLabel, val: chargesRest, col: COLORS.orange, detail: restDet },
+      { label: 'Contribution coopérative', val: ytdK('contribution_coop'), col: COLORS.teal }
     ];
-    pulled.forEach(function (r, i) {
-      var seg = { label: r.label, val: r.amount, col: extraCols[i % extraCols.length] };
-      if (r.account === '62510150') seg.cmp = function (y) { return sameYtd(y, 'frais_km'); }; // Frais km : poste suivi, comparable
-      segs.push(seg);
-    });
+    pulled.forEach(function (r, i) { segs.push({ label: r.label, val: r.amount, col: extraCols[i % extraCols.length] }); });
     var used = segs.reduce(function (a, s) { return a + s.val; }, 0);
     var reste = ca - used;
-    if (reste > 0) segs.push({ label: 'Résultat restant', val: reste, col: COLORS.green, cmp: function (y) { return sameYtd(y, 'ca') - sameYtd(y, 'achats_matieres') - sameYtd(y, 'remunerations') - sameYtd(y, 'charges_fonct') - sameYtd(y, 'contribution_coop'); } });
+    if (reste > 0) segs.push({ label: 'Résultat restant', val: reste, col: COLORS.green });
 
     // 3) Redessine le donut avec les nouveaux segments
     var arcBorder = DARK ? '#16141d' : '#ffffff';
@@ -2014,26 +2012,13 @@ renderWaterfall = function (cur, cy) {
     // 4) Redessine la légende + lien "détail" sur la ligne charges (postes restants)
     var leg = document.getElementById('repartition-legend');
     if (!leg) return;
-    var headHtml = refYears.length
-      ? '<div class="rl-row rl-head"><span class="rl-dot" style="background:transparent"></span><span class="rl-lab"></span>' +
-          refYears.map(function (y) { return '<span class="rl-cmp">' + y + '</span>'; }).join('') +
-          '<span class="rl-val">' + cur.year + '</span><span class="rl-pct">% CA</span></div>'
-      : '';
-    var capHtml = refYears.length
-      ? '<div class="rl-cap">Colonnes ' + refYears.join(' / ') + ' : même période (jan → ' + (MONTH_NAMES[nMonths - 1] || '') + ')</div>'
-      : '';
-    leg.innerHTML = headHtml + segs.map(function (s) {
-      var cmpCells = refYears.map(function (y) {
-        var v = s.cmp ? s.cmp(DATA.years[y]) : null;
-        return '<span class="rl-cmp">' + (v != null ? fmtEUR(v) : '—') + '</span>';
-      }).join('');
+    leg.innerHTML = segs.map(function (s) {
       return '<div class="rl-row"><span class="rl-dot" style="background:' + s.col + '"></span>' +
         '<span class="rl-lab">' + esc(s.label) + '</span>' +
-        cmpCells +
         '<span class="rl-val">' + fmtEUR(s.val) + '</span>' +
         '<span class="rl-pct">' + (ca > 0 ? Math.round(s.val / ca * 100) + '%' : '—') + '</span></div>';
-    }).join('') + capHtml;
-    var legRows = leg.querySelectorAll('.rl-row:not(.rl-head)');
+    }).join('');
+    var legRows = leg.querySelectorAll('.rl-row');
     for (var i = 0; i < segs.length; i++) {
       if (segs[i].detail && segs[i].detail.length) {
         (function (seg, rowEl) {
@@ -2283,12 +2268,16 @@ function renderTableCmp(cy, py, cur) {
     { label: "Frais kilométriques", key: 'frais_km' },
     { label: "Contribution coopérative", key: 'contribution_coop' }
   ];
+  function cmpPill(deltaCls, txt) {
+    var m = deltaCls === 'delta-pos' ? 'pos' : (deltaCls === 'delta-neg' ? 'neg' : 'zero');
+    return '<span class="cmp-pill ' + m + '">' + txt + '</span>';
+  }
   function deltaCell(val, isAchats) {
     if (val === null || val === undefined || isNaN(val)) return '<td>—</td>';
     var positive = isAchats ? val < 0 : val > 0;
     var negative = isAchats ? val > 0 : val < 0;
     var cls = positive ? 'delta-pos' : (negative ? 'delta-neg' : 'delta-zero');
-    return '<td class="' + cls + '">' + fmtDelta(val) + '</td>';
+    return '<td>' + cmpPill(cls, fmtDelta(val)) + '</td>';
   }
   var pyYear = py ? (parseInt(cur.year) - 1) : 'N-1';
   var dateStr = (DATA && DATA.file_mtime_iso) ? new Date(DATA.file_mtime_iso).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
@@ -2320,7 +2309,7 @@ function renderTableCmp(cy, py, cur) {
   var pyFullTaux = pyFullCA ? pyFullMB / pyFullCA : null;
   var dTaux = (cyTaux !== null && pySameTaux !== null) ? (cyTaux - pySameTaux) : null;
   var tauxCls = dTaux === null ? 'delta-zero' : (dTaux > 0 ? 'delta-pos' : (dTaux < 0 ? 'delta-neg' : 'delta-zero'));
-  html += '<tr><td>Taux de marge brute</td><td>' + fmtPct(cyTaux, 1) + '</td><td>' + fmtPct(pySameTaux, 1) + '</td><td class="muted-col">' + fmtPct(pyFullTaux, 1) + '</td><td class="' + tauxCls + '">' + fmtDeltaPts(dTaux) + '</td></tr>';
+  html += '<tr><td>Taux de marge brute</td><td>' + fmtPct(cyTaux, 1) + '</td><td>' + fmtPct(pySameTaux, 1) + '</td><td class="muted-col">' + fmtPct(pyFullTaux, 1) + '</td><td>' + (dTaux === null ? '—' : cmpPill(tauxCls, fmtDeltaPts(dTaux))) + '</td></tr>';
   var cyAlerte = cy.monthly.marge_brute.filter(function (v) { return v !== null && v < C.MB_MIN; }).length;
   var pySameAlerte = null, pyFullAlerte = null;
   if (py) {
@@ -2330,10 +2319,62 @@ function renderTableCmp(cy, py, cur) {
   var dAlerte = (pySameAlerte !== null) ? (cyAlerte - pySameAlerte) : null;
   var alerteCls = dAlerte === null ? 'delta-zero' : (dAlerte > 0 ? 'delta-neg' : (dAlerte < 0 ? 'delta-pos' : 'delta-zero'));
   var deltaAlerteTxt = dAlerte === null ? '—' : (dAlerte > 0 ? '+' : (dAlerte < 0 ? '−' : '±')) + ' ' + Math.abs(dAlerte) + ' mois';
-  html += '<tr><td>Mois sous seuil min.</td><td>' + cyAlerte + ' mois</td><td>' + (pySameAlerte === null ? '—' : pySameAlerte + ' mois') + '</td><td class="muted-col">' + (pyFullAlerte === null ? '—' : pyFullAlerte + ' mois') + '</td><td class="' + alerteCls + '">' + deltaAlerteTxt + '</td></tr>';
+  html += '<tr><td>Mois sous seuil min.</td><td>' + cyAlerte + ' mois</td><td>' + (pySameAlerte === null ? '—' : pySameAlerte + ' mois') + '</td><td class="muted-col">' + (pyFullAlerte === null ? '—' : pyFullAlerte + ' mois') + '</td><td>' + (dAlerte === null ? '—' : cmpPill(alerteCls, deltaAlerteTxt)) + '</td></tr>';
   html += '</tbody></table>';
   wrap.innerHTML = html;
 };
+
+// ---- Barre empilée horizontale 100 % : répartition du CA par année (même période) ----
+function renderRepartYears(cur, years) {
+  var canvas = document.getElementById('chart-repart-years');
+  if (!canvas) return;
+  var n = cur.mois_renseignes;
+  var order = Object.keys(years).sort().reverse(); // année la plus récente en haut
+  function same(yObj, k) { return yObj.monthly[k].slice(0, n).reduce(function (a, v) { return a + (v || 0); }, 0); }
+  var cats = [
+    { label: 'Achats matières', col: COLORS.red, val: function (y) { return same(y, 'achats_matieres'); } },
+    { label: 'Salaire', col: COLORS.blue, val: function (y) { return same(y, 'remunerations'); } },
+    { label: 'Charges de fonct.', col: COLORS.orange, val: function (y) { return same(y, 'charges_fonct') - same(y, 'frais_km'); } },
+    { label: 'Frais km', col: COLORS.gray, val: function (y) { return same(y, 'frais_km'); } },
+    { label: 'Contribution coop.', col: COLORS.teal, val: function (y) { return same(y, 'contribution_coop'); } },
+    { label: 'Résultat', col: COLORS.green, val: function (y) { return same(y, 'ca') - same(y, 'achats_matieres') - same(y, 'remunerations') - same(y, 'charges_fonct') - same(y, 'contribution_coop'); } }
+  ];
+  var labels = order.map(function (yk) { return yk === cur.year ? yk + ' (à date)' : yk; });
+  // matrice valeurs brutes [année][catégorie], puis normalisation en % (part positive de chaque année)
+  var raw = order.map(function (yk) { return cats.map(function (c) { return c.val(years[yk]); }); });
+  var totals = raw.map(function (vals) { return vals.reduce(function (a, v) { return a + Math.max(0, v); }, 0); });
+  var datasets = cats.map(function (c, ci) {
+    return {
+      label: c.label, backgroundColor: c.col, borderWidth: 0, borderRadius: 3,
+      data: order.map(function (yk, yi) { return totals[yi] > 0 ? Math.max(0, raw[yi][ci]) / totals[yi] * 100 : 0; }),
+      _raw: order.map(function (yk, yi) { return raw[yi][ci]; })
+    };
+  });
+  makeChart('chart-repart-years', {
+    type: 'bar',
+    data: { labels: labels, datasets: datasets },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { stacked: true, min: 0, max: 100, ticks: { callback: function (v) { return v + '%'; } }, grid: { display: false } },
+        y: { stacked: true, grid: { display: false }, ticks: { font: { weight: '800', size: 13 } } }
+      },
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 8, boxHeight: 8, padding: 12, font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            label: function (ctx) {
+              var raw = ctx.dataset._raw ? ctx.dataset._raw[ctx.dataIndex] : null;
+              return ' ' + ctx.dataset.label + ' : ' + Math.round(ctx.parsed.x) + '%' + (raw != null ? ' (' + fmtEUR(raw) + ')' : '');
+            }
+          }
+        }
+      }
+    }
+  });
+  var cap = document.getElementById('repart-years-cap');
+  if (cap) cap.textContent = 'Part de chaque poste dans le CA · même période (jan → ' + (MONTH_NAMES[n - 1] || '') + ')';
+}
 
 // ---- Thème clair / sombre (manuel + mémorisé) ----
 var THEME_KEY = 'cabestan_dashboard_theme';
@@ -2668,7 +2709,7 @@ document.getElementById('welcome-back').addEventListener('click', function () {
 })();
 
 // Mise à jour automatique : si le fichier hébergé est plus récent, on recharge la dernière version
-var APP_VERSION = "20260722-172859";
+var APP_VERSION = "20260722-174458";
 function showUpdateBanner(base, v) {
   if (document.getElementById('update-banner')) return;
   var d = document.createElement('div');
