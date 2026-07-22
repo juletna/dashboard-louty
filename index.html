@@ -1619,7 +1619,7 @@ function renderCAMB(cy, curYear, years) {
   if (prevYears.length) {
     datasets.push({
       type: 'line', label: avgLabel, data: avgCA, stack: 'avgCA',
-      borderColor: COLORS.gray, backgroundColor: 'transparent', borderDash: [5, 4],
+      borderColor: COLORS.blue, backgroundColor: 'transparent', borderDash: [5, 4],
       borderWidth: 2, pointRadius: 0, pointHoverRadius: 6, tension: 0.4, order: 1, spanGaps: true,
     });
     datasets.push({
@@ -2843,7 +2843,7 @@ document.getElementById('welcome-back').addEventListener('click', function () {
 })();
 
 // Mise à jour automatique : si le fichier hébergé est plus récent, on recharge la dernière version
-var APP_VERSION = "20260722-184907";
+var APP_VERSION = "20260722-185325";
 function showUpdateBanner(base, v) {
   if (document.getElementById('update-banner')) return;
   var d = document.createElement('div');
