@@ -399,23 +399,23 @@
     #bloc-sante .grid.grid-3 > .kpi + .kpi { border-left: none; border-top: 1px solid var(--border); }
   }
   /* Santé sur une seule ligne : jauge (2/5) + 3 KPI (1/5 chacun) */
-  .sante-oneline { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; align-items: center; margin-top: 8px; }
+  .sante-oneline { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; align-items: stretch; margin-top: 8px; }
   .sante-oneline > * { min-width: 0; }
-  .sante-oneline > * + * { border-left: 1px solid var(--border); padding-left: 24px; }
-  .sante-oneline .sante-gauge { padding-right: 12px; }
-  .sante-oneline .kpi { padding: 2px 0 2px 24px; }
+  .sante-oneline .sante-gauge { padding-right: 24px; display: flex; flex-direction: column; justify-content: center; }
+  .sante-oneline .kpi { display: flex; flex-direction: column; justify-content: center; padding: 2px 0 2px 24px; }
   .sante-oneline .pn-bar { margin: 12px 0 10px; }
+  /* Traits verticaux entre la jauge et les 3 KPI (spécificité qui bat #bloc-sante .card .kpi{border:none}) */
+  #bloc-sante .card .sante-oneline > .kpi { border-left: 1px solid var(--border-strong); }
   @media (max-width: 900px) {
-    .sante-oneline { grid-template-columns: 1fr 1fr; row-gap: 18px; }
+    .sante-oneline { grid-template-columns: 1fr 1fr; row-gap: 18px; column-gap: 8px; }
     .sante-oneline .sante-gauge { grid-column: 1 / -1; padding-right: 0; }
-    .sante-oneline > * + * { border-left: none; padding-left: 0; }
-    .sante-oneline .kpi { padding: 0 18px; }
-    .sante-oneline .kpi:nth-child(3) { border-right: 1px solid var(--border); }
+    .sante-oneline .kpi { padding: 0 12px; }
+    #bloc-sante .card .sante-oneline > .kpi { border-left: none; }
   }
   @media (max-width: 520px) {
     .sante-oneline { grid-template-columns: 1fr; }
-    .sante-oneline .kpi { padding: 12px 0 0; border-top: 1px solid var(--border); }
-    .sante-oneline .kpi:nth-child(3) { border-right: none; }
+    .sante-oneline .kpi { padding: 12px 0 0; }
+    #bloc-sante .card .sante-oneline > .kpi { border-left: none; border-top: 1px solid var(--border); }
   }
   /* Titres de section : sans tiret, casse normale, plus gros, foncés, arrondis */
   h3 { display: block; font-size: 17px; font-weight: 800; color: var(--text); text-transform: none; letter-spacing: -0.015em; }
@@ -669,9 +669,6 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .mbx-att b { font-size:20px; font-weight:800; color:#7C5AD6; letter-spacing:-0.01em; }
 .mbx-att-rest { font-size:13px; color:var(--text-dim); font-weight:500; margin-top:5px; line-height:1.3; }
 .mbx-att-rest b { font-size:15px; font-weight:800; color:var(--text); letter-spacing:-0.01em; }
-.mbx-ref { text-align:right; flex:none; }
-.mbx-ref-lbl { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-faint); }
-.mbx-ref-pct { font-size:18px; font-weight:800; color:var(--text); margin-top:2px; }
 .mbx-bar { position:relative; padding-top:24px; padding-bottom:46px; }
 .mbx-tpct { position:absolute; top:0; transform:translateX(-50%); font-size:11.5px; font-weight:800; color:var(--text); font-variant-numeric:tabular-nums; white-space:nowrap; }
 .mbx-track { position:relative; height:12px; border-radius:7px; background:var(--bg-soft); }
@@ -1844,7 +1841,6 @@ function _statCardHTML(cfg) {
   var scaleMax = Math.max(goal, value, (refFull != null ? refFull * 1.03 : 0)) || 1;
   var pct = function (v) { return 100 * v / scaleMax; };
   var attSelf = goal > 0 ? Math.round(value / goal * 100) : null;
-  var attRef = (refFull != null && goal > 0) ? Math.round(refFull / goal * 100) : null;
   var delta = (refSame != null) ? (value - refSame) : null;
   var dPos = (delta != null && delta >= 0);
   var pillHtml = (delta != null) ? '<span class="mbx-pill ' + (dPos ? 'pos' : 'neg') + '">' + (dPos ? '▲' : '▼') + ' ' + fmtEUR(Math.abs(delta)) + '</span>' : '';
@@ -1876,7 +1872,6 @@ function _statCardHTML(cfg) {
     ? '<div class="mbx-cell over"><div class="mbx-cell-lbl">Dépassement</div><div class="mbx-cell-val">+' + fmtEUR(value - goal) + '</div></div>'
     : '<div></div>';
   var rightCell = '<div class="mbx-cell right"><div class="mbx-cell-lbl">Objectif annuel</div><div class="mbx-cell-val">' + fmtEUR(goal) + '</div></div>';
-  var refHead = (attRef != null) ? '<div class="mbx-ref"><div class="mbx-ref-lbl">Année ' + refYear + '</div><div class="mbx-ref-pct">' + attRef + '%</div></div>' : '';
   var restLine = (!over && goal > 0) ? '<div class="mbx-att-rest"><b>' + fmtEUR(Math.max(0, goal - value)) + '</b> restant pour atteindre ton objectif</div>' : '';
   var attHtml = (attSelf != null) ? '<div class="mbx-att"><div><b style="color:' + accent + '">' + attSelf + '%</b> de l\'objectif atteint</div>' + restLine + '</div>' : '<div>' + restLine + '</div>';
   return '<div class="card statx-card">' +
@@ -1884,7 +1879,7 @@ function _statCardHTML(cfg) {
     '<div class="mbx-heroline"><div class="mbx-hero">' + fmtEUR(value) + '</div>' + pillHtml + '</div>' +
     ctxHtml +
     '<div class="mbx-div"></div>' +
-    '<div class="mbx-prog-head">' + attHtml + refHead + '</div>' +
+    '<div class="mbx-prog-head">' + attHtml + '</div>' +
     '<div class="mbx-bar">' + tpcts + '<div class="mbx-track"><div class="mbx-fill" style="width:' + fillW + '%; background:' + accent + '"></div>' + overHtml + ticks + '</div>' + tlabels + '</div>' +
     '<div class="mbx-foot">' + leftCell + rightCell + '</div>' +
     _miniBars(cfg.monthly, cfg.barColor, cfg.caption) +
@@ -2618,7 +2613,7 @@ document.getElementById('welcome-back').addEventListener('click', function () {
 })();
 
 // Mise à jour automatique : si le fichier hébergé est plus récent, on recharge la dernière version
-var APP_VERSION = "20260722-135422";
+var APP_VERSION = "20260722-140156";
 function showUpdateBanner(base, v) {
   if (document.getElementById('update-banner')) return;
   var d = document.createElement('div');
