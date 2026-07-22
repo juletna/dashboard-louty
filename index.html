@@ -398,6 +398,25 @@
   @media (max-width: 700px) {
     #bloc-sante .grid.grid-3 > .kpi + .kpi { border-left: none; border-top: 1px solid var(--border); }
   }
+  /* Santé sur une seule ligne : jauge (2/5) + 3 KPI (1/5 chacun) */
+  .sante-oneline { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; align-items: center; margin-top: 8px; }
+  .sante-oneline > * { min-width: 0; }
+  .sante-oneline > * + * { border-left: 1px solid var(--border); padding-left: 24px; }
+  .sante-oneline .sante-gauge { padding-right: 12px; }
+  .sante-oneline .kpi { padding: 2px 0 2px 24px; }
+  .sante-oneline .pn-bar { margin: 12px 0 10px; }
+  @media (max-width: 900px) {
+    .sante-oneline { grid-template-columns: 1fr 1fr; row-gap: 18px; }
+    .sante-oneline .sante-gauge { grid-column: 1 / -1; padding-right: 0; }
+    .sante-oneline > * + * { border-left: none; padding-left: 0; }
+    .sante-oneline .kpi { padding: 0 18px; }
+    .sante-oneline .kpi:nth-child(3) { border-right: 1px solid var(--border); }
+  }
+  @media (max-width: 520px) {
+    .sante-oneline { grid-template-columns: 1fr; }
+    .sante-oneline .kpi { padding: 12px 0 0; border-top: 1px solid var(--border); }
+    .sante-oneline .kpi:nth-child(3) { border-right: none; }
+  }
   /* Titres de section : sans tiret, casse normale, plus gros, foncés, arrondis */
   h3 { display: block; font-size: 17px; font-weight: 800; color: var(--text); text-transform: none; letter-spacing: -0.015em; }
   h3::before { content: none; display: none; }
@@ -2182,20 +2201,23 @@ function renderSante(data, cur) {
   wrap.innerHTML =
     '<div class="card sante-card">' +
       '<h3>Santé financière<span class="sp-help" data-tip="Photo de ta trésorerie à la date de la balance : ce qui est vraiment à toi (position nette) une fois les dettes exigibles retirées, plus tes réserves, créances et résultat.">?</span></h3>' +
-      '<div class="pn-top">' +
-        '<div><div class="pn-label">Trésorerie</div><div class="pn-value">' + fmtEUR(treso) + '</div></div>' +
+      '<div class="sante-oneline">' +
+        '<div class="sante-gauge">' +
+          '<div class="pn-top">' +
+            '<div><div class="pn-label">Trésorerie</div><div class="pn-value">' + fmtEUR(treso) + '</div></div>' +
+          '</div>' +
+          '<div class="pn-bar" title="Trésorerie ' + fmtEUR(treso) + ' = Position nette ' + fmtEUR(position) + ' + Dettes exigibles ' + fmtEUR(dexpl) + '">' +
+            '<div class="pn-seg pn-pos" style="width:' + posW + '%"></div>' +
+            '<div class="pn-seg pn-debt" style="width:' + debtW + '%"></div>' +
+          '</div>' +
+          '<div class="pn-legend">' +
+            '<span class="pn-leg"><span class="pn-dot pos"></span>Position nette <strong>' + fmtEUR(position) + '</strong></span>' +
+            '<span class="pn-leg"><span class="pn-dot debt"></span>Dettes exigibles <strong>' + fmtEUR(dexpl) + '</strong></span>' +
+          '</div>' +
+          detailBlock +
+        '</div>' +
+        kpis +
       '</div>' +
-      '<div class="pn-bar" title="Trésorerie ' + fmtEUR(treso) + ' = Position nette ' + fmtEUR(position) + ' + Dettes exigibles ' + fmtEUR(dexpl) + '">' +
-        '<div class="pn-seg pn-pos" style="width:' + posW + '%"></div>' +
-        '<div class="pn-seg pn-debt" style="width:' + debtW + '%"></div>' +
-      '</div>' +
-      '<div class="pn-legend">' +
-        '<span class="pn-leg"><span class="pn-dot pos"></span>Position nette <strong>' + fmtEUR(position) + '</strong></span>' +
-        '<span class="pn-leg"><span class="pn-dot debt"></span>Dettes exigibles <strong>' + fmtEUR(dexpl) + '</strong></span>' +
-      '</div>' +
-      detailBlock +
-      '<div class="sante-div"></div>' +
-      '<div class="grid grid-3">' + kpis + '</div>' +
     '</div>';
   var _tog = wrap.querySelector('.sante-detail-toggle');
   if (_tog) _tog.addEventListener('click', function () {
@@ -2580,7 +2602,7 @@ document.getElementById('welcome-back').addEventListener('click', function () {
 })();
 
 // Mise à jour automatique : si le fichier hébergé est plus récent, on recharge la dernière version
-var APP_VERSION = "20260722-132314";
+var APP_VERSION = "20260722-134001";
 function showUpdateBanner(base, v) {
   if (document.getElementById('update-banner')) return;
   var d = document.createElement('div');
