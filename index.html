@@ -1852,7 +1852,7 @@ function _statCardHTML(cfg) {
   var overHtml = over ? '<div class="mbx-over" style="left:' + pct(goal) + '%; width:' + pct(value - goal) + '%"></div>' : '';
   var ticks = '', tlabels = '', tpcts = '';
   var pctOfGoal = function (v) { return (goal > 0) ? Math.round(v / goal * 100) + '%' : ''; };
-  var refLbl = (cfg.shortLabel && refYear) ? (cfg.shortLabel + ' ' + refYear) : '';
+  var refLbl = (cfg.shortLabel && refYear) ? ('Total ' + cfg.shortLabel + ' ' + refYear) : '';
   if (refSame != null) {
     ticks += '<div class="mbx-tick white" style="left:' + pct(refSame) + '%"></div>';
     if (pctOfGoal(refSame)) tpcts += '<div class="mbx-tpct" style="left:' + pct(refSame) + '%">' + pctOfGoal(refSame) + '</div>';
@@ -2641,7 +2641,7 @@ document.getElementById('welcome-back').addEventListener('click', function () {
 })();
 
 // Mise à jour automatique : si le fichier hébergé est plus récent, on recharge la dernière version
-var APP_VERSION = "20260722-171646";
+var APP_VERSION = "20260722-172013";
 function showUpdateBanner(base, v) {
   if (document.getElementById('update-banner')) return;
   var d = document.createElement('div');
