@@ -594,6 +594,7 @@
 /* Bloc achats : Ratio (1/3) à gauche, Achats vs CA (2/3) à droite */
 .achats-grid { grid-template-columns:minmax(0,1fr) minmax(0,2fr); }
 @media (max-width:900px) { .achats-grid { grid-template-columns:1fr; } }
+.achats-left { display:flex; flex-direction:column; gap:16px; min-width:0; }
 .achats-main { display:flex; flex-direction:column; }
 .achats-main .chart-wrap { flex:1; height:auto; min-height:320px; }
 
@@ -698,9 +699,8 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .mbc-x { display:flex; justify-content:space-between; align-items:baseline; margin-top:9px; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-faint); }
 .mbc-cap { color:var(--text-dim); }
 
-/* Taux de marge brute déplacé dans la carte "Ratio achats / CA" */
+/* Jauge Taux de marge brute (carte dédiée #bloc-taux) */
 .ratio-sub { text-align:center; }
-.ratio-sub-title { font-size:15px; font-weight:800; color:var(--text); letter-spacing:-0.01em; margin-bottom:2px; }
 
 /* === Carte "Santé financière" — un seul accent (icônes + pill Résultat) === */
 /* Valeurs des 3 indicateurs en noir (la couleur ne porte plus de sens sur les montants) */
@@ -824,9 +824,15 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 
 <div id="tab-achats" class="tab-panel" style="display:none">
   <div class="grid achats-grid" style="margin-top:16px; align-items:stretch">
-    <div class="card">
-      <h3>Ratio achats / CA</h3>
-      <div id="blocA"></div>
+    <div class="achats-left">
+      <div class="card">
+        <h3>Ratio achats / CA</h3>
+        <div id="blocA"></div>
+      </div>
+      <div class="card">
+        <h3>Taux de marge brute<span class="sp-help" data-tip="Ta marge brute rapportée au chiffre d'affaires (marge brute ÷ CA). Plus le taux est élevé, plus chaque euro facturé te laisse de marge.">?</span></h3>
+        <div id="bloc-taux"></div>
+      </div>
     </div>
     <div class="card achats-main">
       <h3>Achats vs CA par mois<span class="sp-help" data-tip="Tes achats matières et ton CA mois par mois, plus le ratio achats/CA en %. Les mois surlignés dépassent ton seuil d'alerte.">?</span></h3>
@@ -2071,14 +2077,15 @@ function renderAchats(cy, cur) {
   } else {
     gaugeHtml = '<div class="ratio-big">—</div>';
   }
-  // Taux de marge brute (jauge déplacée ici) : marge brute ÷ CA
+  // Taux de marge brute (marge brute ÷ CA) — rendu dans sa propre carte #bloc-taux
   var taux = cur.taux_mb || 0;
   var tauxOk = taux >= C.TAUX_OBJ;
   var tauxHtml =
     '<div class="ratio-sub">' +
-      '<div class="ratio-sub-title">Taux de marge brute</div>' +
       _tickGauge(taux / 0.80, fmtPct(taux, 1), (tauxOk ? 'objectif atteint' : 'objectif ' + fmtPct(C.TAUX_OBJ, 0))) +
     '</div>';
+  var tauxWrap = document.getElementById('bloc-taux');
+  if (tauxWrap) tauxWrap.innerHTML = tauxHtml;
   wrap.innerHTML =
     gaugeHtml +
     '<div class="ratio-legend">' +
@@ -2087,8 +2094,7 @@ function renderAchats(cy, cur) {
       '<span class="rl-item"><span class="rl-dot" style="background:var(--amber)"></span>À surveiller &lt; ' + fmtPct(C.RATIO_ALERTE, 0) + '</span>' +
       '<span class="rl-item"><span class="rl-dot" style="background:var(--red)"></span>Alerte &gt; ' + fmtPct(C.RATIO_ALERTE, 0) + '</span>' +
     '</div>' +
-    '<table class="mini-annual"><thead><tr><th>Année</th><th>Achats</th><th>Ratio / CA</th></tr></thead><tbody>' + rowsHtml + '</tbody></table>' +
-    '<div class="sante-div"></div>' + tauxHtml;
+    '<table class="mini-annual"><thead><tr><th>Année</th><th>Achats</th><th>Ratio / CA</th></tr></thead><tbody>' + rowsHtml + '</tbody></table>';
 };
 
 // ---- "Tendance achats annuels" : comparaison horizontale (barre + montant + badge ratio) ----
@@ -2607,7 +2613,7 @@ document.getElementById('welcome-back').addEventListener('click', function () {
 })();
 
 // Mise à jour automatique : si le fichier hébergé est plus récent, on recharge la dernière version
-var APP_VERSION = "20260722-134452";
+var APP_VERSION = "20260722-134825";
 function showUpdateBanner(base, v) {
   if (document.getElementById('update-banner')) return;
   var d = document.createElement('div');
