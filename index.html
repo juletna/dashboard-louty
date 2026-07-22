@@ -302,9 +302,9 @@
   #bloc2 .donut-cell { align-items: center; text-align: center; gap: 12px; padding: 22px 18px; }
 
   .repart-legend { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
-  /* La carte donut remplit toute la hauteur (le graphe grandit, la légende reste en bas) */
+  /* La carte donut remplit la hauteur ; le graphe est plafonné pour ne pas devenir trop grand */
   .repart-card { display: flex; flex-direction: column; }
-  .repart-card .chart-wrap { flex: 1; height: auto; min-height: 300px; }
+  .repart-card .chart-wrap { flex: 1; height: auto; min-height: 280px; max-height: 380px; }
   .rl-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
   .rl-dot { width: 11px; height: 11px; border-radius: 4px; flex: none; }
   .rl-lab { flex: 1; color: var(--text-dim); }
@@ -1594,14 +1594,19 @@ function renderCAMB(cy, curYear, years) {
     return Math.max(0, cv - mv);
   });
   const prevYears = Object.keys(years).filter(y => parseInt(y) < parseInt(curYear)).sort();
-  const avgCA = [];
-  for (let m = 0; m < 12; m++) {
-    const vals = prevYears.map(y => years[y].monthly.ca[m]).filter(v => v !== null && v !== undefined);
-    avgCA.push(vals.length ? vals.reduce((a, v) => a + v, 0) / vals.length : null);
-  }
-  const avgLabel = prevYears.length > 1
-    ? 'Moyenne CA ' + prevYears[0] + '–' + prevYears[prevYears.length - 1]
-    : (prevYears.length === 1 ? 'CA ' + prevYears[0] : '');
+  const avgOf = key => {
+    const out = [];
+    for (let m = 0; m < 12; m++) {
+      const vals = prevYears.map(y => years[y].monthly[key][m]).filter(v => v !== null && v !== undefined);
+      out.push(vals.length ? vals.reduce((a, v) => a + v, 0) / vals.length : null);
+    }
+    return out;
+  };
+  const avgCA = avgOf('ca');
+  const avgMB = avgOf('marge_brute');
+  const yrSpan = prevYears.length > 1 ? (prevYears[0] + '–' + prevYears[prevYears.length - 1]) : (prevYears[0] || '');
+  const avgLabel = prevYears.length > 1 ? 'Moyenne CA ' + yrSpan : (prevYears.length === 1 ? 'CA ' + yrSpan : '');
+  const avgLabelMB = prevYears.length > 1 ? 'Moyenne MB ' + yrSpan : (prevYears.length === 1 ? 'MB ' + yrSpan : '');
   var R = 9;
   const datasets = [
     // Marge brute (bas de la pile) : coins bas arrondis, jonction plate
@@ -1613,8 +1618,13 @@ function renderCAMB(cy, curYear, years) {
   ];
   if (prevYears.length) {
     datasets.push({
-      type: 'line', label: avgLabel, data: avgCA,
+      type: 'line', label: avgLabel, data: avgCA, stack: 'avgCA',
       borderColor: COLORS.gray, backgroundColor: 'transparent', borderDash: [5, 4],
+      borderWidth: 2, pointRadius: 0, pointHoverRadius: 6, tension: 0.4, order: 1, spanGaps: true,
+    });
+    datasets.push({
+      type: 'line', label: avgLabelMB, data: avgMB, stack: 'avgMB',
+      borderColor: '#7C5AD6', backgroundColor: 'transparent', borderDash: [5, 4],
       borderWidth: 2, pointRadius: 0, pointHoverRadius: 6, tension: 0.4, order: 1, spanGaps: true,
     });
   }
@@ -2818,7 +2828,7 @@ document.getElementById('welcome-back').addEventListener('click', function () {
 })();
 
 // Mise à jour automatique : si le fichier hébergé est plus récent, on recharge la dernière version
-var APP_VERSION = "20260722-183451";
+var APP_VERSION = "20260722-184456";
 function showUpdateBanner(base, v) {
   if (document.getElementById('update-banner')) return;
   var d = document.createElement('div');
