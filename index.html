@@ -796,10 +796,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 <div id="error" class="error" style="display:none"></div>
 
 <div id="tab-general" class="tab-panel active" style="display:none">
-  <div class="sante-row">
-    <div id="bloc-sante"></div>
-  </div>
-  <div class="grid grid-2 row1" style="margin-top:16px">
+  <div class="grid grid-2 row1">
     <div id="bloc1"></div>
     <div id="bloc-ca"></div>
   </div>
@@ -812,6 +809,9 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
       <h3>Part de la marge brute dans le CA<span class="sp-help" data-tip="Ta marge brute rapportée au CA (marge brute ÷ CA), par année, à la même période (jan → dernier mois renseigné). Plus la barre est longue, plus tu gardes de marge sur ce que tu factures.">?</span></h3>
       <div class="chart-wrap tall"><canvas id="chart-taux-annuel"></canvas></div>
     </div>
+  </div>
+  <div class="sante-row" style="margin-top:16px">
+    <div id="bloc-sante"></div>
   </div>
   <div class="grid grid-2" style="margin-top:16px">
     <div class="card">
@@ -2843,7 +2843,7 @@ document.getElementById('welcome-back').addEventListener('click', function () {
 })();
 
 // Mise à jour automatique : si le fichier hébergé est plus récent, on recharge la dernière version
-var APP_VERSION = "20260722-190200";
+var APP_VERSION = "20260722-191051";
 function showUpdateBanner(base, v) {
   if (document.getElementById('update-banner')) return;
   var d = document.createElement('div');
