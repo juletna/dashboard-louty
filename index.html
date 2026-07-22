@@ -800,20 +800,18 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
     <div id="bloc1"></div>
     <div id="bloc-ca"></div>
   </div>
-  <div class="sante-row" style="margin-top:16px">
-    <div id="bloc-sante"></div>
-  </div>
   <div class="grid grid-2" style="margin-top:16px">
     <div class="card">
       <h3>Marge brute mensuelle<span class="sp-help" data-tip="Ta marge brute mois par mois (barres) : rouge = mois négatif, orange = sous ton seuil de salaire, vert = au-dessus. La ligne orange est ton seuil salaire brut ; la courbe grise, la moyenne des années précédentes.">?</span></h3>
       <div class="chart-wrap tall"><canvas id="chart-mb"></canvas></div>
-      
     </div>
     <div class="card">
-      <h3>Marge brute cumulée — 2026 vs moyenne 2024–2025<span class="sp-help" data-tip="Chaque courbe est le cumul de marge brute mois après mois. Comparer 2026 à la moyenne des années précédentes au même moment de l'année = vrai signal, sans biais de saisonnalité. La droite pointillée est le rythme à tenir pour l'objectif annuel.">?</span></h3>
-      <div class="chart-wrap tall"><canvas id="chart-cumul"></canvas></div>
-      
+      <h3>Chiffre d'affaires mensuel<span class="sp-help" data-tip="Ton chiffre d'affaires mois par mois (barres), avec en repère la courbe grise : moyenne des années précédentes au même mois.">?</span></h3>
+      <div class="chart-wrap tall"><canvas id="chart-ca-mensuel"></canvas></div>
     </div>
+  </div>
+  <div class="sante-row" style="margin-top:16px">
+    <div id="bloc-sante"></div>
   </div>
   <div style="margin-top:16px">
     <div class="card">
@@ -1469,7 +1467,7 @@ function render(data) {
   renderTableCmp(cy, py, cur);
   renderRepartYears(cur, years);
   renderMonthlyChart(cy, years, currentYear);
-  renderCumulChart(years, currentYear);
+  renderCAMensuel(cy, years, currentYear);
   renderWaterfall(cur, cy);
 
   renderAchats(cy, cur);
@@ -1571,6 +1569,52 @@ function renderMonthlyChart(cy, years, curYear) {
         ctx.restore();
       }
     }],
+  });
+}
+// Chiffre d'affaires mensuel (barres) + moyenne des années précédentes (courbe grise)
+function renderCAMensuel(cy, years, curYear) {
+  const labels = MONTH_NAMES;
+  const caOrig = cy.monthly.ca;
+  const caCy = caOrig.map(v => v === null ? 0 : v);
+  const colors = caOrig.map(v => v === null ? COLORS.gray : COLORS.blue);
+  const prevYears = Object.keys(years).filter(y => parseInt(y) < parseInt(curYear)).sort();
+  const avgPrev = [];
+  for (let m = 0; m < 12; m++) {
+    const vals = prevYears.map(y => years[y].monthly.ca[m]).filter(v => v !== null && v !== undefined);
+    avgPrev.push(vals.length ? vals.reduce((a, v) => a + v, 0) / vals.length : null);
+  }
+  const avgLabel = prevYears.length > 1
+    ? 'Moyenne ' + prevYears[0] + '–' + prevYears[prevYears.length - 1]
+    : (prevYears.length === 1 ? 'CA ' + prevYears[0] : '');
+  const datasets = [
+    { type: 'bar', label: 'CA ' + curYear, data: caCy, backgroundColor: colors, borderColor: colors, borderWidth: 1, order: 2 }
+  ];
+  if (prevYears.length) {
+    datasets.push({
+      type: 'line', label: avgLabel, data: avgPrev,
+      borderColor: COLORS.gray, backgroundColor: 'transparent',
+      borderWidth: 2, pointRadius: 0, pointHoverRadius: 6, tension: 0.4, order: 1, spanGaps: true,
+    });
+  }
+  makeChart('chart-ca-mensuel', {
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      scales: { y: { beginAtZero: true, ticks: { callback: v => fmtEUR(v) } } },
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            afterLabel: (ctx) => {
+              if (ctx.datasetIndex !== 0) return '';
+              const m = ctx.dataIndex;
+              return (avgPrev[m] !== null && avgPrev[m] !== undefined) ? (avgLabel + ': ' + fmtEUR(avgPrev[m])) : '';
+            }
+          }
+        }
+      }
+    }
   });
 }
 function renderCumulChart(years, currentYear) {
@@ -1897,7 +1941,6 @@ function _statCardHTML(cfg) {
     '<div class="mbx-prog-head">' + attHtml + objHead + '</div>' +
     '<div class="mbx-bar">' + tpcts + '<div class="mbx-track"><div class="mbx-fill" style="width:' + fillW + '%; background:' + accent + '"></div>' + overHtml + ticks + '</div>' + tlabels + '</div>' +
     (deptCell ? '<div class="mbx-foot">' + deptCell + '</div>' : '') +
-    _miniBars(cfg.monthly, cfg.barColor, cfg.caption) +
     '</div>';
 }
 
@@ -2268,6 +2311,7 @@ function renderTableCmp(cy, py, cur) {
     { label: "Chiffre d'affaires", key: 'ca' },
     { label: "Marge brute", key: 'marge_brute' },
     { label: "Achats matières", key: 'achats_matieres' },
+    { label: "Salaire (rémunérations)", key: 'remunerations' },
     { label: "Charges de fonctionnement", key: 'charges_fonct' },
     { label: "Frais kilométriques", key: 'frais_km' },
     { label: "Contribution coopérative", key: 'contribution_coop' }
@@ -2713,7 +2757,7 @@ document.getElementById('welcome-back').addEventListener('click', function () {
 })();
 
 // Mise à jour automatique : si le fichier hébergé est plus récent, on recharge la dernière version
-var APP_VERSION = "20260722-175622";
+var APP_VERSION = "20260722-180350";
 function showUpdateBanner(base, v) {
   if (document.getElementById('update-banner')) return;
   var d = document.createElement('div');
