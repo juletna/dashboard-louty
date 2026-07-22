@@ -1866,12 +1866,10 @@ function _statCardHTML(cfg) {
     ticks += '<div class="mbx-tick white" style="left:' + pct(goal) + '%"></div>';
     tlabels += '<div class="mbx-tlabel" style="left:' + pct(goal) + '%"><div class="mbx-tl-eur" style="font-weight:700; color:var(--text-dim)">objectif</div></div>';
   }
-  // Dépassement affiché en bas quand l'objectif est atteint ; sinon le "reste" est
-  // remonté sous le pourcentage (espaceur vide en bas pour garder l'objectif à droite).
-  var leftCell = over
-    ? '<div class="mbx-cell over"><div class="mbx-cell-lbl">Dépassement</div><div class="mbx-cell-val">+' + fmtEUR(value - goal) + '</div></div>'
-    : '<div></div>';
-  var rightCell = '<div class="mbx-cell right"><div class="mbx-cell-lbl">Objectif annuel</div><div class="mbx-cell-val">' + fmtEUR(goal) + '</div></div>';
+  // Objectif annuel remonté en haut à droite (aligné avec le bloc "% atteint / reste").
+  // Le dépassement, lui, reste affiché sous la barre quand l'objectif est atteint.
+  var objHead = '<div class="mbx-cell right"><div class="mbx-cell-lbl">Objectif annuel</div><div class="mbx-cell-val">' + fmtEUR(goal) + '</div></div>';
+  var deptCell = over ? '<div class="mbx-cell over"><div class="mbx-cell-lbl">Dépassement</div><div class="mbx-cell-val">+' + fmtEUR(value - goal) + '</div></div>' : '';
   var restLine = (!over && goal > 0) ? '<div class="mbx-att-rest"><b>' + fmtEUR(Math.max(0, goal - value)) + '</b> restant pour atteindre ton objectif</div>' : '';
   var attHtml = (attSelf != null) ? '<div class="mbx-att"><div><b style="color:' + accent + '">' + attSelf + '%</b> de l\'objectif atteint</div>' + restLine + '</div>' : '<div>' + restLine + '</div>';
   return '<div class="card statx-card">' +
@@ -1879,9 +1877,9 @@ function _statCardHTML(cfg) {
     '<div class="mbx-heroline"><div class="mbx-hero">' + fmtEUR(value) + '</div>' + pillHtml + '</div>' +
     ctxHtml +
     '<div class="mbx-div"></div>' +
-    '<div class="mbx-prog-head">' + attHtml + '</div>' +
+    '<div class="mbx-prog-head">' + attHtml + objHead + '</div>' +
     '<div class="mbx-bar">' + tpcts + '<div class="mbx-track"><div class="mbx-fill" style="width:' + fillW + '%; background:' + accent + '"></div>' + overHtml + ticks + '</div>' + tlabels + '</div>' +
-    '<div class="mbx-foot">' + leftCell + rightCell + '</div>' +
+    (deptCell ? '<div class="mbx-foot">' + deptCell + '</div>' : '') +
     _miniBars(cfg.monthly, cfg.barColor, cfg.caption) +
     '</div>';
 }
@@ -2613,7 +2611,7 @@ document.getElementById('welcome-back').addEventListener('click', function () {
 })();
 
 // Mise à jour automatique : si le fichier hébergé est plus récent, on recharge la dernière version
-var APP_VERSION = "20260722-140156";
+var APP_VERSION = "20260722-162129";
 function showUpdateBanner(base, v) {
   if (document.getElementById('update-banner')) return;
   var d = document.createElement('div');
