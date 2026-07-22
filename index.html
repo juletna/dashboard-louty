@@ -1597,9 +1597,14 @@ function renderCAMB(cy, curYear, years) {
   const avgLabel = prevYears.length > 1
     ? 'Moyenne CA ' + prevYears[0] + '–' + prevYears[prevYears.length - 1]
     : (prevYears.length === 1 ? 'CA ' + prevYears[0] : '');
+  var R = 9;
   const datasets = [
-    { type: 'bar', label: 'Marge brute', data: mb, backgroundColor: COLORS.green, stack: 's', order: 3 },
-    { type: 'bar', label: 'Achats & coûts (reste du CA)', data: reste, backgroundColor: COLORS.red, stack: 's', order: 3 }
+    // Marge brute (bas de la pile) : coins bas arrondis, jonction plate
+    { type: 'bar', label: 'Marge brute', data: mb, backgroundColor: COLORS.green, stack: 's', order: 3,
+      borderRadius: { topLeft: 0, topRight: 0, bottomLeft: R, bottomRight: R }, borderSkipped: false },
+    // Achats & coûts (haut de la pile) : coins haut arrondis, jonction plate
+    { type: 'bar', label: 'Achats & coûts (reste du CA)', data: reste, backgroundColor: COLORS.red, stack: 's', order: 3,
+      borderRadius: { topLeft: R, topRight: R, bottomLeft: 0, bottomRight: 0 }, borderSkipped: false }
   ];
   if (prevYears.length) {
     datasets.push({
@@ -2769,7 +2774,7 @@ document.getElementById('welcome-back').addEventListener('click', function () {
 })();
 
 // Mise à jour automatique : si le fichier hébergé est plus récent, on recharge la dernière version
-var APP_VERSION = "20260722-182317";
+var APP_VERSION = "20260722-182910";
 function showUpdateBanner(base, v) {
   if (document.getElementById('update-banner')) return;
   var d = document.createElement('div');
