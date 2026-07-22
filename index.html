@@ -302,6 +302,9 @@
   #bloc2 .donut-cell { align-items: center; text-align: center; gap: 12px; padding: 22px 18px; }
 
   .repart-legend { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+  /* La carte donut remplit toute la hauteur (le graphe grandit, la légende reste en bas) */
+  .repart-card { display: flex; flex-direction: column; }
+  .repart-card .chart-wrap { flex: 1; height: auto; min-height: 300px; }
   .rl-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
   .rl-dot { width: 11px; height: 11px; border-radius: 4px; flex: none; }
   .rl-lab { flex: 1; color: var(--text-dim); }
@@ -816,8 +819,8 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
       <div class="chart-wrap tall"><canvas id="chart-cumul"></canvas></div>
     </div>
   </div>
-  <div class="grid grid-2" style="margin-top:16px; align-items:start">
-    <div class="card">
+  <div class="grid grid-2" style="margin-top:16px; align-items:stretch">
+    <div class="card repart-card">
       <h3>Répartition du chiffre d'affaires<span class="sp-help" data-tip="Où va ton CA cumulé : achats, salaire, charges, contribution coopérative, frais km, et ce qu'il reste (résultat). Les deux badges du haut comparent CA et coûts à la même période l'an dernier.">?</span></h3>
       <div id="repart-kpis" class="repart-kpis"></div>
       <div class="chart-wrap tall"><canvas id="chart-waterfall"></canvas></div>
@@ -827,7 +830,6 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
       <div class="card">
         <h3>Répartition du CA par année<span class="sp-help" data-tip="Comment se répartit chaque euro de CA (achats, salaire, charges, contribution coopérative, frais km, résultat) pour chaque année, à la même période (jan → dernier mois renseigné). Barres normalisées à 100 % pour comparer les parts.">?</span></h3>
         <div class="chart-wrap" style="height:210px"><canvas id="chart-repart-years"></canvas></div>
-        <div class="rl-cap" id="repart-years-cap" style="margin-top:12px"></div>
       </div>
       <div class="card">
         <h3>Tableau comparatif N-1 / N<span class="sp-help" data-tip="Tes indicateurs 2026 (à date) face à la même période de l'an dernier, avec l'écart et, en repère, le total de l'année précédente.">?</span></h3>
@@ -2396,7 +2398,8 @@ function renderRepartYears(cur, years) {
     { label: 'Contribution coop.', col: COLORS.teal, val: function (y) { return same(y, 'contribution_coop'); } },
     { label: 'Résultat', col: COLORS.green, val: function (y) { return same(y, 'ca') - same(y, 'achats_matieres') - same(y, 'remunerations') - same(y, 'charges_fonct') - same(y, 'contribution_coop'); } }
   ];
-  var labels = order.map(function (yk) { return yk === cur.year ? yk + ' (à date)' : yk; });
+  var moisLbl = (MONTH_NAMES[n - 1] || '').toLowerCase();
+  var labels = order.map(function (yk) { return yk === cur.year ? yk + ' (à date)' : yk + ' (jan-' + moisLbl + ')'; });
   // matrice valeurs brutes [année][catégorie], puis normalisation en % (part positive de chaque année)
   var raw = order.map(function (yk) { return cats.map(function (c) { return c.val(years[yk]); }); });
   var totals = raw.map(function (vals) { return vals.reduce(function (a, v) { return a + Math.max(0, v); }, 0); });
@@ -2429,8 +2432,6 @@ function renderRepartYears(cur, years) {
       }
     }
   });
-  var cap = document.getElementById('repart-years-cap');
-  if (cap) cap.textContent = 'Part de chaque poste dans le CA · même période (jan → ' + (MONTH_NAMES[n - 1] || '') + ')';
 }
 
 // ---- Thème clair / sombre (manuel + mémorisé) ----
@@ -2768,7 +2769,7 @@ document.getElementById('welcome-back').addEventListener('click', function () {
 })();
 
 // Mise à jour automatique : si le fichier hébergé est plus récent, on recharge la dernière version
-var APP_VERSION = "20260722-181800";
+var APP_VERSION = "20260722-182317";
 function showUpdateBanner(base, v) {
   if (document.getElementById('update-banner')) return;
   var d = document.createElement('div');
