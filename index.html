@@ -447,6 +447,8 @@
 }
 .data-status svg { width:15px; height:15px; color:var(--text-faint); flex:none; }
 .data-status strong { color:var(--text); font-weight:800; }
+.ds-lines { display:flex; flex-direction:column; line-height:1.35; }
+.ds-bal { font-size:11px; font-weight:600; color:var(--text-faint); }
 .btn {
   display:inline-flex; align-items:center; gap:7px; cursor:pointer;
   font-family:inherit; font-weight:700; font-size:13px; color:var(--text);
@@ -755,7 +757,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
     </div>
     <div class="topbar-actions">
       <div class="data-status" id="data-status" style="display:none" title="Tes données sont mémorisées sur cet ordinateur — inutile de les re-déposer à chaque ouverture.">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg><span><span id="ds-label">Généré le</span> <strong id="ds-date">—</strong></span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg><div class="ds-lines"><span><span id="ds-label">Généré le</span> <strong id="ds-date">—</strong></span><span id="ds-bal" class="ds-bal" style="display:none"></span></div>
       </div>
       <button class="btn ghost" id="change-file" style="display:none" title="Déposer des exports Louty plus récents"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.5 9a9 9 0 0 1 14.9-3.4L23 10M1 14l4.6 4.4A9 9 0 0 0 20.5 15"/></svg><span>Mettre à jour</span></button>
       <button class="btn btn-icon" id="toggle-theme" title="Basculer clair / sombre"></button>
@@ -795,18 +797,24 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
     <div id="bloc1"></div>
     <div id="bloc-ca"></div>
   </div>
+  <div style="margin-top:16px">
+    <div class="card">
+      <h3>Chiffre d'affaires &amp; marge brute mensuels<span class="sp-help" data-tip="Chaque barre = ton CA du mois, décomposé en marge brute (vert, ce qui te reste) et achats &amp; coûts (rouge, le reste du CA). La courbe grise en pointillés est la moyenne du CA des années précédentes au même mois.">?</span></h3>
+      <div class="chart-wrap tall"><canvas id="chart-ca-mb"></canvas></div>
+    </div>
+  </div>
+  <div class="sante-row" style="margin-top:16px">
+    <div id="bloc-sante"></div>
+  </div>
   <div class="grid grid-2" style="margin-top:16px">
     <div class="card">
       <h3>Marge brute mensuelle<span class="sp-help" data-tip="Ta marge brute mois par mois (barres) : rouge = mois négatif, orange = sous ton seuil de salaire, vert = au-dessus. La ligne orange est ton seuil salaire brut ; la courbe grise, la moyenne des années précédentes.">?</span></h3>
       <div class="chart-wrap tall"><canvas id="chart-mb"></canvas></div>
     </div>
     <div class="card">
-      <h3>Chiffre d'affaires mensuel<span class="sp-help" data-tip="Ton chiffre d'affaires mois par mois (barres), avec en repère la courbe grise : moyenne des années précédentes au même mois.">?</span></h3>
-      <div class="chart-wrap tall"><canvas id="chart-ca-mensuel"></canvas></div>
+      <h3>Marge brute cumulée — 2026 vs moyenne 2024–2025<span class="sp-help" data-tip="Chaque courbe est le cumul de marge brute mois après mois. Comparer 2026 à la moyenne des années précédentes au même moment de l'année = vrai signal, sans biais de saisonnalité. La droite pointillée est le rythme à tenir pour l'objectif annuel.">?</span></h3>
+      <div class="chart-wrap tall"><canvas id="chart-cumul"></canvas></div>
     </div>
-  </div>
-  <div class="sante-row" style="margin-top:16px">
-    <div id="bloc-sante"></div>
   </div>
   <div class="grid grid-2" style="margin-top:16px; align-items:start">
     <div class="card">
@@ -1461,8 +1469,9 @@ function render(data) {
   renderSante(data, cur);
   renderTableCmp(cy, py, cur);
   renderRepartYears(cur, years);
+  renderCAMB(cy, currentYear, years);
   renderMonthlyChart(cy, years, currentYear);
-  renderCAMensuel(cy, years, currentYear);
+  renderCumulChart(years, currentYear);
   renderWaterfall(cur, cy);
 
   renderAchats(cy, cur);
@@ -1566,45 +1575,51 @@ function renderMonthlyChart(cy, years, curYear) {
     }],
   });
 }
-// Chiffre d'affaires mensuel (barres) + moyenne des années précédentes (courbe grise)
-function renderCAMensuel(cy, years, curYear) {
+// Graphe fusionné : CA mensuel en barres empilées (marge brute + reste du CA) + moyenne CA des années préc.
+function renderCAMB(cy, curYear, years) {
   const labels = MONTH_NAMES;
-  const caOrig = cy.monthly.ca;
-  const caCy = caOrig.map(v => v === null ? 0 : v);
-  const colors = caOrig.map(v => v === null ? COLORS.gray : COLORS.blue);
+  const caArr = cy.monthly.ca;
+  const mbArr = cy.monthly.marge_brute;
+  const mb = caArr.map((c, i) => (c === null && mbArr[i] === null) ? null : (mbArr[i] === null ? 0 : mbArr[i]));
+  const reste = caArr.map((c, i) => {
+    if (c === null && mbArr[i] === null) return null;
+    const cv = c === null ? 0 : c, mv = mbArr[i] === null ? 0 : mbArr[i];
+    return Math.max(0, cv - mv);
+  });
   const prevYears = Object.keys(years).filter(y => parseInt(y) < parseInt(curYear)).sort();
-  const avgPrev = [];
+  const avgCA = [];
   for (let m = 0; m < 12; m++) {
     const vals = prevYears.map(y => years[y].monthly.ca[m]).filter(v => v !== null && v !== undefined);
-    avgPrev.push(vals.length ? vals.reduce((a, v) => a + v, 0) / vals.length : null);
+    avgCA.push(vals.length ? vals.reduce((a, v) => a + v, 0) / vals.length : null);
   }
   const avgLabel = prevYears.length > 1
-    ? 'Moyenne ' + prevYears[0] + '–' + prevYears[prevYears.length - 1]
+    ? 'Moyenne CA ' + prevYears[0] + '–' + prevYears[prevYears.length - 1]
     : (prevYears.length === 1 ? 'CA ' + prevYears[0] : '');
   const datasets = [
-    { type: 'bar', label: 'CA ' + curYear, data: caCy, backgroundColor: colors, borderColor: colors, borderWidth: 1, order: 2 }
+    { type: 'bar', label: 'Marge brute', data: mb, backgroundColor: COLORS.green, stack: 's', order: 3 },
+    { type: 'bar', label: 'Achats & coûts (reste du CA)', data: reste, backgroundColor: COLORS.red, stack: 's', order: 3 }
   ];
   if (prevYears.length) {
     datasets.push({
-      type: 'line', label: avgLabel, data: avgPrev,
-      borderColor: COLORS.gray, backgroundColor: 'transparent',
+      type: 'line', label: avgLabel, data: avgCA,
+      borderColor: COLORS.gray, backgroundColor: 'transparent', borderDash: [5, 4],
       borderWidth: 2, pointRadius: 0, pointHoverRadius: 6, tension: 0.4, order: 1, spanGaps: true,
     });
   }
-  makeChart('chart-ca-mensuel', {
+  makeChart('chart-ca-mb', {
     data: { labels, datasets },
     options: {
       responsive: true, maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
-      scales: { y: { beginAtZero: true, ticks: { callback: v => fmtEUR(v) } } },
+      scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: { callback: v => fmtEUR(v) } } },
       plugins: {
         legend: { position: 'bottom', labels: { font: { size: 11 } } },
         tooltip: {
           callbacks: {
-            afterLabel: (ctx) => {
-              if (ctx.datasetIndex !== 0) return '';
-              const m = ctx.dataIndex;
-              return (avgPrev[m] !== null && avgPrev[m] !== undefined) ? (avgLabel + ': ' + fmtEUR(avgPrev[m])) : '';
+            afterBody: (items) => {
+              const i = items[0].dataIndex;
+              const cv = caArr[i];
+              return cv != null ? 'CA total : ' + fmtEUR(cv) : '';
             }
           }
         }
@@ -2262,11 +2277,10 @@ function renderSante(data, cur) {
     ? '<div class="sante-detail"><button type="button" class="sante-detail-toggle">Détail des dettes exigibles →</button><div class="sante-detail-body" style="display:none">' + detailHTML + '</div></div>'
     : '';
 
-  var balExport = data.bal_export_iso ? fmtDateTime(data.bal_export_iso) : null;
   wrap.innerHTML =
     '<div class="card sante-card">' +
       '<h3>Santé financière<span class="sp-help" data-tip="Photo de ta trésorerie à la date de la balance : ce qui est vraiment à toi (position nette) une fois les dettes exigibles retirées, plus tes réserves, créances et résultat.">?</span>' +
-        (balExport ? '<span class="sante-asof">Balance exportée le ' + balExport + (asOfDate !== '—' ? ' · arrêtée au ' + asOfDate : '') + '</span>' : '') +
+        (asOfDate !== '—' ? '<span class="sante-asof">Balance arrêtée au ' + asOfDate + '</span>' : '') +
       '</h3>' +
       '<div class="sante-oneline">' +
         '<div class="sante-gauge">' +
@@ -2519,22 +2533,24 @@ function fmtDateTime(iso) {
          ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 }
 
-// Met en avant la date d'export Louty dans la barre du haut (déduite du nom de fichier RES,
-// à défaut la date de dépôt). Le survol détaille l'export de chaque fichier.
+// Affiche dans la barre du haut la date d'export Louty de chaque fichier (déduite du nom).
+// Les dates sont re-dérivées du nom si absentes (données mémorisées avant cette fonctionnalité).
 function updateDataStatus(data) {
+  if (!data.res_export_iso && data.res_name) data.res_export_iso = parseExportDate(data.res_name);
+  if (!data.bal_export_iso && data.bal_name) data.bal_export_iso = parseExportDate(data.bal_name);
   var ds = document.getElementById('ds-date');
   var lab = document.getElementById('ds-label');
+  var dsBal = document.getElementById('ds-bal');
   var box = document.getElementById('data-status');
   var iso = data.res_export_iso || data.file_mtime_iso;
   if (ds && iso) ds.textContent = fmtDateTime(iso);
-  if (lab) lab.textContent = data.res_export_iso ? 'Export Louty du' : 'Généré le';
+  if (lab) lab.textContent = data.res_export_iso ? 'Résultat d\'Activité exporté le' : 'Généré le';
+  if (dsBal) {
+    if (data.bal_export_iso) { dsBal.textContent = 'Balance exportée le ' + fmtDateTime(data.bal_export_iso); dsBal.style.display = ''; }
+    else { dsBal.style.display = 'none'; }
+  }
   if (box) {
-    var parts = [];
-    if (data.res_export_iso) parts.push('Résultat d\'Activité exporté le ' + fmtDateTime(data.res_export_iso));
-    if (data.bal_export_iso) parts.push('Balance exportée le ' + fmtDateTime(data.bal_export_iso));
-    box.title = parts.length
-      ? parts.join('\n') + '\n(déduit du nom de fichier Louty · données mémorisées sur cet ordinateur)'
-      : 'Tes données sont mémorisées sur cet ordinateur — inutile de les re-déposer à chaque ouverture.';
+    box.title = 'Dates d\'export Louty déduites du nom de fichier · données mémorisées sur cet ordinateur.';
     box.style.display = 'inline-flex';
   }
 }
@@ -2752,7 +2768,7 @@ document.getElementById('welcome-back').addEventListener('click', function () {
 })();
 
 // Mise à jour automatique : si le fichier hébergé est plus récent, on recharge la dernière version
-var APP_VERSION = "20260722-180913";
+var APP_VERSION = "20260722-181800";
 function showUpdateBanner(base, v) {
   if (document.getElementById('update-banner')) return;
   var d = document.createElement('div');
