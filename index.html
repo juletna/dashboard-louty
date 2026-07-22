@@ -672,14 +672,15 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .mbx-ref { text-align:right; flex:none; }
 .mbx-ref-lbl { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-faint); }
 .mbx-ref-pct { font-size:18px; font-weight:800; color:var(--text); margin-top:2px; }
-.mbx-bar { position:relative; padding-top:4px; padding-bottom:46px; }
+.mbx-bar { position:relative; padding-top:24px; padding-bottom:46px; }
+.mbx-tpct { position:absolute; top:0; transform:translateX(-50%); font-size:11.5px; font-weight:800; color:var(--text); font-variant-numeric:tabular-nums; white-space:nowrap; }
 .mbx-track { position:relative; height:12px; border-radius:7px; background:var(--bg-soft); }
 .mbx-fill { position:absolute; top:0; bottom:0; left:0; background:#7C5AD6; border-radius:7px; }
 .mbx-over { position:absolute; top:0; bottom:0; background:var(--green); border-radius:0 7px 7px 0; }
 .mbx-tick { position:absolute; top:50%; width:4px; height:22px; transform:translate(-50%,-50%); border-radius:2px; }
 .mbx-tick.black { background:var(--text); z-index:3; }
 .mbx-tick.white { background:#fff; box-shadow:0 0 0 1.5px rgba(0,0,0,0.16); z-index:4; }
-.mbx-tlabel { position:absolute; top:26px; transform:translateX(-50%); text-align:center; white-space:nowrap; }
+.mbx-tlabel { position:absolute; top:46px; transform:translateX(-50%); text-align:center; white-space:nowrap; }
 .mbx-tl-eur { font-size:12.5px; font-weight:800; color:var(--text); font-variant-numeric:tabular-nums; }
 .mbx-tl-desc { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-faint); margin-top:2px; }
 .mbx-foot { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; }
@@ -1852,14 +1853,18 @@ function _statCardHTML(cfg) {
   var accent = cfg.barColor || '#7C5AD6';
   var fillW = pct(Math.min(value, goal));
   var overHtml = over ? '<div class="mbx-over" style="left:' + pct(goal) + '%; width:' + pct(value - goal) + '%"></div>' : '';
-  var ticks = '', tlabels = '';
+  var ticks = '', tlabels = '', tpcts = '';
+  var pctOfGoal = function (v) { return (goal > 0) ? Math.round(v / goal * 100) + '%' : ''; };
+  var refLbl = (cfg.shortLabel && refYear) ? (cfg.shortLabel + ' ' + refYear) : '';
   if (refSame != null) {
     ticks += '<div class="mbx-tick white" style="left:' + pct(refSame) + '%"></div>';
-    tlabels += '<div class="mbx-tlabel" style="left:' + pct(refSame) + '%"><div class="mbx-tl-eur">' + fmtEUR(refSame) + '</div><div class="mbx-tl-desc">Même période</div></div>';
+    if (pctOfGoal(refSame)) tpcts += '<div class="mbx-tpct" style="left:' + pct(refSame) + '%">' + pctOfGoal(refSame) + '</div>';
+    tlabels += '<div class="mbx-tlabel" style="left:' + pct(refSame) + '%"><div class="mbx-tl-eur">' + fmtEUR(refSame) + '</div><div class="mbx-tl-desc">' + (refYear ? refYear + ' · Même période' : 'Même période') + '</div></div>';
   }
   if (refFull != null) {
     ticks += '<div class="mbx-tick black" style="left:' + pct(refFull) + '%"></div>';
-    tlabels += '<div class="mbx-tlabel" style="left:' + pct(refFull) + '%"><div class="mbx-tl-eur">' + fmtEUR(refFull) + '</div></div>';
+    if (pctOfGoal(refFull)) tpcts += '<div class="mbx-tpct" style="left:' + pct(refFull) + '%">' + pctOfGoal(refFull) + '</div>';
+    tlabels += '<div class="mbx-tlabel" style="left:' + pct(refFull) + '%"><div class="mbx-tl-eur">' + fmtEUR(refFull) + '</div>' + (refLbl ? '<div class="mbx-tl-desc">' + refLbl + '</div>' : '') + '</div>';
   }
   if (over) {
     ticks += '<div class="mbx-tick white" style="left:' + pct(goal) + '%"></div>';
@@ -1880,7 +1885,7 @@ function _statCardHTML(cfg) {
     ctxHtml +
     '<div class="mbx-div"></div>' +
     '<div class="mbx-prog-head">' + attHtml + refHead + '</div>' +
-    '<div class="mbx-bar"><div class="mbx-track"><div class="mbx-fill" style="width:' + fillW + '%; background:' + accent + '"></div>' + overHtml + ticks + '</div>' + tlabels + '</div>' +
+    '<div class="mbx-bar">' + tpcts + '<div class="mbx-track"><div class="mbx-fill" style="width:' + fillW + '%; background:' + accent + '"></div>' + overHtml + ticks + '</div>' + tlabels + '</div>' +
     '<div class="mbx-foot">' + leftCell + rightCell + '</div>' +
     _miniBars(cfg.monthly, cfg.barColor, cfg.caption) +
     '</div>';
@@ -1895,13 +1900,13 @@ function renderBanner(data, cur, prev) {
     var b1 = document.getElementById('bloc1');
     if (b1) b1.innerHTML = _statCardHTML({
       title: 'Marge brute réalisée', value: cur.ytd_mb, goal: C.MB_AN_OBJ,
-      refSame: sp ? sp.mb_ytd : null, refFull: sp ? sp.mb_full : null, refYear: refYear,
+      refSame: sp ? sp.mb_ytd : null, refFull: sp ? sp.mb_full : null, refYear: refYear, shortLabel: 'MB',
       monthly: cy.monthly.marge_brute, caption: 'Marge brute mensuelle', barColor: '#7C5AD6'
     });
     var bca = document.getElementById('bloc-ca');
     if (bca) bca.innerHTML = _statCardHTML({
       title: "Chiffre d'affaires cumulé", value: cur.ytd_ca, goal: C.CA_OBJ,
-      refSame: sp ? sp.ca_ytd : null, refFull: sp ? sp.ca_full : null, refYear: refYear,
+      refSame: sp ? sp.ca_ytd : null, refFull: sp ? sp.ca_full : null, refYear: refYear, shortLabel: 'CA',
       monthly: cy.monthly.ca, caption: 'CA mensuel', barColor: COLORS.blue
     });
   } catch (e) { /* rendu optionnel */ }
@@ -2613,7 +2618,7 @@ document.getElementById('welcome-back').addEventListener('click', function () {
 })();
 
 // Mise à jour automatique : si le fichier hébergé est plus récent, on recharge la dernière version
-var APP_VERSION = "20260722-134825";
+var APP_VERSION = "20260722-135422";
 function showUpdateBanner(base, v) {
   if (document.getElementById('update-banner')) return;
   var d = document.createElement('div');
