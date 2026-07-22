@@ -1658,31 +1658,46 @@ function renderTauxAnnuel(cur, years) {
   var order = Object.keys(years).sort().reverse();
   function same(yObj, k) { return yObj.monthly[k].slice(0, n).reduce(function (a, v) { return a + (v || 0); }, 0); }
   var labels = order.map(function (yk) { return yk === cur.year ? yk + ' (à date)' : yk + ' (jan-' + moisLbl + ')'; });
-  var data = order.map(function (yk) { var ca = same(years[yk], 'ca'); var mb = same(years[yk], 'marge_brute'); return ca > 0 ? mb / ca * 100 : 0; });
-  var valColor = DARK ? '#eae7f0' : '#221f2b';
+  var mbPct = order.map(function (yk) { var ca = same(years[yk], 'ca'); var mb = same(years[yk], 'marge_brute'); return ca > 0 ? mb / ca * 100 : 0; });
+  var restePct = mbPct.map(function (v) { return Math.max(0, 100 - v); });
+  var R = 7;
   makeChart('chart-taux-annuel', {
     type: 'bar',
-    data: { labels: labels, datasets: [{ label: 'Taux de marge brute', data: data, backgroundColor: COLORS.green, borderRadius: 6, borderSkipped: false, barPercentage: 0.66, categoryPercentage: 0.8 }] },
+    data: {
+      labels: labels,
+      datasets: [
+        { label: 'Marge brute', data: mbPct, backgroundColor: COLORS.green, stack: 's', barPercentage: 0.7, categoryPercentage: 0.82,
+          borderRadius: { topLeft: R, bottomLeft: R, topRight: 0, bottomRight: 0 }, borderSkipped: false },
+        { label: 'Achats & coûts (reste du CA)', data: restePct, backgroundColor: COLORS.red, stack: 's', barPercentage: 0.7, categoryPercentage: 0.82,
+          borderRadius: { topRight: R, bottomRight: R, topLeft: 0, bottomLeft: 0 }, borderSkipped: false }
+      ]
+    },
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-      layout: { padding: { right: 34 } },
       scales: {
-        x: { min: 0, max: 100, ticks: { callback: function (v) { return v + '%'; } }, grid: { display: false } },
-        y: { grid: { display: false }, ticks: { font: { weight: '800', size: 12.5 } } }
+        x: { stacked: true, min: 0, max: 100, ticks: { callback: function (v) { return v + '%'; } }, grid: { display: false } },
+        y: { stacked: true, grid: { display: false }, ticks: { font: { weight: '800', size: 12.5 } } }
       },
       plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: function (ctx) { return ' Taux de marge brute : ' + fmtPct(ctx.parsed.x / 100, 1); } } }
+        legend: { position: 'bottom', labels: { boxWidth: 8, boxHeight: 8, padding: 12, font: { size: 11 } } },
+        tooltip: { callbacks: { label: function (ctx) { return ' ' + ctx.dataset.label + ' : ' + fmtPct(ctx.parsed.x / 100, 1); } } }
       }
     },
     plugins: [{
       id: 'tauxAnnuelLabels',
       afterDatasetsDraw: function (chart) {
-        var ctx = chart.ctx, meta = chart.getDatasetMeta(0);
+        var ctx = chart.ctx;
         ctx.save();
-        ctx.font = '800 13px ' + CHART_FONT; ctx.fillStyle = valColor;
-        ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
-        meta.data.forEach(function (bar, i) { ctx.fillText(fmtPct(data[i] / 100, 1), bar.x + 8, bar.y); });
+        ctx.font = '800 12px ' + CHART_FONT; ctx.fillStyle = '#ffffff';
+        ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
+        [[0, mbPct], [1, restePct]].forEach(function (pair) {
+          var meta = chart.getDatasetMeta(pair[0]), vals = pair[1];
+          meta.data.forEach(function (bar, i) {
+            var p = bar.getProps(['x', 'base', 'y']);
+            var w = Math.abs(p.x - p.base);
+            if (w > 42) ctx.fillText(fmtPct(vals[i] / 100, 1), (p.x + p.base) / 2, p.y);
+          });
+        });
         ctx.restore();
       }
     }]
@@ -2828,7 +2843,7 @@ document.getElementById('welcome-back').addEventListener('click', function () {
 })();
 
 // Mise à jour automatique : si le fichier hébergé est plus récent, on recharge la dernière version
-var APP_VERSION = "20260722-184456";
+var APP_VERSION = "20260722-184907";
 function showUpdateBanner(base, v) {
   if (document.getElementById('update-banner')) return;
   var d = document.createElement('div');
