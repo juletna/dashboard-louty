@@ -408,23 +408,18 @@
     #bloc-sante .grid.grid-3 > .kpi + .kpi { border-left: none; border-top: 1px solid var(--border); }
   }
   /* Santé sur une seule ligne : jauge (2/5) + 3 KPI (1/5 chacun) */
-  .sante-oneline { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; align-items: stretch; margin-top: 8px; }
+  .sante-oneline { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; align-items: stretch; gap: 14px; margin-top: 8px; }
   .sante-oneline > * { min-width: 0; }
-  .sante-oneline .sante-gauge { padding-right: 24px; display: flex; flex-direction: column; justify-content: center; }
-  .sante-oneline .kpi { display: flex; flex-direction: column; justify-content: center; padding: 2px 0 2px 24px; }
+  .sante-oneline .sante-gauge { display: flex; flex-direction: column; justify-content: center; }
   .sante-oneline .pn-bar { margin: 12px 0 10px; }
-  /* Traits verticaux entre la jauge et les 3 KPI (spécificité qui bat #bloc-sante .card .kpi{border:none}) */
-  #bloc-sante .card .sante-oneline > .kpi { border-left: 1px solid var(--border-strong); }
+  /* 3 indicateurs en cartes grises distinctes (spécificité qui bat #bloc-sante .card .kpi{background:transparent}) */
+  #bloc-sante .card .sante-oneline > .kpi { display: flex; flex-direction: column; justify-content: center; background: var(--bg-inset); border-radius: var(--radius-sm); padding: 14px 16px; }
   @media (max-width: 900px) {
-    .sante-oneline { grid-template-columns: 1fr 1fr; row-gap: 18px; column-gap: 8px; }
-    .sante-oneline .sante-gauge { grid-column: 1 / -1; padding-right: 0; }
-    .sante-oneline .kpi { padding: 0 12px; }
-    #bloc-sante .card .sante-oneline > .kpi { border-left: none; }
+    .sante-oneline { grid-template-columns: 1fr 1fr; }
+    .sante-oneline .sante-gauge { grid-column: 1 / -1; }
   }
   @media (max-width: 520px) {
     .sante-oneline { grid-template-columns: 1fr; }
-    .sante-oneline .kpi { padding: 12px 0 0; }
-    #bloc-sante .card .sante-oneline > .kpi { border-left: none; border-top: 1px solid var(--border); }
   }
   /* Titres de section : sans tiret, casse normale, plus gros, foncés, arrondis */
   h3 { display: block; font-size: 17px; font-weight: 800; color: var(--text); text-transform: none; letter-spacing: -0.015em; }
@@ -813,23 +808,23 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
   <div class="sante-row" style="margin-top:16px">
     <div id="bloc-sante"></div>
   </div>
-  <div style="margin-top:16px">
-    <div class="card">
-      <h3>Répartition du CA par année<span class="sp-help" data-tip="Comment se répartit chaque euro de CA (achats, salaire, charges, contribution coopérative, frais km, résultat) pour chaque année, à la même période (jan → dernier mois renseigné). Barres normalisées à 100 % pour comparer les parts.">?</span></h3>
-      <div class="chart-wrap" style="height:210px"><canvas id="chart-repart-years"></canvas></div>
-      <div class="rl-cap" id="repart-years-cap" style="margin-top:12px"></div>
-    </div>
-  </div>
-  <div class="grid grid-2" style="margin-top:16px">
+  <div class="grid grid-2" style="margin-top:16px; align-items:start">
     <div class="card">
       <h3>Répartition du chiffre d'affaires<span class="sp-help" data-tip="Où va ton CA cumulé : achats, salaire, charges, contribution coopérative, frais km, et ce qu'il reste (résultat). Les deux badges du haut comparent CA et coûts à la même période l'an dernier.">?</span></h3>
       <div id="repart-kpis" class="repart-kpis"></div>
       <div class="chart-wrap tall"><canvas id="chart-waterfall"></canvas></div>
       <div id="repartition-legend" class="repart-legend"></div>
     </div>
-    <div class="card">
-      <h3>Tableau comparatif N-1 / N<span class="sp-help" data-tip="Tes indicateurs 2026 (à date) face à la même période de l'an dernier, avec l'écart et, en repère, le total de l'année précédente.">?</span></h3>
-      <div id="bloc4"></div>
+    <div style="display:flex; flex-direction:column; gap:16px; min-width:0">
+      <div class="card">
+        <h3>Répartition du CA par année<span class="sp-help" data-tip="Comment se répartit chaque euro de CA (achats, salaire, charges, contribution coopérative, frais km, résultat) pour chaque année, à la même période (jan → dernier mois renseigné). Barres normalisées à 100 % pour comparer les parts.">?</span></h3>
+        <div class="chart-wrap" style="height:210px"><canvas id="chart-repart-years"></canvas></div>
+        <div class="rl-cap" id="repart-years-cap" style="margin-top:12px"></div>
+      </div>
+      <div class="card">
+        <h3>Tableau comparatif N-1 / N<span class="sp-help" data-tip="Tes indicateurs 2026 (à date) face à la même période de l'an dernier, avec l'écart et, en repère, le total de l'année précédente.">?</span></h3>
+        <div id="bloc4"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -2757,7 +2752,7 @@ document.getElementById('welcome-back').addEventListener('click', function () {
 })();
 
 // Mise à jour automatique : si le fichier hébergé est plus récent, on recharge la dernière version
-var APP_VERSION = "20260722-180350";
+var APP_VERSION = "20260722-180913";
 function showUpdateBanner(base, v) {
   if (document.getElementById('update-banner')) return;
   var d = document.createElement('div');
