@@ -301,8 +301,12 @@
   .rl-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
   .rl-dot { width: 11px; height: 11px; border-radius: 4px; flex: none; }
   .rl-lab { flex: 1; color: var(--text-dim); }
-  .rl-val { font-weight: 800; font-variant-numeric: tabular-nums; }
+  .rl-val { width: 84px; text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; }
   .rl-pct { width: 44px; text-align: right; color: var(--text-faint); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .rl-cmp { width: 70px; text-align: right; color: var(--text-dim); font-weight: 600; font-variant-numeric: tabular-nums; font-size: 12px; }
+  .rl-head { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-faint); }
+  .rl-head .rl-val, .rl-head .rl-cmp, .rl-head .rl-pct { color: var(--text-faint); font-weight: 700; font-size: 10.5px; }
+  .rl-cap { font-size: 11px; color: var(--text-faint); margin-top: 8px; }
 
   .chart-note { margin-top: 12px; font-size: 12.5px; }
   .badge { display: inline-block; padding: 5px 12px; border-radius: 999px; font-weight: 800; font-size: 12px; }
@@ -1957,17 +1961,27 @@ renderWaterfall = function (cur, cy) {
     var chargesRest = Math.max(0, charges - pulledSum);
     var extraCols = [COLORS.gray, '#9C6ADE', '#4FB0C6', '#E08A5B', '#B0863C'];
 
+    // Comparatif même période N-1 / N-2 : on somme chaque poste sur les mêmes mois (jan → dernier renseigné)
+    var refYears = (cur.reference_years || []).filter(function (y) { return DATA && DATA.years && DATA.years[y]; });
+    var nMonths = cur.mois_renseignes;
+    function sameYtd(yObj, k) { return yObj.monthly[k].slice(0, nMonths).reduce(function (a, v) { return a + (v || 0); }, 0); }
+    var fraisKmPulled = pulled.some(function (r) { return r.account === '62510150'; });
+
     var chargesLabel = pulled.length ? 'Charges de fonct. (autres)' : 'Charges de fonctionnement';
     var segs = [
-      { label: 'Achats matières', val: cur.ytd_achats, col: COLORS.red },
-      { label: 'Salaire (rémunérations)', val: ytdK('remunerations'), col: COLORS.blue },
-      { label: chargesLabel, val: chargesRest, col: COLORS.orange, detail: restDet },
-      { label: 'Contribution coopérative', val: ytdK('contribution_coop'), col: COLORS.teal }
+      { label: 'Achats matières', val: cur.ytd_achats, col: COLORS.red, cmp: function (y) { return sameYtd(y, 'achats_matieres'); } },
+      { label: 'Salaire (rémunérations)', val: ytdK('remunerations'), col: COLORS.blue, cmp: function (y) { return sameYtd(y, 'remunerations'); } },
+      { label: chargesLabel, val: chargesRest, col: COLORS.orange, detail: restDet, cmp: function (y) { return sameYtd(y, 'charges_fonct') - (fraisKmPulled ? sameYtd(y, 'frais_km') : 0); } },
+      { label: 'Contribution coopérative', val: ytdK('contribution_coop'), col: COLORS.teal, cmp: function (y) { return sameYtd(y, 'contribution_coop'); } }
     ];
-    pulled.forEach(function (r, i) { segs.push({ label: r.label, val: r.amount, col: extraCols[i % extraCols.length] }); });
+    pulled.forEach(function (r, i) {
+      var seg = { label: r.label, val: r.amount, col: extraCols[i % extraCols.length] };
+      if (r.account === '62510150') seg.cmp = function (y) { return sameYtd(y, 'frais_km'); }; // Frais km : poste suivi, comparable
+      segs.push(seg);
+    });
     var used = segs.reduce(function (a, s) { return a + s.val; }, 0);
     var reste = ca - used;
-    if (reste > 0) segs.push({ label: 'Résultat restant', val: reste, col: COLORS.green });
+    if (reste > 0) segs.push({ label: 'Résultat restant', val: reste, col: COLORS.green, cmp: function (y) { return sameYtd(y, 'ca') - sameYtd(y, 'achats_matieres') - sameYtd(y, 'remunerations') - sameYtd(y, 'charges_fonct') - sameYtd(y, 'contribution_coop'); } });
 
     // 3) Redessine le donut avec les nouveaux segments
     var arcBorder = DARK ? '#16141d' : '#ffffff';
@@ -2000,13 +2014,26 @@ renderWaterfall = function (cur, cy) {
     // 4) Redessine la légende + lien "détail" sur la ligne charges (postes restants)
     var leg = document.getElementById('repartition-legend');
     if (!leg) return;
-    leg.innerHTML = segs.map(function (s) {
+    var headHtml = refYears.length
+      ? '<div class="rl-row rl-head"><span class="rl-dot" style="background:transparent"></span><span class="rl-lab"></span>' +
+          refYears.map(function (y) { return '<span class="rl-cmp">' + y + '</span>'; }).join('') +
+          '<span class="rl-val">' + cur.year + '</span><span class="rl-pct">% CA</span></div>'
+      : '';
+    var capHtml = refYears.length
+      ? '<div class="rl-cap">Colonnes ' + refYears.join(' / ') + ' : même période (jan → ' + (MONTH_NAMES[nMonths - 1] || '') + ')</div>'
+      : '';
+    leg.innerHTML = headHtml + segs.map(function (s) {
+      var cmpCells = refYears.map(function (y) {
+        var v = s.cmp ? s.cmp(DATA.years[y]) : null;
+        return '<span class="rl-cmp">' + (v != null ? fmtEUR(v) : '—') + '</span>';
+      }).join('');
       return '<div class="rl-row"><span class="rl-dot" style="background:' + s.col + '"></span>' +
         '<span class="rl-lab">' + esc(s.label) + '</span>' +
+        cmpCells +
         '<span class="rl-val">' + fmtEUR(s.val) + '</span>' +
         '<span class="rl-pct">' + (ca > 0 ? Math.round(s.val / ca * 100) + '%' : '—') + '</span></div>';
-    }).join('');
-    var legRows = leg.querySelectorAll('.rl-row');
+    }).join('') + capHtml;
+    var legRows = leg.querySelectorAll('.rl-row:not(.rl-head)');
     for (var i = 0; i < segs.length; i++) {
       if (segs[i].detail && segs[i].detail.length) {
         (function (seg, rowEl) {
@@ -2641,7 +2668,7 @@ document.getElementById('welcome-back').addEventListener('click', function () {
 })();
 
 // Mise à jour automatique : si le fichier hébergé est plus récent, on recharge la dernière version
-var APP_VERSION = "20260722-172013";
+var APP_VERSION = "20260722-172859";
 function showUpdateBanner(base, v) {
   if (document.getElementById('update-banner')) return;
   var d = document.createElement('div');
