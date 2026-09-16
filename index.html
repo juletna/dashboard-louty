@@ -851,7 +851,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
   <div id="margin-distribution-row" class="grid grid-2 margin-distribution" style="display:none">
     <section class="card distribution-card" aria-labelledby="quote-margin-title">
       <h3 id="quote-margin-title">Devis facturés par tranche de montant<span class="sp-help" data-tip="Répartition des devis qui ont été facturés, par tranche de montant HT. Les tranches restent dans l'ordre des montants ; la hauteur indique leur poids dans le total des devis facturés.">?</span></h3>
-      <p class="distribution-note">Évolution de la part de chaque tranche dans les devis facturés, exercice par exercice.</p>
+      <p class="distribution-note">Exercice courant en barres, comparé à la moyenne des exercices précédents comparables.</p>
       <div id="quote-margin-distribution"></div>
     </section>
     <section class="card distribution-card" aria-labelledby="client-margin-title">
@@ -1285,7 +1285,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var rows = sheetToMatrix(XLSX, ws);
     var header = rows[0] || [], col = {};
     header.forEach(function (v, i) { col[String(v == null ? '' : v).trim()] = i; });
-    var quoteByYear = {}, clientByYear = {};
+    var quoteByYear = {}, clientByYear = {}, quoteCoverage = {};
     function add(map, year, label, amount) {
       if (!map[year]) map[year] = {};
       map[year][label] = (map[year][label] || 0) + amount;
@@ -1311,6 +1311,9 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       var year = String(date.getFullYear());
       if (type === 'Devis' && state.indexOf('valid') !== -1 && state.indexOf('imp') !== -1 && amount > 0) {
         add(quoteByYear, year, quoteBucket(amount), amount);
+        var month = date.getMonth() + 1;
+        if (!quoteCoverage[year]) quoteCoverage[year] = { first_month: month, last_month: month };
+        else { quoteCoverage[year].first_month = Math.min(quoteCoverage[year].first_month, month); quoteCoverage[year].last_month = Math.max(quoteCoverage[year].last_month, month); }
       }
       if ((type === 'Facture' || type === 'Facture de situation' || type === 'Avoir') && state.indexOf('confirm') !== -1) {
         add(clientByYear, year, client, amount);
@@ -1325,6 +1328,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     Object.keys(years).forEach(function (year) {
       byYear[year] = {
         quote_brackets: orderedQuotes(quoteByYear[year] || {}),
+        quote_coverage: quoteCoverage[year] || null,
         clients: Object.keys(clientByYear[year] || {}).map(function (label) { return { label: label, amount: Math.round(clientByYear[year][label] * 100) / 100 }; }).filter(function (r) { return r.amount > 0; })
       };
     });
@@ -1678,7 +1682,7 @@ function renderMarginDistributions(data) {
   var source = fullSource.by_year ? (fullSource.by_year[distributionYear] || {}) : fullSource;
   var quoteByYear = availableYears.map(function (year) {
     var yearSource = fullSource.by_year ? (fullSource.by_year[year] || {}) : fullSource;
-    return { year: year, rows: _distributionRows(yearSource.quote_brackets || yearSource.quotes || yearSource.devis) };
+    return { year: year, rows: _distributionRows(yearSource.quote_brackets || yearSource.quotes || yearSource.devis), coverage: yearSource.quote_coverage || null };
   }).filter(function (series) { return series.rows.length; });
   var clientRows = _distributionRows(source.clients || source.by_client);
   var section = document.getElementById('margin-distribution-row');
@@ -1707,37 +1711,38 @@ function renderQuoteMarginDistribution(series, currentYear) {
   if (!series.length) { _distributionEmpty('quote-margin-distribution'); return; }
   host.innerHTML = '<div class="chart-wrap"><canvas id="chart-margin-by-quote"></canvas></div>';
   var violet = getComputedStyle(document.documentElement).getPropertyValue('--violet').trim() || '#7C5AD6';
-  var amber = getComputedStyle(document.documentElement).getPropertyValue('--amber').trim() || '#E1961F';
-  var previousYearColors = ['#F2C14E', '#E1961F', '#C96E11'];
+  var comparisonGray = getComputedStyle(document.documentElement).getPropertyValue('--gray').trim() || '#A7A1B4';
   var bracketOrder = { '< 2 k€': 0, '2–5 k€': 1, '5–10 k€': 2, '10–25 k€': 3, '> 25 k€': 4 };
   var labels = [];
   series.forEach(function (yearSeries) { yearSeries.rows.forEach(function (row) { if (labels.indexOf(row.label) === -1) labels.push(row.label); }); });
   labels.sort(function (a, b) { return (bracketOrder[a] == null ? 99 : bracketOrder[a]) - (bracketOrder[b] == null ? 99 : bracketOrder[b]); });
   var orderedSeries = series.slice().sort(function (a, b) { return String(a.year).localeCompare(String(b.year)); });
-  var datasets = orderedSeries.map(function (yearSeries) {
+  function shares(yearSeries) {
     var total = yearSeries.rows.reduce(function (sum, row) { return sum + row.amount; }, 0) || 1;
     var amounts = {};
     yearSeries.rows.forEach(function (row) { amounts[row.label] = row.amount; });
-    var isCurrent = String(yearSeries.year) === String(currentYear);
-    var values = labels.map(function (label) { return (amounts[label] || 0) / total * 100; });
-    var amountsForLabels = labels.map(function (label) { return amounts[label] || 0; });
-    if (isCurrent) {
-      var maxAmount = Math.max.apply(null, amountsForLabels) || 1;
-      return {
-        type: 'bar', label: _distributionPeriodLabel(yearSeries.year, currentYear), data: values, _amounts: amountsForLabels,
-        backgroundColor: amountsForLabels.map(function (amount) { return _hexAlpha(violet, 0.36 + 0.64 * amount / maxAmount); }),
-        borderWidth: 0, borderRadius: 7, borderSkipped: false, order: 2
-      };
-    }
-    var previousIndex = orderedSeries.filter(function (item) { return String(item.year) !== String(currentYear) && String(item.year) < String(yearSeries.year); }).length;
-    var lineColor = previousYearColors[previousIndex] || amber;
-    return {
-      type: 'line', label: _distributionPeriodLabel(yearSeries.year, currentYear), data: values, _amounts: amountsForLabels,
-      borderColor: lineColor, backgroundColor: 'transparent', borderWidth: 3,
-      borderDash: [5, 5], tension: 0.22, pointRadius: 4, pointHoverRadius: 7,
-      pointBackgroundColor: lineColor, pointBorderColor: '#fff', pointBorderWidth: 1.5, order: 1
-    };
-  });
+    return { values: labels.map(function (label) { return (amounts[label] || 0) / total * 100; }), amounts: labels.map(function (label) { return amounts[label] || 0; }) };
+  }
+  var currentSeries = orderedSeries.filter(function (item) { return String(item.year) === String(currentYear); })[0] || orderedSeries[orderedSeries.length - 1];
+  var historical = orderedSeries.filter(function (item) { return String(item.year) < String(currentSeries.year); });
+  // Le premier exercice est écarté seulement si l'export montre qu'il a démarré en cours d'année.
+  var comparable = historical.filter(function (item, index) { return !(index === 0 && item.coverage && item.coverage.first_month > 1); });
+  var current = shares(currentSeries);
+  var maxAmount = Math.max.apply(null, current.amounts) || 1;
+  var datasets = [{
+    type: 'bar', label: _distributionPeriodLabel(currentSeries.year, currentYear), data: current.values, _amounts: current.amounts,
+    backgroundColor: current.amounts.map(function (amount) { return _hexAlpha(violet, 0.36 + 0.64 * amount / maxAmount); }),
+    borderWidth: 0, borderRadius: 7, borderSkipped: false, order: 2
+  }];
+  if (comparable.length) {
+    var avgValues = labels.map(function (_, labelIndex) { return comparable.reduce(function (sum, item) { return sum + shares(item).values[labelIndex]; }, 0) / comparable.length; });
+    var span = comparable.length > 1 ? comparable[0].year + '–' + comparable[comparable.length - 1].year : comparable[0].year;
+    datasets.push({
+      type: 'line', label: comparable.length > 1 ? 'Moyenne ' + span : 'Exercice ' + span,
+      data: avgValues, _average: true, borderColor: comparisonGray, backgroundColor: 'transparent',
+      borderDash: [5, 4], borderWidth: 2.5, tension: 0.22, pointRadius: 0, pointHoverRadius: 6, order: 1
+    });
+  }
   makeChart('chart-margin-by-quote', {
     type: 'bar',
     data: {
@@ -1751,7 +1756,7 @@ function renderQuoteMarginDistribution(series, currentYear) {
       },
       plugins: {
         legend: { display: true, position: 'bottom', labels: { usePointStyle: true, boxWidth: 10, padding: 14, font: { size: 11, weight: '700' } } },
-        tooltip: { callbacks: { label: function (ctx) { var amount = ctx.dataset._amounts[ctx.dataIndex]; return ' ' + ctx.dataset.label + ' : ' + fmtEUR(amount) + ' (' + ctx.parsed.y.toFixed(1).replace('.', ',') + ' %)'; } } }
+        tooltip: { callbacks: { label: function (ctx) { if (ctx.dataset._average) return ' ' + ctx.dataset.label + ' : ' + ctx.parsed.y.toFixed(1).replace('.', ',') + ' %'; var amount = ctx.dataset._amounts[ctx.dataIndex]; return ' ' + ctx.dataset.label + ' : ' + fmtEUR(amount) + ' (' + ctx.parsed.y.toFixed(1).replace('.', ',') + ' %)'; } } }
       }
     }
   });
