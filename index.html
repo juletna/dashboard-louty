@@ -752,13 +752,6 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .sd-eur { font-weight:800; color:var(--text); font-variant-numeric:tabular-nums; }
 .sante-detail-link { appearance:none; border:0; padding:3px 0; background:none; color:var(--violet); font:inherit; font-size:11.5px; font-weight:800; cursor:pointer; }
 .sante-detail-link:hover { text-decoration:underline; }
-.sante-client-detail { margin:7px 0 3px; padding:8px 10px; background:var(--bg-inset); border-radius:8px; }
-.sante-client-detail-note { margin:0 0 6px; color:var(--text-faint); font-size:10.5px; line-height:1.35; }
-.sante-client-row { display:flex; justify-content:space-between; gap:10px; padding:6px 0; border-top:1px dashed var(--border); }
-.sante-client-row:first-of-type { border-top:0; }
-.sante-client-row b { display:block; color:var(--text); font-size:11.5px; }
-.sante-client-row span { display:block; margin-top:1px; color:var(--text-faint); font-size:10.5px; }
-.sante-client-row strong { flex:none; align-self:center; color:var(--text); font-size:11.5px; font-variant-numeric:tabular-nums; white-space:nowrap; }
 .sante-acomptes-alert { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-top:12px; padding:10px 12px; background:var(--amber-bg); border:1px solid var(--orange-line); border-radius:10px; color:var(--text); }
 .sante-acomptes-alert strong { display:block; font-size:12px; font-weight:800; color:var(--amber); }
 .sante-acomptes-alert span { display:block; margin-top:2px; font-size:11.5px; line-height:1.35; color:var(--text-dim); }
@@ -2685,21 +2678,20 @@ function renderSante(data, cur) {
     var d = new Date(iso);
     return isNaN(d.getTime()) ? '' : d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
   }
-  function customerDetail(items, kind) {
-    var note = kind === 'advances'
-      ? 'Rapprochement automatique par montant avec le solde de la Balance — à vérifier avant action.'
-      : 'Factures confirmées dont le solde « En attente » est positif dans l’export.';
-    return '<div class="sante-client-detail" data-customer-detail-body="' + kind + '" style="display:none"><p class="sante-client-detail-note">' + note + '</p>' + items.map(function (item) {
+  function customerModalRows(items, kind) {
+    return items.map(function (item) {
       var docs = item.documents || [];
       var due = kind === 'receivables' ? docs.map(function (doc) { return doc.due_date; }).filter(Boolean).sort()[0] : null;
       var sub = kind === 'receivables'
         ? (due ? 'Échéance ' + detailDate(due) : docs.length + ' facture' + (docs.length > 1 ? 's' : ''))
         : docs.length + ' acompte' + (docs.length > 1 ? 's' : '') + ' encaissé' + (docs.length > 1 ? 's' : '');
-      return '<div class="sante-client-row"><div><b>' + esc(item.client) + '</b><span>' + esc(sub) + '</span></div><strong>' + fmtEUR(item.amount) + '</strong></div>';
-    }).join('') + '</div>';
+      return { label: item.client + ' · ' + sub, amount: item.amount };
+    });
   }
-  var advancesCustomerDetail = matchedAdvanceClients.length ? customerDetail(matchedAdvanceClients, 'advances') : '';
-  var receivablesCustomerDetail = receivableClients.length ? customerDetail(receivableClients, 'receivables') : '';
+  var customerModalData = {
+    advances: { title: 'Acompte client à honorer', subtitle: 'Rapprochement automatique avec le solde Balance — à vérifier', rows: customerModalRows(matchedAdvanceClients, 'advances'), total: dAcc, totalLabel: 'Solde d’acomptes Balance' },
+    receivables: { title: 'Impayés clients', subtitle: 'Factures confirmées avec un solde « En attente » positif', rows: customerModalRows(receivableClients, 'receivables'), total: receivableClients.reduce(function (sum, item) { return sum + item.amount; }, 0), totalLabel: 'Total des impayés dans l’export' }
+  };
 
   var kpis =
     '<div class="kpi ' + cca_cls + '">' +
@@ -2711,7 +2703,7 @@ function renderSante(data, cur) {
       '<div class="kpi-top"><span class="kpi-ico">' + ICON.receipt + '</span><div class="kpi-label">Créances clients</div></div>' +
       '<div class="kpi-value">' + fmtEUR(sante.creances_clients) + '</div>' +
       '<div class="kpi-sub">' + (dsoRatio !== null ? fmtPct(dsoRatio, 0) + ' du CA cumulé · à relancer si vieux' : 'à relancer si vieux') + '</div>' +
-      (receivableClients.length ? '<button type="button" class="sante-detail-link" data-customer-detail="receivables">Détail des impayés →</button>' + receivablesCustomerDetail : '') +
+      (receivableClients.length ? '<button type="button" class="sante-detail-link" data-customer-detail="receivables">Détail des impayés →</button>' : '') +
     '</div>' +
     '<div class="kpi ' + mn_cls + '">' +
       '<div class="kpi-top"><span class="kpi-ico">' + ICON.trending + '</span><div class="kpi-label">Résultat</div></div>' +
@@ -2720,7 +2712,7 @@ function renderSante(data, cur) {
     '</div>';
 
   var detailHTML = detailLines.map(function (l) {
-    var link = l.detail ? '<button type="button" class="sante-detail-link" data-customer-detail="' + l.detail + '">Voir le rapprochement →</button>' + advancesCustomerDetail : '';
+    var link = l.detail ? '<button type="button" class="sante-detail-link" data-customer-detail="' + l.detail + '">Voir le rapprochement →</button>' : '';
     return '<div class="sd-row"><span>' + l.label + '</span><span class="sd-eur">' + fmtEUR(l.amount) + '</span></div>' + link;
   }).join('');
   var detailBlock = detailLines.length
@@ -2764,11 +2756,9 @@ function renderSante(data, cur) {
   Array.prototype.forEach.call(wrap.querySelectorAll('[data-customer-detail]'), function (button) {
     button.addEventListener('click', function () {
       var kind = button.getAttribute('data-customer-detail');
-      var body = wrap.querySelector('[data-customer-detail-body="' + kind + '"]');
-      if (!body) return;
-      var open = body.style.display !== 'none';
-      body.style.display = open ? 'none' : 'block';
-      button.textContent = (kind === 'advances' ? 'Voir le rapprochement ' : 'Détail des impayés ') + (open ? '→' : '↑');
+      var modal = customerModalData[kind];
+      if (!modal || !modal.rows.length) return;
+      openDetailModal(modal.title, modal.subtitle, modal.rows, modal.total, modal.totalLabel);
     });
   });
 };
