@@ -862,7 +862,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
       </div>
     </div>
   </div>
-  <div class="grid grid-2 margin-distribution">
+  <div id="margin-distribution-row" class="grid grid-2 margin-distribution" style="display:none">
     <section class="card distribution-card" aria-labelledby="quote-margin-title">
       <h3 id="quote-margin-title">Marge brute par tranche de devis<span class="sp-help" data-tip="Répartition de la marge brute entre les tranches de montant de devis. Les tranches restent dans l'ordre des montants : la hauteur indique leur contribution à la marge brute totale.">?</span></h3>
       <p class="distribution-note">Où se situe la marge : petits volumes, gros devis, ou un équilibre entre les deux.</p>
@@ -1568,6 +1568,9 @@ function renderMarginDistributions(data) {
   var source = (data && (data.margin_distribution || data.mb_distribution)) || {};
   var quoteRows = _marginRows(source.quote_brackets || source.quotes || source.devis);
   var clientRows = _marginRows(source.clients || source.by_client);
+  var section = document.getElementById('margin-distribution-row');
+  if (section) section.style.display = (quoteRows.length || clientRows.length) ? '' : 'none';
+  if (!quoteRows.length && !clientRows.length) return;
   renderQuoteMarginDistribution(quoteRows);
   renderClientMarginDistribution(clientRows);
 }
