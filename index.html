@@ -795,7 +795,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
   <div class="dropzone" id="dropzone">
     <div class="dz-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
     <div class="dz-title">Glisse tes exports Louty ici</div>
-    <div class="dz-sub"><strong>RES_U_Résultat d'Activité</strong> (obligatoire)<br>et, pour la santé financière, <strong>BAL_A_Balance Analytique</strong> (facultatif).<br>Tu peux déposer les deux d'un coup.</div>
+    <div class="dz-sub"><strong>RES_U_Résultat d'Activité</strong> (obligatoire)<br><strong>Pièces</strong> pour les répartitions devis et clients (facultatif)<br>et <strong>BAL_A_Balance Analytique</strong> pour la santé financière (facultatif).<br>Tu peux déposer les trois d'un coup.</div>
     <button type="button" class="btn primary" id="browse-btn">Parcourir mes fichiers</button>
     <input type="file" id="file-input" accept=".xlsx" multiple style="display:none">
     <div class="dz-files" id="dz-files"></div>
@@ -806,6 +806,10 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
   <div class="welcome-callout">
     <span class="wc-tag">À ne pas oublier</span>
     Au téléchargement du <strong>Résultat d'Activité</strong> dans Louty, coche bien <strong>toutes les années</strong> dans la fenêtre « Exercices » (2024, 2025, 2026…), pas seulement l'année en cours. Sans ça, <strong>la comparaison avec les années précédentes et les cumuls ne peuvent pas s'afficher</strong>.
+  </div>
+  <div class="welcome-callout">
+    <span class="wc-tag">Répartitions devis &amp; clients</span>
+    Dans <strong>Gestion com. › Devis (liste) › Filtre avancé</strong>, sélectionne <strong>Devis facturés</strong>, <strong>Facture</strong>, <strong>Facture de situation</strong> et <strong>Avoir</strong>. Garde les états <strong>Validé + Imprimé</strong> et <strong>Confirmé</strong>, ne filtre pas le règlement, puis exporte la liste complète au format <code>.xlsx</code>. Exclue les brouillons, les devis non facturés et les factures d’acompte.
   </div>
 </div>
 
@@ -864,12 +868,12 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
   </div>
   <div id="margin-distribution-row" class="grid grid-2 margin-distribution" style="display:none">
     <section class="card distribution-card" aria-labelledby="quote-margin-title">
-      <h3 id="quote-margin-title">Marge brute par tranche de devis<span class="sp-help" data-tip="Répartition de la marge brute entre les tranches de montant de devis. Les tranches restent dans l'ordre des montants : la hauteur indique leur contribution à la marge brute totale.">?</span></h3>
-      <p class="distribution-note">Où se situe la marge : petits volumes, gros devis, ou un équilibre entre les deux.</p>
+      <h3 id="quote-margin-title">Devis facturés par tranche de montant<span class="sp-help" data-tip="Répartition des devis qui ont été facturés, par tranche de montant HT. Les tranches restent dans l'ordre des montants ; la hauteur indique leur poids dans le total des devis facturés.">?</span></h3>
+      <p class="distribution-note">Lecture des montants de devis qui alimentent le chiffre d’affaires facturé.</p>
       <div id="quote-margin-distribution"></div>
     </section>
     <section class="card distribution-card" aria-labelledby="client-margin-title">
-      <h3 id="client-margin-title">Concentration de marge brute par client<span class="sp-help" data-tip="Clients classés par contribution à la marge brute. La colonne « cumul » montre la part de marge brute atteinte en ajoutant les clients les plus contributeurs.">?</span></h3>
+      <h3 id="client-margin-title">Concentration du CA facturé par client<span class="sp-help" data-tip="Clients classés par chiffre d’affaires facturé HT. La colonne « cumul » montre la part de CA atteinte en ajoutant les clients les plus contributeurs.">?</span></h3>
       <p class="distribution-note">Lecture Pareto : mesure la dépendance éventuelle à quelques clients.</p>
       <div id="client-margin-distribution"></div>
     </section>
@@ -1245,8 +1249,68 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     };
   }
 
+  // Export « Gestion com. > Devis (liste) ». Les règles évitent les brouillons,
+  // les devis non aboutis et le double comptage potentiel des factures d'acompte.
+  function parsePieces(XLSX, workbook) {
+    var ws = null;
+    for (var si = 0; si < workbook.SheetNames.length; si++) {
+      var candidate = workbook.Sheets[workbook.SheetNames[si]];
+      var probe = sheetToMatrix(XLSX, candidate)[0] || [];
+      var names = probe.map(function (v) { return String(v == null ? '' : v).trim(); });
+      if (names.indexOf('Type') !== -1 && names.indexOf('Date') !== -1 && names.indexOf('Client') !== -1 && names.indexOf('Montant H.T.') !== -1 && names.indexOf('Etat') !== -1) { ws = candidate; break; }
+    }
+    if (!ws) throw new Error('Export Pièces illisible : colonnes Type, Date, Client, Montant H.T. et Etat introuvables.');
+    var rows = sheetToMatrix(XLSX, ws);
+    var header = rows[0] || [], col = {};
+    header.forEach(function (v, i) { col[String(v == null ? '' : v).trim()] = i; });
+    var quoteByYear = {}, clientByYear = {};
+    function add(map, year, label, amount) {
+      if (!map[year]) map[year] = {};
+      map[year][label] = (map[year][label] || 0) + amount;
+    }
+    function dateOf(v) {
+      if (v instanceof Date && !isNaN(v.getTime())) return v;
+      var d = new Date(v);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    function quoteBucket(amount) {
+      if (amount < 2000) return '< 2 k€';
+      if (amount < 5000) return '2–5 k€';
+      if (amount < 10000) return '5–10 k€';
+      if (amount < 25000) return '10–25 k€';
+      return '> 25 k€';
+    }
+    for (var r = 1; r < rows.length; r++) {
+      var row = rows[r], type = String(row[col.Type] == null ? '' : row[col.Type]).trim();
+      var state = String(row[col.Etat] == null ? '' : row[col.Etat]).toLocaleLowerCase('fr-FR');
+      var client = String(row[col.Client] == null ? '' : row[col.Client]).trim();
+      var amount = toFloat(row[col['Montant H.T.']]), date = dateOf(row[col.Date]);
+      if (!date || amount === null || !client) continue;
+      var year = String(date.getFullYear());
+      if (type === 'Devis' && state.indexOf('valid') !== -1 && state.indexOf('imp') !== -1 && amount > 0) {
+        add(quoteByYear, year, quoteBucket(amount), amount);
+      }
+      if ((type === 'Facture' || type === 'Facture de situation' || type === 'Avoir') && state.indexOf('confirm') !== -1) {
+        add(clientByYear, year, client, amount);
+      }
+    }
+    function orderedQuotes(values) {
+      var labels = ['< 2 k€', '2–5 k€', '5–10 k€', '10–25 k€', '> 25 k€'];
+      return labels.map(function (label) { return { label: label, amount: Math.round((values[label] || 0) * 100) / 100 }; }).filter(function (r) { return r.amount > 0; });
+    }
+    var byYear = {}, years = {};
+    Object.keys(quoteByYear).concat(Object.keys(clientByYear)).forEach(function (year) { years[year] = true; });
+    Object.keys(years).forEach(function (year) {
+      byYear[year] = {
+        quote_brackets: orderedQuotes(quoteByYear[year] || {}),
+        clients: Object.keys(clientByYear[year] || {}).map(function (label) { return { label: label, amount: Math.round(clientByYear[year][label] * 100) / 100 }; }).filter(function (r) { return r.amount > 0; })
+      };
+    });
+    return { by_year: byYear };
+  }
+
   var API = { TARGET_LABELS: TARGET_LABELS, POSITIVE_AS_ABS: POSITIVE_AS_ABS,
-              sheetToMatrix: sheetToMatrix, parseRES: parseRES, parseBAL: parseBAL };
+              sheetToMatrix: sheetToMatrix, parseRES: parseRES, parseBAL: parseBAL, parsePieces: parsePieces };
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
   global.CabestanParser = API;
 })(typeof window !== 'undefined' ? window : this);
@@ -1528,23 +1592,22 @@ function makeChart(canvasId, config) {
   charts[canvasId] = new Chart(ctx, config);
 }
 
-// Répartition optionnelle de marge brute. Le Résultat d'Activité Louty est agrégé
-// par mois ; les deux séries ci-dessous sont donc alimentées uniquement lorsqu'un
-// export détaillé les fournit :
-// { margin_distribution: { quote_brackets: [{ label, margin }], clients: [{ label, margin }] } }
-function _marginRows(raw) {
+// Répartition optionnelle de CA. Le Résultat d'Activité Louty est agrégé par
+// mois ; les deux séries ci-dessous proviennent de l'export détaillé « Pièces ».
+// { revenue_distribution: { quote_brackets: [{ label, amount }], clients: [{ label, amount }] } }
+function _distributionRows(raw) {
   var rows = [];
   if (Array.isArray(raw)) {
     raw.forEach(function (r) {
       if (!r) return;
       var label = r.label || r.name || r.client || r.bracket || r.tranche;
-      var margin = Number(r.margin != null ? r.margin : (r.mb != null ? r.mb : r.value));
-      if (label && isFinite(margin) && margin > 0) rows.push({ label: String(label), margin: margin });
+      var amount = Number(r.amount != null ? r.amount : (r.margin != null ? r.margin : (r.mb != null ? r.mb : r.value)));
+      if (label && isFinite(amount) && amount > 0) rows.push({ label: String(label), amount: amount });
     });
   } else if (raw && typeof raw === 'object') {
     Object.keys(raw).forEach(function (label) {
-      var margin = Number(raw[label]);
-      if (isFinite(margin) && margin > 0) rows.push({ label: label, margin: margin });
+      var amount = Number(raw[label]);
+      if (isFinite(amount) && amount > 0) rows.push({ label: label, amount: amount });
     });
   }
   return rows;
@@ -1562,12 +1625,13 @@ function _distributionEmpty(id) {
   if (id === 'quote-margin-distribution' && charts['chart-margin-by-quote']) {
     charts['chart-margin-by-quote'].destroy(); delete charts['chart-margin-by-quote'];
   }
-  host.innerHTML = '<div class="distribution-empty">Cet export contient des agrégats mensuels, pas le détail des devis ni des clients.<br>La répartition s’affichera dès qu’un export détaillé sera disponible.</div>';
+  host.innerHTML = '<div class="distribution-empty">Ajoute l’export détaillé « Pièces » pour afficher cette répartition.</div>';
 }
 function renderMarginDistributions(data) {
-  var source = (data && (data.margin_distribution || data.mb_distribution)) || {};
-  var quoteRows = _marginRows(source.quote_brackets || source.quotes || source.devis);
-  var clientRows = _marginRows(source.clients || source.by_client);
+  var source = (data && (data.revenue_distribution || data.margin_distribution || data.mb_distribution)) || {};
+  if (source.by_year && data && data.snapshot && data.snapshot.current) source = source.by_year[data.snapshot.current.year] || {};
+  var quoteRows = _distributionRows(source.quote_brackets || source.quotes || source.devis);
+  var clientRows = _distributionRows(source.clients || source.by_client);
   var section = document.getElementById('margin-distribution-row');
   if (section) section.style.display = (quoteRows.length || clientRows.length) ? '' : 'none';
   if (!quoteRows.length && !clientRows.length) return;
@@ -1579,16 +1643,16 @@ function renderQuoteMarginDistribution(rows) {
   if (!host) return;
   if (!rows.length) { _distributionEmpty('quote-margin-distribution'); return; }
   host.innerHTML = '<div class="chart-wrap"><canvas id="chart-margin-by-quote"></canvas></div>';
-  var total = rows.reduce(function (sum, row) { return sum + row.margin; }, 0) || 1;
+  var total = rows.reduce(function (sum, row) { return sum + row.amount; }, 0) || 1;
   var violet = getComputedStyle(document.documentElement).getPropertyValue('--violet').trim() || '#7C5AD6';
-  var max = Math.max.apply(null, rows.map(function (r) { return r.margin; })) || 1;
+  var max = Math.max.apply(null, rows.map(function (r) { return r.amount; })) || 1;
   makeChart('chart-margin-by-quote', {
     type: 'bar',
     data: {
       labels: rows.map(function (r) { return r.label; }),
       datasets: [{
-        label: 'Part de marge brute', data: rows.map(function (r) { return r.margin / total * 100; }),
-        backgroundColor: rows.map(function (r) { return _hexAlpha(violet, 0.36 + 0.64 * r.margin / max); }),
+        label: 'Part des devis facturés', data: rows.map(function (r) { return r.amount / total * 100; }),
+        backgroundColor: rows.map(function (r) { return _hexAlpha(violet, 0.36 + 0.64 * r.amount / max); }),
         borderWidth: 0, borderRadius: 7, borderSkipped: false
       }]
     },
@@ -1600,7 +1664,7 @@ function renderQuoteMarginDistribution(rows) {
       },
       plugins: {
         legend: { display: false },
-        tooltip: { callbacks: { label: function (ctx) { var r = rows[ctx.dataIndex]; return ' Marge brute : ' + fmtEUR(r.margin) + ' (' + ctx.parsed.y.toFixed(1).replace('.', ',') + ' %)'; } } }
+        tooltip: { callbacks: { label: function (ctx) { var r = rows[ctx.dataIndex]; return ' Devis facturés : ' + fmtEUR(r.amount) + ' (' + ctx.parsed.y.toFixed(1).replace('.', ',') + ' %)'; } } }
       }
     }
   });
@@ -1609,23 +1673,23 @@ function renderClientMarginDistribution(rows) {
   var host = document.getElementById('client-margin-distribution');
   if (!host) return;
   if (!rows.length) { _distributionEmpty('client-margin-distribution'); return; }
-  rows.sort(function (a, b) { return b.margin - a.margin; });
+  rows.sort(function (a, b) { return b.amount - a.amount; });
   if (rows.length > 6) {
-    var other = rows.slice(5).reduce(function (sum, row) { return sum + row.margin; }, 0);
+    var other = rows.slice(5).reduce(function (sum, row) { return sum + row.amount; }, 0);
     rows = rows.slice(0, 5);
-    if (other > 0) rows.push({ label: 'Autres clients', margin: other, other: true });
+    if (other > 0) rows.push({ label: 'Autres clients', amount: other, other: true });
   }
-  var total = rows.reduce(function (sum, row) { return sum + row.margin; }, 0) || 1;
-  var max = rows.reduce(function (m, row) { return Math.max(m, row.margin); }, 0) || 1;
+  var total = rows.reduce(function (sum, row) { return sum + row.amount; }, 0) || 1;
+  var max = rows.reduce(function (m, row) { return Math.max(m, row.amount); }, 0) || 1;
   var cumul = 0;
   var head = '<div class="pareto-head"><span>Client</span><span></span><span>Part</span><span>Cumul</span></div>';
   var list = rows.map(function (row, index) {
-    var share = row.margin / total;
+    var share = row.amount / total;
     cumul += share;
     var opacity = row.other ? 0.32 : Math.max(0.42, 1 - index * 0.12);
-    return '<div class="pareto-row" title="' + esc(row.label) + ' : ' + fmtEUR(row.margin) + '">' +
+    return '<div class="pareto-row" title="' + esc(row.label) + ' : ' + fmtEUR(row.amount) + '">' +
       '<span class="pareto-label">' + esc(row.label) + '</span>' +
-      '<div class="pareto-track"><div class="pareto-fill" style="width:' + (row.margin / max * 100).toFixed(1) + '%;--mb-fill:' + opacity + '"></div></div>' +
+      '<div class="pareto-track"><div class="pareto-fill" style="width:' + (row.amount / max * 100).toFixed(1) + '%;--mb-fill:' + opacity + '"></div></div>' +
       '<span class="pareto-share">' + Math.round(share * 100) + ' %</span>' +
       '<span class="pareto-cumul">' + Math.round(cumul * 100) + ' %</span>' +
     '</div>';
@@ -2715,10 +2779,10 @@ function saveData(data) {
   try {
     localStorage.setItem(DATA_KEY, JSON.stringify({
       years: data.years, labels_missing: data.labels_missing, charges_detail: data.charges_detail,
-      margin_distribution: data.margin_distribution, mb_distribution: data.mb_distribution,
+      revenue_distribution: data.revenue_distribution, margin_distribution: data.margin_distribution, mb_distribution: data.mb_distribution,
       sante: data.sante, sante_error: data.sante_error,
-      file_mtime_iso: data.file_mtime_iso, res_name: data.res_name, bal_name: data.bal_name,
-      res_export_iso: data.res_export_iso, bal_export_iso: data.bal_export_iso
+      file_mtime_iso: data.file_mtime_iso, res_name: data.res_name, bal_name: data.bal_name, pieces_name: data.pieces_name,
+      res_export_iso: data.res_export_iso, bal_export_iso: data.bal_export_iso, pieces_export_iso: data.pieces_export_iso
     }));
   } catch (e) { /* quota / mode privé -> on ignore */ }
 }
@@ -2841,6 +2905,15 @@ function looksLikeRES(wb) {
   var re = /^(janv|févr|mars|avr|mai|juin|juil|août|sept|oct|nov|déc)\.?-(\d{2})$/i;
   return header.some(function (v) { return v != null && re.test(String(v).trim()); });
 }
+function looksLikePieces(wb) {
+  for (var i = 0; i < wb.SheetNames.length; i++) {
+    var ws = wb.Sheets[wb.SheetNames[i]];
+    var header = XLSX.utils.sheet_to_json(ws, { header: 1, range: 0, raw: true })[0] || [];
+    var has = function (name) { return header.some(function (v) { return String(v == null ? '' : v).trim() === name; }); };
+    if (has('Type') && has('Date') && has('Client') && has('Montant H.T.') && has('Etat')) return true;
+  }
+  return false;
+}
 
 function readWorkbook(file) {
   return new Promise(function (resolve, reject) {
@@ -2857,31 +2930,34 @@ function readWorkbook(file) {
 }
 
 var dzFiles = document.getElementById('dz-files');
-function setFileStatus(resName, balName) {
+function setFileStatus(resName, balName, piecesName) {
   var lines = [];
   if (resName) lines.push('<div class="dz-file"><span class="ok">✓</span> RES : ' + esc(resName) + '</div>');
   if (balName) lines.push('<div class="dz-file"><span class="ok">✓</span> BAL : ' + esc(balName) + '</div>');
+  if (piecesName) lines.push('<div class="dz-file"><span class="ok">✓</span> Pièces : ' + esc(piecesName) + '</div>');
   dzFiles.innerHTML = lines.join('');
 }
 
 // Classe les classeurs déposés en RES / BAL (par nom Louty puis par contenu)
 function classifyBooks(books) {
-  var resBook = null, balBook = null;
+  var resBook = null, balBook = null, piecesBook = null;
   books.forEach(function (b) {
     var up = b.name.toUpperCase();
     if (/BAL/.test(up) && !balBook) balBook = b;
     else if (/RES/.test(up) && !resBook) resBook = b;
+    else if (/PI[ÈE]CES/.test(up) && !piecesBook) piecesBook = b;
   });
   books.forEach(function (b) {
-    if (b === resBook || b === balBook) return;
+    if (b === resBook || b === balBook || b === piecesBook) return;
     if (!resBook && looksLikeRES(b.wb)) resBook = b;
+    else if (!piecesBook && looksLikePieces(b.wb)) piecesBook = b;
     else if (!balBook) balBook = b;
   });
   if (!resBook) {
     var cand = books.filter(function (b) { return looksLikeRES(b.wb); });
     if (cand.length) resBook = cand[0];
   }
-  return { resBook: resBook, balBook: balBook };
+  return { resBook: resBook, balBook: balBook, piecesBook: piecesBook };
 }
 
 // Point d'entrée unique : accepte RES et/ou BAL, dans n'importe quel ordre.
@@ -2904,20 +2980,32 @@ function ingest(fileList) {
         try { data.sante = CabestanParser.parseBAL(XLSX, c.balBook.wb); data.bal_name = c.balBook.name; data.bal_export_iso = parseExportDate(c.balBook.name); }
         catch (e) { data.sante_error = e.message; }
       }
-      setFileStatus(c.resBook.name, c.balBook ? c.balBook.name : null);
+      if (c.piecesBook) {
+        data.revenue_distribution = CabestanParser.parsePieces(XLSX, c.piecesBook.wb);
+        data.pieces_name = c.piecesBook.name;
+        data.pieces_export_iso = parseExportDate(c.piecesBook.name);
+      }
+      setFileStatus(c.resBook.name, c.balBook ? c.balBook.name : null, c.piecesBook ? c.piecesBook.name : null);
       renderParsed(data);
-    } else if (c.balBook && LAST_DATA) {
-      // Balance seule + un Résultat déjà chargé -> on ajoute la santé aux données existantes
-      try {
-        LAST_DATA.sante = CabestanParser.parseBAL(XLSX, c.balBook.wb);
-        LAST_DATA.bal_name = c.balBook.name;
-        LAST_DATA.bal_export_iso = parseExportDate(c.balBook.name);
-        delete LAST_DATA.sante_error;
-      } catch (e) { throw new Error("Balance illisible : " + e.message); }
-      setFileStatus(LAST_DATA.res_name || null, c.balBook.name);
+    } else if ((c.balBook || c.piecesBook) && LAST_DATA) {
+      // Balance ou Pièces seul + un Résultat déjà chargé -> on enrichit les données existantes
+      if (c.balBook) {
+        try {
+          LAST_DATA.sante = CabestanParser.parseBAL(XLSX, c.balBook.wb);
+          LAST_DATA.bal_name = c.balBook.name;
+          LAST_DATA.bal_export_iso = parseExportDate(c.balBook.name);
+          delete LAST_DATA.sante_error;
+        } catch (e) { throw new Error("Balance illisible : " + e.message); }
+      }
+      if (c.piecesBook) {
+        LAST_DATA.revenue_distribution = CabestanParser.parsePieces(XLSX, c.piecesBook.wb);
+        LAST_DATA.pieces_name = c.piecesBook.name;
+        LAST_DATA.pieces_export_iso = parseExportDate(c.piecesBook.name);
+      }
+      setFileStatus(LAST_DATA.res_name || null, LAST_DATA.bal_name || null, LAST_DATA.pieces_name || null);
       renderParsed(LAST_DATA);
     } else {
-      throw new Error("Commence par déposer le fichier Résultat d'Activité (RES_U_Résultat d'Activité). La Balance seule ne suffit pas à générer le tableau de bord.");
+      throw new Error("Commence par déposer le fichier Résultat d'Activité (RES_U_Résultat d'Activité). La Balance ou les Pièces seules ne suffisent pas à générer le tableau de bord.");
     }
   }).catch(function (e) { showError(e); });
 }
