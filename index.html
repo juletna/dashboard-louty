@@ -2630,6 +2630,25 @@ function renderSante(data, cur) {
   var paymentDetails = paymentSource.payment_details || null;
   var advanceClients = paymentDetails && Array.isArray(paymentDetails.advances) ? paymentDetails.advances : [];
   var receivableClients = paymentDetails && Array.isArray(paymentDetails.receivables) ? paymentDetails.receivables : [];
+  // La Balance ne donne qu'un solde global 4191/4712. On ne montre un client que
+  // si les acomptes Pièces permettent un rapprochement exact et non ambigu.
+  function exactAdvanceMatch(items, total) {
+    var target = Math.round(Math.max(0, total) * 100);
+    if (!target) return [];
+    var matches = { 0: { count: 1, items: [] } };
+    items.forEach(function (item, index) {
+      var amount = Math.round(item.amount * 100);
+      var sums = Object.keys(matches).map(Number).sort(function (a, b) { return b - a; });
+      sums.forEach(function (sum) {
+        var next = sum + amount;
+        if (next > target || !matches[sum]) return;
+        if (matches[next]) { matches[next].count += matches[sum].count; matches[next].items = null; }
+        else matches[next] = { count: matches[sum].count, items: matches[sum].items.concat([index]) };
+      });
+    });
+    return matches[target] && matches[target].count === 1 ? matches[target].items.map(function (index) { return items[index]; }) : [];
+  }
+  var matchedAdvanceClients = exactAdvanceMatch(advanceClients, dAcc);
   var dexpl = tva + dFourn + dSoc + dAcc;
   var cca = -(sante.comptes_courants_associes || 0);
   var cca_cls = cca < 0 ? 'accent-red' : 'accent-blue';
@@ -2638,7 +2657,7 @@ function renderSante(data, cur) {
   var asOfDate = sante.as_of ? new Date(sante.as_of).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
   var detailLines = [
     { label: 'TVA à reverser', amount: tva }, { label: 'Fournisseurs', amount: dFourn },
-    { label: 'Dettes sociales / fiscales', amount: dSoc }, { label: 'Acomptes clients reçus', amount: dAcc, detail: advanceClients.length ? 'advances' : null }
+    { label: 'Dettes sociales / fiscales', amount: dSoc }, { label: 'Acomptes clients reçus', amount: dAcc, detail: matchedAdvanceClients.length ? 'advances' : null }
   ].filter(function (l) { return Math.abs(l.amount) > 0.5; });
 
   var totalBar = Math.max(treso, dexpl, 1);
@@ -2668,7 +2687,7 @@ function renderSante(data, cur) {
   }
   function customerDetail(items, kind) {
     var note = kind === 'advances'
-      ? 'Acomptes encaissés dans l’export — à rapprocher des prestations restant à réaliser.'
+      ? 'Rapprochement automatique par montant avec le solde de la Balance — à vérifier avant action.'
       : 'Factures confirmées dont le solde « En attente » est positif dans l’export.';
     return '<div class="sante-client-detail" data-customer-detail-body="' + kind + '" style="display:none"><p class="sante-client-detail-note">' + note + '</p>' + items.map(function (item) {
       var docs = item.documents || [];
@@ -2679,7 +2698,7 @@ function renderSante(data, cur) {
       return '<div class="sante-client-row"><div><b>' + esc(item.client) + '</b><span>' + esc(sub) + '</span></div><strong>' + fmtEUR(item.amount) + '</strong></div>';
     }).join('') + '</div>';
   }
-  var advancesCustomerDetail = advanceClients.length ? customerDetail(advanceClients, 'advances') : '';
+  var advancesCustomerDetail = matchedAdvanceClients.length ? customerDetail(matchedAdvanceClients, 'advances') : '';
   var receivablesCustomerDetail = receivableClients.length ? customerDetail(receivableClients, 'receivables') : '';
 
   var kpis =
@@ -2701,7 +2720,7 @@ function renderSante(data, cur) {
     '</div>';
 
   var detailHTML = detailLines.map(function (l) {
-    var link = l.detail ? '<button type="button" class="sante-detail-link" data-customer-detail="' + l.detail + '">Voir les clients →</button>' + advancesCustomerDetail : '';
+    var link = l.detail ? '<button type="button" class="sante-detail-link" data-customer-detail="' + l.detail + '">Voir le rapprochement →</button>' + advancesCustomerDetail : '';
     return '<div class="sd-row"><span>' + l.label + '</span><span class="sd-eur">' + fmtEUR(l.amount) + '</span></div>' + link;
   }).join('');
   var detailBlock = detailLines.length
@@ -2749,7 +2768,7 @@ function renderSante(data, cur) {
       if (!body) return;
       var open = body.style.display !== 'none';
       body.style.display = open ? 'none' : 'block';
-      button.textContent = (kind === 'advances' ? 'Voir les clients ' : 'Détail des impayés ') + (open ? '→' : '↑');
+      button.textContent = (kind === 'advances' ? 'Voir le rapprochement ' : 'Détail des impayés ') + (open ? '→' : '↑');
     });
   });
 };
