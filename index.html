@@ -850,30 +850,6 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
   <div class="sante-row" style="margin-top:16px">
     <div id="bloc-sante"></div>
   </div>
-  <div id="margin-distribution-row" class="grid grid-2 margin-distribution" style="display:none">
-    <section class="card distribution-card" aria-labelledby="quote-margin-title">
-      <h3 id="quote-margin-title">Devis facturés par tranche de montant<span class="sp-help" data-tip="Répartition des devis qui ont été facturés, par tranche de montant HT. Les tranches restent dans l'ordre des montants ; la hauteur indique leur poids dans le total des devis facturés.">?</span></h3>
-      <p class="distribution-note">Exercice courant en barres, comparé à la moyenne des exercices précédents comparables.</p>
-      <div id="quote-margin-distribution"></div>
-    </section>
-    <section class="card distribution-card" aria-labelledby="client-margin-title">
-      <div class="distribution-title-line"><h3 id="client-margin-title">Concentration du CA facturé par client<span class="sp-help" data-tip="Clients classés par chiffre d’affaires facturé HT. La colonne « cumul » montre la part de CA atteinte en ajoutant les clients les plus contributeurs.">?</span></h3><div id="client-distribution-period" class="client-distribution-period"></div></div>
-      <p class="distribution-note">Lecture Pareto : mesure la dépendance éventuelle à quelques clients.</p>
-      <div id="client-margin-distribution"></div>
-    </section>
-  </div>
-  <div id="distribution-upload-row" class="margin-distribution" style="display:none">
-    <section class="card distribution-upload-card" aria-labelledby="pieces-upload-title">
-      <h3 id="pieces-upload-title">Répartition des devis et des clients</h3>
-      <div class="sante-empty"><div class="se-drop" id="pieces-drop">
-        <div class="se-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
-        <div class="se-title">Ajoute l’export détaillé « Pièces »</div>
-        <div class="se-sub">Dans Louty : <strong>Gestion com. › Devis (liste) › Filtre avancé</strong>.<br>Sélectionne <strong>Devis facturés</strong>, <strong>Facture</strong>, <strong>Facture de situation</strong>, <strong>Facture d’acompte</strong> et <strong>Avoir</strong> ; conserve les états <strong>Validé + Imprimé</strong> et <strong>Confirmé</strong>, sans filtre de règlement. Exclue les brouillons et devis non facturés ; les acomptes alimentent seulement le détail de santé financière. Exporte toute la période au format <code>.xlsx</code>.</div>
-        <button type="button" class="btn primary" id="pieces-browse">Choisir le fichier Pièces</button>
-        <input type="file" id="pieces-input" accept=".xlsx" style="display:none">
-      </div></div>
-    </section>
-  </div>
   <div class="grid grid-2" style="margin-top:16px">
     <div class="card">
       <h3>Marge brute mensuelle<span class="sp-help" data-tip="Ta marge brute mois par mois (barres) : rouge = mois négatif, orange = sous ton seuil de salaire, vert = au-dessus. La ligne orange est ton seuil salaire brut ; la courbe grise, la moyenne des années précédentes.">?</span></h3>
@@ -901,6 +877,30 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
         <div id="bloc4"></div>
       </div>
     </div>
+  </div>
+  <div id="margin-distribution-row" class="grid grid-2 margin-distribution" style="display:none">
+    <section class="card distribution-card" aria-labelledby="quote-margin-title">
+      <h3 id="quote-margin-title">Devis facturés par tranche de montant<span class="sp-help" data-tip="Répartition des devis qui ont été facturés, par tranche de montant HT. Les tranches restent dans l'ordre des montants ; la hauteur indique leur poids dans le total des devis facturés.">?</span></h3>
+      <p class="distribution-note">Exercice courant en barres, comparé à la moyenne des exercices précédents comparables.</p>
+      <div id="quote-margin-distribution"></div>
+    </section>
+    <section class="card distribution-card" aria-labelledby="client-margin-title">
+      <div class="distribution-title-line"><h3 id="client-margin-title">Concentration du CA facturé par client<span class="sp-help" data-tip="Clients classés par chiffre d’affaires facturé HT. La colonne « cumul » montre la part de CA atteinte en ajoutant les clients les plus contributeurs.">?</span></h3><div id="client-distribution-period" class="client-distribution-period"></div></div>
+      <p class="distribution-note">Lecture Pareto : mesure la dépendance éventuelle à quelques clients.</p>
+      <div id="client-margin-distribution"></div>
+    </section>
+  </div>
+  <div id="distribution-upload-row" class="margin-distribution" style="display:none">
+    <section class="card distribution-upload-card" aria-labelledby="pieces-upload-title">
+      <h3 id="pieces-upload-title">Répartition des devis et des clients</h3>
+      <div class="sante-empty"><div class="se-drop" id="pieces-drop">
+        <div class="se-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+        <div class="se-title">Ajoute l’export détaillé « Pièces »</div>
+        <div class="se-sub">Dans Louty : <strong>Gestion com. › Devis (liste) › Filtre avancé</strong>.<br>Sélectionne <strong>Devis facturés</strong>, <strong>Facture</strong>, <strong>Facture de situation</strong>, <strong>Facture d’acompte</strong> et <strong>Avoir</strong> ; conserve les états <strong>Validé + Imprimé</strong> et <strong>Confirmé</strong>, sans filtre de règlement. Exclue les brouillons et devis non facturés ; les acomptes alimentent seulement le détail de santé financière. Exporte toute la période au format <code>.xlsx</code>.</div>
+        <button type="button" class="btn primary" id="pieces-browse">Choisir le fichier Pièces</button>
+        <input type="file" id="pieces-input" accept=".xlsx" style="display:none">
+      </div></div>
+    </section>
   </div>
 </div>
 
