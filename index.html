@@ -2625,23 +2625,30 @@ function renderSante(data, cur) {
   var receivableClients = paymentDetails && Array.isArray(paymentDetails.receivables) ? paymentDetails.receivables : [];
   // La Balance ne donne qu'un solde global 4191/4712. On ne montre un client que
   // si les acomptes Pièces permettent un rapprochement exact et non ambigu.
-  function exactAdvanceMatch(items, total) {
+  function advanceMatches(items, total) {
     var target = Math.round(Math.max(0, total) * 100);
-    if (!target) return [];
-    var matches = { 0: { count: 1, items: [] } };
+    var maxCandidates = 6;
+    if (!target) return { solutions: [], truncated: false };
+    var matches = { 0: { solutions: [[]], truncated: false } };
     items.forEach(function (item, index) {
       var amount = Math.round(item.amount * 100);
       var sums = Object.keys(matches).map(Number).sort(function (a, b) { return b - a; });
       sums.forEach(function (sum) {
         var next = sum + amount;
         if (next > target || !matches[sum]) return;
-        if (matches[next]) { matches[next].count += matches[sum].count; matches[next].items = null; }
-        else matches[next] = { count: matches[sum].count, items: matches[sum].items.concat([index]) };
+        if (!matches[next]) matches[next] = { solutions: [], truncated: false };
+        matches[sum].solutions.forEach(function (solution) {
+          if (matches[next].solutions.length < maxCandidates) matches[next].solutions.push(solution.concat([index]));
+          else matches[next].truncated = true;
+        });
+        if (matches[sum].truncated) matches[next].truncated = true;
       });
     });
-    return matches[target] && matches[target].count === 1 ? matches[target].items.map(function (index) { return items[index]; }) : [];
+    var found = matches[target];
+    return found ? { solutions: found.solutions.map(function (solution) { return solution.map(function (index) { return items[index]; }); }), truncated: found.truncated } : { solutions: [], truncated: false };
   }
-  var matchedAdvanceClients = exactAdvanceMatch(advanceClients, dAcc);
+  var advanceMatchesFound = advanceMatches(advanceClients, dAcc);
+  var matchedAdvanceClients = advanceMatchesFound.solutions.length === 1 ? advanceMatchesFound.solutions[0] : [];
   var dexpl = tva + dFourn + dSoc + dAcc;
   var cca = -(sante.comptes_courants_associes || 0);
   var cca_cls = cca < 0 ? 'accent-red' : 'accent-blue';
@@ -2650,7 +2657,7 @@ function renderSante(data, cur) {
   var asOfDate = sante.as_of ? new Date(sante.as_of).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
   var detailLines = [
     { label: 'TVA à reverser', amount: tva }, { label: 'Fournisseurs', amount: dFourn },
-    { label: 'Dettes sociales / fiscales', amount: dSoc }, { label: 'Acomptes clients reçus', amount: dAcc, detail: matchedAdvanceClients.length ? 'advances' : null }
+    { label: 'Dettes sociales / fiscales', amount: dSoc }, { label: 'Acomptes clients reçus', amount: dAcc, detail: advanceMatchesFound.solutions.length ? 'advances' : null }
   ].filter(function (l) { return Math.abs(l.amount) > 0.5; });
 
   var totalBar = Math.max(treso, dexpl, 1);
@@ -2688,8 +2695,19 @@ function renderSante(data, cur) {
       return { label: item.client + ' · ' + sub, amount: item.amount };
     });
   }
+  var advancesModal;
+  if (advanceMatchesFound.solutions.length > 1) {
+    advancesModal = {
+      title: 'Rapprochements d’acomptes possibles',
+      subtitle: 'Combinaisons déduites par montant avec le solde Balance' + (advanceMatchesFound.truncated ? ' · au moins 6 hypothèses' : ''),
+      rows: advanceMatchesFound.solutions.map(function (solution, index) { return { label: 'Hypothèse ' + (index + 1) + ' · ' + solution.map(function (item) { return item.client; }).join(' + '), amount: dAcc }; }),
+      total: null, totalLabel: ''
+    };
+  } else {
+    advancesModal = { title: 'Acompte client à honorer', subtitle: 'Rapprochement automatique avec le solde Balance — à vérifier', rows: customerModalRows(matchedAdvanceClients, 'advances'), total: dAcc, totalLabel: 'Solde d’acomptes Balance' };
+  }
   var customerModalData = {
-    advances: { title: 'Acompte client à honorer', subtitle: 'Rapprochement automatique avec le solde Balance — à vérifier', rows: customerModalRows(matchedAdvanceClients, 'advances'), total: dAcc, totalLabel: 'Solde d’acomptes Balance' },
+    advances: advancesModal,
     receivables: { title: 'Impayés clients', subtitle: 'Factures confirmées avec un solde « En attente » positif', rows: customerModalRows(receivableClients, 'receivables'), total: receivableClients.reduce(function (sum, item) { return sum + item.amount; }, 0), totalLabel: 'Total des impayés dans l’export' }
   };
 
@@ -2712,7 +2730,7 @@ function renderSante(data, cur) {
     '</div>';
 
   var detailHTML = detailLines.map(function (l) {
-    var link = l.detail ? '<button type="button" class="sante-detail-link" data-customer-detail="' + l.detail + '">Voir le rapprochement →</button>' : '';
+    var link = l.detail ? '<button type="button" class="sante-detail-link" data-customer-detail="' + l.detail + '">' + (advanceMatchesFound.solutions.length > 1 ? 'Voir les rapprochements possibles →' : 'Voir le rapprochement →') + '</button>' : '';
     return '<div class="sd-row"><span>' + l.label + '</span><span class="sd-eur">' + fmtEUR(l.amount) + '</span></div>' + link;
   }).join('');
   var detailBlock = detailLines.length
