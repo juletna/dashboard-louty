@@ -750,6 +750,15 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .sante-detail-body { margin-top:9px; font-size:12px; color:var(--text-dim); }
 .sd-row { display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dashed var(--border); }
 .sd-eur { font-weight:800; color:var(--text); font-variant-numeric:tabular-nums; }
+.sante-detail-link { appearance:none; border:0; padding:3px 0; background:none; color:var(--violet); font:inherit; font-size:11.5px; font-weight:800; cursor:pointer; }
+.sante-detail-link:hover { text-decoration:underline; }
+.sante-client-detail { margin:7px 0 3px; padding:8px 10px; background:var(--bg-inset); border-radius:8px; }
+.sante-client-detail-note { margin:0 0 6px; color:var(--text-faint); font-size:10.5px; line-height:1.35; }
+.sante-client-row { display:flex; justify-content:space-between; gap:10px; padding:6px 0; border-top:1px dashed var(--border); }
+.sante-client-row:first-of-type { border-top:0; }
+.sante-client-row b { display:block; color:var(--text); font-size:11.5px; }
+.sante-client-row span { display:block; margin-top:1px; color:var(--text-faint); font-size:10.5px; }
+.sante-client-row strong { flex:none; align-self:center; color:var(--text); font-size:11.5px; font-variant-numeric:tabular-nums; white-space:nowrap; }
 .sante-acomptes-alert { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-top:12px; padding:10px 12px; background:var(--amber-bg); border:1px solid var(--orange-line); border-radius:10px; color:var(--text); }
 .sante-acomptes-alert strong { display:block; font-size:12px; font-weight:800; color:var(--amber); }
 .sante-acomptes-alert span { display:block; margin-top:2px; font-size:11.5px; line-height:1.35; color:var(--text-dim); }
@@ -819,7 +828,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
   </div>
   <div class="welcome-callout">
     <span class="wc-tag">Répartitions devis &amp; clients</span>
-    Dans <strong>Gestion com. › Devis (liste) › Filtre avancé</strong>, sélectionne <strong>Devis facturés</strong>, <strong>Facture</strong>, <strong>Facture de situation</strong> et <strong>Avoir</strong>. Garde les états <strong>Validé + Imprimé</strong> et <strong>Confirmé</strong>, ne filtre pas le règlement, puis exporte la liste complète au format <code>.xlsx</code>. Exclue les brouillons, les devis non facturés et les factures d’acompte.
+    Dans <strong>Gestion com. › Devis (liste) › Filtre avancé</strong>, sélectionne <strong>Devis facturés</strong>, <strong>Facture</strong>, <strong>Facture de situation</strong>, <strong>Facture d’acompte</strong> et <strong>Avoir</strong>. Garde les états <strong>Validé + Imprimé</strong> et <strong>Confirmé</strong>, ne filtre pas le règlement, puis exporte la liste complète au format <code>.xlsx</code>. Exclue les brouillons et les devis non facturés ; les acomptes servent uniquement au détail de santé financière, jamais au CA.
   </div>
 </div>
 
@@ -866,7 +875,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
       <div class="sante-empty"><div class="se-drop" id="pieces-drop">
         <div class="se-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
         <div class="se-title">Ajoute l’export détaillé « Pièces »</div>
-        <div class="se-sub">Dans Louty : <strong>Gestion com. › Devis (liste) › Filtre avancé</strong>.<br>Sélectionne <strong>Devis facturés</strong>, <strong>Facture</strong>, <strong>Facture de situation</strong> et <strong>Avoir</strong> ; conserve les états <strong>Validé + Imprimé</strong> et <strong>Confirmé</strong>, sans filtre de règlement. Exclue les brouillons, devis non facturés et factures d’acompte, puis exporte toute la période au format <code>.xlsx</code>.</div>
+        <div class="se-sub">Dans Louty : <strong>Gestion com. › Devis (liste) › Filtre avancé</strong>.<br>Sélectionne <strong>Devis facturés</strong>, <strong>Facture</strong>, <strong>Facture de situation</strong>, <strong>Facture d’acompte</strong> et <strong>Avoir</strong> ; conserve les états <strong>Validé + Imprimé</strong> et <strong>Confirmé</strong>, sans filtre de règlement. Exclue les brouillons et devis non facturés ; les acomptes alimentent seulement le détail de santé financière. Exporte toute la période au format <code>.xlsx</code>.</div>
         <button type="button" class="btn primary" id="pieces-browse">Choisir le fichier Pièces</button>
         <input type="file" id="pieces-input" accept=".xlsx" style="display:none">
       </div></div>
@@ -1285,7 +1294,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var rows = sheetToMatrix(XLSX, ws);
     var header = rows[0] || [], col = {};
     header.forEach(function (v, i) { col[String(v == null ? '' : v).trim()] = i; });
-    var quoteByYear = {}, clientByYear = {}, quoteCoverage = {};
+    var quoteByYear = {}, clientByYear = {}, quoteCoverage = {}, advancesByClient = {}, receivablesByClient = {};
     function add(map, year, label, amount) {
       if (!map[year]) map[year] = {};
       map[year][label] = (map[year][label] || 0) + amount;
@@ -1301,6 +1310,11 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       if (amount < 10000) return '5–10 k€';
       if (amount < 25000) return '10–25 k€';
       return '> 25 k€';
+    }
+    function addCustomerDetail(map, clientName, amount, date, dueDate, number) {
+      if (!map[clientName]) map[clientName] = { client: clientName, amount: 0, documents: [] };
+      map[clientName].amount += amount;
+      map[clientName].documents.push({ amount: Math.round(amount * 100) / 100, date: date ? date.toISOString() : null, due_date: dueDate ? dueDate.toISOString() : null, number: number || '' });
     }
     for (var r = 1; r < rows.length; r++) {
       var row = rows[r], type = String(row[col.Type] == null ? '' : row[col.Type]).trim();
@@ -1318,6 +1332,16 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       if ((type === 'Facture' || type === 'Facture de situation' || type === 'Avoir') && state.indexOf('confirm') !== -1) {
         add(clientByYear, year, client, amount);
       }
+      if (state.indexOf('confirm') !== -1) {
+        var paid = toFloat(row[col['Déjà réglé']]) || 0;
+        var pending = toFloat(row[col['En attente']]) || 0;
+        var dueDate = dateOf(row[col['Date échéance']]);
+        var number = String(row[col['Numéro chrono']] == null ? '' : row[col['Numéro chrono']]).trim();
+        // Les acomptes restent exclus du CA, mais servent au rapprochement de la dette 4191.
+        if (type === "Facture d'acompte" && paid > 0) addCustomerDetail(advancesByClient, client, paid, date, null, number);
+        // Le solde « En attente » est la donnée de relance : les trop-perçus restent volontairement exclus.
+        if ((type === 'Facture' || type === 'Facture de situation') && pending > 0) addCustomerDetail(receivablesByClient, client, pending, date, dueDate, number);
+      }
     }
     function orderedQuotes(values) {
       var labels = ['< 2 k€', '2–5 k€', '5–10 k€', '10–25 k€', '> 25 k€'];
@@ -1332,7 +1356,15 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         clients: Object.keys(clientByYear[year] || {}).map(function (label) { return { label: label, amount: Math.round(clientByYear[year][label] * 100) / 100 }; }).filter(function (r) { return r.amount > 0; })
       };
     });
-    return { by_year: byYear };
+    function detailList(map) {
+      return Object.keys(map).map(function (clientName) {
+        var item = map[clientName];
+        item.amount = Math.round(item.amount * 100) / 100;
+        item.documents.sort(function (a, b) { return String(b.date || '').localeCompare(String(a.date || '')); });
+        return item;
+      }).sort(function (a, b) { return b.amount - a.amount; });
+    }
+    return { by_year: byYear, payment_details: { advances: detailList(advancesByClient), receivables: detailList(receivablesByClient) } };
   }
 
   var API = { TARGET_LABELS: TARGET_LABELS, POSITIVE_AS_ABS: POSITIVE_AS_ABS,
@@ -2594,6 +2626,10 @@ function renderSante(data, cur) {
   if (dsoRatio !== null && dsoRatio > 0.25) creances_cls = 'accent-red';
   var tva = (sante.dettes_tva != null) ? sante.dettes_tva : Math.max(0, sante.tva_a_payer || 0);
   var dFourn = sante.dettes_fournisseurs || 0, dSoc = sante.dettes_sociales_fiscales || 0, dAcc = sante.dettes_acomptes_clients || 0;
+  var paymentSource = data.revenue_distribution || data.margin_distribution || data.mb_distribution || {};
+  var paymentDetails = paymentSource.payment_details || null;
+  var advanceClients = paymentDetails && Array.isArray(paymentDetails.advances) ? paymentDetails.advances : [];
+  var receivableClients = paymentDetails && Array.isArray(paymentDetails.receivables) ? paymentDetails.receivables : [];
   var dexpl = tva + dFourn + dSoc + dAcc;
   var cca = -(sante.comptes_courants_associes || 0);
   var cca_cls = cca < 0 ? 'accent-red' : 'accent-blue';
@@ -2601,9 +2637,9 @@ function renderSante(data, cur) {
   var position = treso - dexpl;
   var asOfDate = sante.as_of ? new Date(sante.as_of).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
   var detailLines = [
-    ['TVA à reverser', tva], ['Fournisseurs', dFourn],
-    ['Dettes sociales / fiscales', dSoc], ['Acomptes clients reçus', dAcc]
-  ].filter(function (l) { return Math.abs(l[1]) > 0.5; });
+    { label: 'TVA à reverser', amount: tva }, { label: 'Fournisseurs', amount: dFourn },
+    { label: 'Dettes sociales / fiscales', amount: dSoc }, { label: 'Acomptes clients reçus', amount: dAcc, detail: advanceClients.length ? 'advances' : null }
+  ].filter(function (l) { return Math.abs(l.amount) > 0.5; });
 
   var totalBar = Math.max(treso, dexpl, 1);
   var posW = Math.max(0, position) / totalBar * 100;
@@ -2625,6 +2661,26 @@ function renderSante(data, cur) {
   }
   // Le comparatif N-1 est à la maille mois (jan → dernier mois renseigné), pas au jour du dépôt du fichier
   var resultatSub = (_rN1 !== null && _n > 0) ? 'vs ' + fmtEUR(_rN1) + ' (jan\u2013' + MONTH_NAMES[_n - 1].toLowerCase() + ' ' + _refYr + ')' : 'Reste après charges, coop, salaire, km';
+  function detailDate(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    return isNaN(d.getTime()) ? '' : d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
+  function customerDetail(items, kind) {
+    var note = kind === 'advances'
+      ? 'Acomptes encaissés dans l’export — à rapprocher des prestations restant à réaliser.'
+      : 'Factures confirmées dont le solde « En attente » est positif dans l’export.';
+    return '<div class="sante-client-detail" data-customer-detail-body="' + kind + '" style="display:none"><p class="sante-client-detail-note">' + note + '</p>' + items.map(function (item) {
+      var docs = item.documents || [];
+      var due = kind === 'receivables' ? docs.map(function (doc) { return doc.due_date; }).filter(Boolean).sort()[0] : null;
+      var sub = kind === 'receivables'
+        ? (due ? 'Échéance ' + detailDate(due) : docs.length + ' facture' + (docs.length > 1 ? 's' : ''))
+        : docs.length + ' acompte' + (docs.length > 1 ? 's' : '') + ' encaissé' + (docs.length > 1 ? 's' : '');
+      return '<div class="sante-client-row"><div><b>' + esc(item.client) + '</b><span>' + esc(sub) + '</span></div><strong>' + fmtEUR(item.amount) + '</strong></div>';
+    }).join('') + '</div>';
+  }
+  var advancesCustomerDetail = advanceClients.length ? customerDetail(advanceClients, 'advances') : '';
+  var receivablesCustomerDetail = receivableClients.length ? customerDetail(receivableClients, 'receivables') : '';
 
   var kpis =
     '<div class="kpi ' + cca_cls + '">' +
@@ -2636,6 +2692,7 @@ function renderSante(data, cur) {
       '<div class="kpi-top"><span class="kpi-ico">' + ICON.receipt + '</span><div class="kpi-label">Créances clients</div></div>' +
       '<div class="kpi-value">' + fmtEUR(sante.creances_clients) + '</div>' +
       '<div class="kpi-sub">' + (dsoRatio !== null ? fmtPct(dsoRatio, 0) + ' du CA cumulé · à relancer si vieux' : 'à relancer si vieux') + '</div>' +
+      (receivableClients.length ? '<button type="button" class="sante-detail-link" data-customer-detail="receivables">Détail des impayés →</button>' + receivablesCustomerDetail : '') +
     '</div>' +
     '<div class="kpi ' + mn_cls + '">' +
       '<div class="kpi-top"><span class="kpi-ico">' + ICON.trending + '</span><div class="kpi-label">Résultat</div></div>' +
@@ -2643,7 +2700,10 @@ function renderSante(data, cur) {
       '<div class="kpi-sub">' + resultatSub + '</div>' +
     '</div>';
 
-  var detailHTML = detailLines.map(function (l) { return '<div class="sd-row"><span>' + l[0] + '</span><span class="sd-eur">' + fmtEUR(l[1]) + '</span></div>'; }).join('');
+  var detailHTML = detailLines.map(function (l) {
+    var link = l.detail ? '<button type="button" class="sante-detail-link" data-customer-detail="' + l.detail + '">Voir les clients →</button>' + advancesCustomerDetail : '';
+    return '<div class="sd-row"><span>' + l.label + '</span><span class="sd-eur">' + fmtEUR(l.amount) + '</span></div>' + link;
+  }).join('');
   var detailBlock = detailLines.length
     ? '<div class="sante-detail"><button type="button" class="sante-detail-toggle">Détail des dettes exigibles →</button><div class="sante-detail-body" style="display:none">' + detailHTML + '</div></div>'
     : '';
@@ -2681,6 +2741,16 @@ function renderSante(data, cur) {
     var open = body.style.display !== 'none';
     body.style.display = open ? 'none' : 'block';
     _tog.textContent = 'Détail des dettes exigibles ' + (open ? '→' : '↑');
+  });
+  Array.prototype.forEach.call(wrap.querySelectorAll('[data-customer-detail]'), function (button) {
+    button.addEventListener('click', function () {
+      var kind = button.getAttribute('data-customer-detail');
+      var body = wrap.querySelector('[data-customer-detail-body="' + kind + '"]');
+      if (!body) return;
+      var open = body.style.display !== 'none';
+      body.style.display = open ? 'none' : 'block';
+      button.textContent = (kind === 'advances' ? 'Voir les clients ' : 'Détail des impayés ') + (open ? '→' : '↑');
+    });
   });
 };
 
