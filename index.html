@@ -249,6 +249,27 @@
   .chart-wrap.tall { height: 350px; }
   .chart-wrap.short { height: 200px; }
 
+  /* Concentration de marge : deux lectures volontairement différentes du graphe annuel empilé */
+  .margin-distribution { margin-top:16px; }
+  .distribution-card { min-width:0; }
+  .distribution-card .chart-wrap { height:255px; }
+  .distribution-note { margin:0 0 14px; color:var(--text-dim); font-size:12.5px; line-height:1.45; }
+  .distribution-empty { min-height:238px; display:flex; align-items:center; justify-content:center; text-align:center; color:var(--text-faint); font-size:13px; line-height:1.5; padding:20px; background:var(--bg-inset); border-radius:var(--radius-sm); }
+  .pareto-list { display:flex; flex-direction:column; gap:13px; padding-top:3px; }
+  .pareto-row { display:grid; grid-template-columns:minmax(94px,0.7fr) minmax(130px,2fr) 50px 54px; align-items:center; gap:10px; }
+  .pareto-label { font-size:12.5px; font-weight:800; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pareto-track { height:19px; overflow:hidden; border-radius:6px; background:var(--bg-inset); }
+  .pareto-fill { height:100%; border-radius:6px; background:var(--teal); opacity:var(--mb-fill,1); }
+  .pareto-share, .pareto-cumul { font-size:11.5px; font-weight:800; white-space:nowrap; font-variant-numeric:tabular-nums; text-align:right; }
+  .pareto-share { color:var(--text); }
+  .pareto-cumul { color:var(--text-dim); }
+  .pareto-head { display:grid; grid-template-columns:minmax(94px,0.7fr) minmax(130px,2fr) 50px 54px; gap:10px; margin-bottom:8px; color:var(--text-faint); font-size:10px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
+  .pareto-head span:nth-last-child(-n+2) { text-align:right; }
+  @media (max-width: 520px) {
+    .pareto-row, .pareto-head { grid-template-columns:minmax(76px,0.75fr) minmax(90px,1.55fr) 44px 50px; gap:7px; }
+    .pareto-label { font-size:11.5px; }
+  }
+
   /* Alertes */
   .alert-item {
     display: flex; justify-content: space-between; align-items: center; gap: 10px;
@@ -840,6 +861,18 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
         <div id="bloc4"></div>
       </div>
     </div>
+  </div>
+  <div class="grid grid-2 margin-distribution">
+    <section class="card distribution-card" aria-labelledby="quote-margin-title">
+      <h3 id="quote-margin-title">Marge brute par tranche de devis<span class="sp-help" data-tip="Répartition de la marge brute entre les tranches de montant de devis. Les tranches restent dans l'ordre des montants : la hauteur indique leur contribution à la marge brute totale.">?</span></h3>
+      <p class="distribution-note">Où se situe la marge : petits volumes, gros devis, ou un équilibre entre les deux.</p>
+      <div id="quote-margin-distribution"></div>
+    </section>
+    <section class="card distribution-card" aria-labelledby="client-margin-title">
+      <h3 id="client-margin-title">Concentration de marge brute par client<span class="sp-help" data-tip="Clients classés par contribution à la marge brute. La colonne « cumul » montre la part de marge brute atteinte en ajoutant les clients les plus contributeurs.">?</span></h3>
+      <p class="distribution-note">Lecture Pareto : mesure la dépendance éventuelle à quelques clients.</p>
+      <div id="client-margin-distribution"></div>
+    </section>
   </div>
 </div>
 
@@ -1480,6 +1513,7 @@ function render(data) {
   renderMonthlyChart(cy, years, currentYear);
   renderCumulChart(years, currentYear);
   renderWaterfall(cur, cy);
+  renderMarginDistributions(data);
 
   renderAchats(cy, cur);
   renderAchatsCAChart(cy);
@@ -1492,6 +1526,108 @@ function makeChart(canvasId, config) {
   if (charts[canvasId]) { charts[canvasId].destroy(); }
   const ctx = document.getElementById(canvasId).getContext('2d');
   charts[canvasId] = new Chart(ctx, config);
+}
+
+// Répartition optionnelle de marge brute. Le Résultat d'Activité Louty est agrégé
+// par mois ; les deux séries ci-dessous sont donc alimentées uniquement lorsqu'un
+// export détaillé les fournit :
+// { margin_distribution: { quote_brackets: [{ label, margin }], clients: [{ label, margin }] } }
+function _marginRows(raw) {
+  var rows = [];
+  if (Array.isArray(raw)) {
+    raw.forEach(function (r) {
+      if (!r) return;
+      var label = r.label || r.name || r.client || r.bracket || r.tranche;
+      var margin = Number(r.margin != null ? r.margin : (r.mb != null ? r.mb : r.value));
+      if (label && isFinite(margin) && margin > 0) rows.push({ label: String(label), margin: margin });
+    });
+  } else if (raw && typeof raw === 'object') {
+    Object.keys(raw).forEach(function (label) {
+      var margin = Number(raw[label]);
+      if (isFinite(margin) && margin > 0) rows.push({ label: label, margin: margin });
+    });
+  }
+  return rows;
+}
+function _hexAlpha(hex, alpha) {
+  var h = String(hex || '').replace('#', '');
+  if (h.length === 3) h = h.split('').map(function (c) { return c + c; }).join('');
+  var n = parseInt(h, 16);
+  if (!isFinite(n)) return 'rgba(124,90,214,' + alpha + ')';
+  return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + alpha + ')';
+}
+function _distributionEmpty(id) {
+  var host = document.getElementById(id);
+  if (!host) return;
+  if (id === 'quote-margin-distribution' && charts['chart-margin-by-quote']) {
+    charts['chart-margin-by-quote'].destroy(); delete charts['chart-margin-by-quote'];
+  }
+  host.innerHTML = '<div class="distribution-empty">Cet export contient des agrégats mensuels, pas le détail des devis ni des clients.<br>La répartition s’affichera dès qu’un export détaillé sera disponible.</div>';
+}
+function renderMarginDistributions(data) {
+  var source = (data && (data.margin_distribution || data.mb_distribution)) || {};
+  var quoteRows = _marginRows(source.quote_brackets || source.quotes || source.devis);
+  var clientRows = _marginRows(source.clients || source.by_client);
+  renderQuoteMarginDistribution(quoteRows);
+  renderClientMarginDistribution(clientRows);
+}
+function renderQuoteMarginDistribution(rows) {
+  var host = document.getElementById('quote-margin-distribution');
+  if (!host) return;
+  if (!rows.length) { _distributionEmpty('quote-margin-distribution'); return; }
+  host.innerHTML = '<div class="chart-wrap"><canvas id="chart-margin-by-quote"></canvas></div>';
+  var total = rows.reduce(function (sum, row) { return sum + row.margin; }, 0) || 1;
+  var violet = getComputedStyle(document.documentElement).getPropertyValue('--violet').trim() || '#7C5AD6';
+  var max = Math.max.apply(null, rows.map(function (r) { return r.margin; })) || 1;
+  makeChart('chart-margin-by-quote', {
+    type: 'bar',
+    data: {
+      labels: rows.map(function (r) { return r.label; }),
+      datasets: [{
+        label: 'Part de marge brute', data: rows.map(function (r) { return r.margin / total * 100; }),
+        backgroundColor: rows.map(function (r) { return _hexAlpha(violet, 0.36 + 0.64 * r.margin / max); }),
+        borderWidth: 0, borderRadius: 7, borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: false, font: { size: 11, weight: '700' } } },
+        y: { beginAtZero: true, ticks: { callback: function (v) { return v + ' %'; } } }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: function (ctx) { var r = rows[ctx.dataIndex]; return ' Marge brute : ' + fmtEUR(r.margin) + ' (' + ctx.parsed.y.toFixed(1).replace('.', ',') + ' %)'; } } }
+      }
+    }
+  });
+}
+function renderClientMarginDistribution(rows) {
+  var host = document.getElementById('client-margin-distribution');
+  if (!host) return;
+  if (!rows.length) { _distributionEmpty('client-margin-distribution'); return; }
+  rows.sort(function (a, b) { return b.margin - a.margin; });
+  if (rows.length > 6) {
+    var other = rows.slice(5).reduce(function (sum, row) { return sum + row.margin; }, 0);
+    rows = rows.slice(0, 5);
+    if (other > 0) rows.push({ label: 'Autres clients', margin: other, other: true });
+  }
+  var total = rows.reduce(function (sum, row) { return sum + row.margin; }, 0) || 1;
+  var max = rows.reduce(function (m, row) { return Math.max(m, row.margin); }, 0) || 1;
+  var cumul = 0;
+  var head = '<div class="pareto-head"><span>Client</span><span></span><span>Part</span><span>Cumul</span></div>';
+  var list = rows.map(function (row, index) {
+    var share = row.margin / total;
+    cumul += share;
+    var opacity = row.other ? 0.32 : Math.max(0.42, 1 - index * 0.12);
+    return '<div class="pareto-row" title="' + esc(row.label) + ' : ' + fmtEUR(row.margin) + '">' +
+      '<span class="pareto-label">' + esc(row.label) + '</span>' +
+      '<div class="pareto-track"><div class="pareto-fill" style="width:' + (row.margin / max * 100).toFixed(1) + '%;--mb-fill:' + opacity + '"></div></div>' +
+      '<span class="pareto-share">' + Math.round(share * 100) + ' %</span>' +
+      '<span class="pareto-cumul">' + Math.round(cumul * 100) + ' %</span>' +
+    '</div>';
+  }).join('');
+  host.innerHTML = '<div class="pareto-list">' + head + list + '</div>';
 }
 
 function renderMonthlyChart(cy, years, curYear) {
@@ -2576,6 +2712,7 @@ function saveData(data) {
   try {
     localStorage.setItem(DATA_KEY, JSON.stringify({
       years: data.years, labels_missing: data.labels_missing, charges_detail: data.charges_detail,
+      margin_distribution: data.margin_distribution, mb_distribution: data.mb_distribution,
       sante: data.sante, sante_error: data.sante_error,
       file_mtime_iso: data.file_mtime_iso, res_name: data.res_name, bal_name: data.bal_name,
       res_export_iso: data.res_export_iso, bal_export_iso: data.bal_export_iso
