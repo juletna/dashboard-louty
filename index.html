@@ -1703,17 +1703,18 @@ function renderQuoteMarginDistribution(series, currentYear) {
   if (!series.length) { _distributionEmpty('quote-margin-distribution'); return; }
   host.innerHTML = '<div class="chart-wrap"><canvas id="chart-margin-by-quote"></canvas></div>';
   var violet = getComputedStyle(document.documentElement).getPropertyValue('--violet').trim() || '#7C5AD6';
+  var amber = getComputedStyle(document.documentElement).getPropertyValue('--amber').trim() || '#E1961F';
+  var previousYearColors = ['#F2C14E', '#E1961F', '#C96E11'];
   var bracketOrder = { '< 2 k€': 0, '2–5 k€': 1, '5–10 k€': 2, '10–25 k€': 3, '> 25 k€': 4 };
   var labels = [];
   series.forEach(function (yearSeries) { yearSeries.rows.forEach(function (row) { if (labels.indexOf(row.label) === -1) labels.push(row.label); }); });
   labels.sort(function (a, b) { return (bracketOrder[a] == null ? 99 : bracketOrder[a]) - (bracketOrder[b] == null ? 99 : bracketOrder[b]); });
   var orderedSeries = series.slice().sort(function (a, b) { return String(a.year).localeCompare(String(b.year)); });
-  var datasets = orderedSeries.map(function (yearSeries, index) {
+  var datasets = orderedSeries.map(function (yearSeries) {
     var total = yearSeries.rows.reduce(function (sum, row) { return sum + row.amount; }, 0) || 1;
     var amounts = {};
     yearSeries.rows.forEach(function (row) { amounts[row.label] = row.amount; });
     var isCurrent = String(yearSeries.year) === String(currentYear);
-    var alpha = isCurrent ? 1 : (0.38 + index * 0.16);
     var values = labels.map(function (label) { return (amounts[label] || 0) / total * 100; });
     var amountsForLabels = labels.map(function (label) { return amounts[label] || 0; });
     if (isCurrent) {
@@ -1724,11 +1725,13 @@ function renderQuoteMarginDistribution(series, currentYear) {
         borderWidth: 0, borderRadius: 7, borderSkipped: false, order: 2
       };
     }
+    var previousIndex = orderedSeries.filter(function (item) { return String(item.year) !== String(currentYear) && String(item.year) < String(yearSeries.year); }).length;
+    var lineColor = previousYearColors[previousIndex] || amber;
     return {
       type: 'line', label: _distributionPeriodLabel(yearSeries.year, currentYear), data: values, _amounts: amountsForLabels,
-      borderColor: _hexAlpha(violet, alpha), backgroundColor: 'transparent', borderWidth: 2,
-      borderDash: [5, 5], tension: 0.22, pointRadius: 3, pointHoverRadius: 6,
-      pointBackgroundColor: _hexAlpha(violet, alpha), pointBorderWidth: 0, order: 1
+      borderColor: lineColor, backgroundColor: 'transparent', borderWidth: 3,
+      borderDash: [5, 5], tension: 0.22, pointRadius: 4, pointHoverRadius: 7,
+      pointBackgroundColor: lineColor, pointBorderColor: '#fff', pointBorderWidth: 1.5, order: 1
     };
   });
   makeChart('chart-margin-by-quote', {
@@ -1743,7 +1746,7 @@ function renderQuoteMarginDistribution(series, currentYear) {
         y: { beginAtZero: true, ticks: { callback: function (v) { return v + ' %'; } } }
       },
       plugins: {
-        legend: { display: true, position: 'bottom', labels: { usePointStyle: true, pointStyle: 'line', padding: 14, font: { size: 11, weight: '700' } } },
+        legend: { display: true, position: 'bottom', labels: { usePointStyle: true, boxWidth: 10, padding: 14, font: { size: 11, weight: '700' } } },
         tooltip: { callbacks: { label: function (ctx) { var amount = ctx.dataset._amounts[ctx.dataIndex]; return ' ' + ctx.dataset.label + ' : ' + fmtEUR(amount) + ' (' + ctx.parsed.y.toFixed(1).replace('.', ',') + ' %)'; } } }
       }
     }
