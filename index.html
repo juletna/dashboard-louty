@@ -1688,7 +1688,11 @@ function renderMarginDistributions(data) {
     var options = availableYears.map(function (year) { return '<option value="' + esc(year) + '"' + (year === distributionYear ? ' selected' : '') + '>' + esc(_distributionPeriodLabel(year, currentYear)) + '</option>'; }).join('');
     period.innerHTML = '<label>Exercice <select id="distribution-year" aria-label="Exercice pour la concentration clients">' + options + '</select></label>';
     var select = document.getElementById('distribution-year');
-    select.addEventListener('change', function () { distributionYear = this.value; renderMarginDistributions(DATA); });
+    select.addEventListener('change', function () {
+      distributionYear = this.value;
+      var selectedSource = fullSource.by_year ? (fullSource.by_year[distributionYear] || {}) : fullSource;
+      renderClientMarginDistribution(_distributionRows(selectedSource.clients || selectedSource.by_client));
+    });
   }
   renderQuoteMarginDistribution(quoteByYear, currentYear);
   renderClientMarginDistribution(clientRows);
@@ -1710,19 +1714,25 @@ function renderQuoteMarginDistribution(series, currentYear) {
     yearSeries.rows.forEach(function (row) { amounts[row.label] = row.amount; });
     var isCurrent = String(yearSeries.year) === String(currentYear);
     var alpha = isCurrent ? 1 : (0.38 + index * 0.16);
+    var values = labels.map(function (label) { return (amounts[label] || 0) / total * 100; });
+    var amountsForLabels = labels.map(function (label) { return amounts[label] || 0; });
+    if (isCurrent) {
+      var maxAmount = Math.max.apply(null, amountsForLabels) || 1;
+      return {
+        type: 'bar', label: _distributionPeriodLabel(yearSeries.year, currentYear), data: values, _amounts: amountsForLabels,
+        backgroundColor: amountsForLabels.map(function (amount) { return _hexAlpha(violet, 0.36 + 0.64 * amount / maxAmount); }),
+        borderWidth: 0, borderRadius: 7, borderSkipped: false, order: 2
+      };
+    }
     return {
-      label: _distributionPeriodLabel(yearSeries.year, currentYear),
-      data: labels.map(function (label) { return (amounts[label] || 0) / total * 100; }),
-      _amounts: labels.map(function (label) { return amounts[label] || 0; }),
-      borderColor: _hexAlpha(violet, isCurrent ? 1 : alpha),
-      backgroundColor: 'transparent', borderWidth: isCurrent ? 3 : 2,
-      borderDash: isCurrent ? [] : [5, 5], tension: 0.22,
-      pointRadius: isCurrent ? 4 : 3, pointHoverRadius: 6,
-      pointBackgroundColor: _hexAlpha(violet, isCurrent ? 1 : alpha), pointBorderWidth: 0
+      type: 'line', label: _distributionPeriodLabel(yearSeries.year, currentYear), data: values, _amounts: amountsForLabels,
+      borderColor: _hexAlpha(violet, alpha), backgroundColor: 'transparent', borderWidth: 2,
+      borderDash: [5, 5], tension: 0.22, pointRadius: 3, pointHoverRadius: 6,
+      pointBackgroundColor: _hexAlpha(violet, alpha), pointBorderWidth: 0, order: 1
     };
   });
   makeChart('chart-margin-by-quote', {
-    type: 'line',
+    type: 'bar',
     data: {
       labels: labels, datasets: datasets
     },
