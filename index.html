@@ -705,14 +705,20 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .mbx-att b { font-size:20px; font-weight:800; color:#7C5AD6; letter-spacing:-0.01em; }
 .mbx-att-rest { font-size:13px; color:var(--text-dim); font-weight:500; margin-top:5px; line-height:1.3; }
 .mbx-att-rest b { font-size:15px; font-weight:800; color:var(--text); letter-spacing:-0.01em; }
+.mbx-pace { display:flex; align-items:baseline; gap:6px; flex-wrap:wrap; margin-top:8px; font-size:12.5px; color:var(--text-dim); font-weight:600; line-height:1.35; }
+.mbx-pace strong { color:var(--text); font-weight:800; }
+.mbx-pace .ahead { color:var(--green); }
+.mbx-pace .behind { color:var(--red); }
 .mbx-bar { position:relative; padding-top:24px; padding-bottom:46px; }
 .mbx-tpct { position:absolute; top:0; transform:translateX(-50%); font-size:11.5px; font-weight:800; color:var(--text); font-variant-numeric:tabular-nums; white-space:nowrap; }
+.mbx-tpct.pace { color:var(--text-dim); }
 .mbx-track { position:relative; height:12px; border-radius:7px; background:var(--bg-soft); }
 .mbx-fill { position:absolute; top:0; bottom:0; left:0; background:#7C5AD6; border-radius:7px; }
 .mbx-over { position:absolute; top:0; bottom:0; background:var(--green); border-radius:0 7px 7px 0; }
 .mbx-tick { position:absolute; top:50%; width:4px; height:22px; transform:translate(-50%,-50%); border-radius:2px; }
 .mbx-tick.black { background:var(--text); z-index:3; }
 .mbx-tick.white { background:#fff; box-shadow:0 0 0 1.5px rgba(0,0,0,0.16); z-index:4; }
+.mbx-tick.pace { width:0; height:28px; border-left:2px dashed var(--text-dim); border-radius:0; z-index:5; }
 .mbx-tlabel { position:absolute; top:46px; transform:translateX(-50%); text-align:center; white-space:nowrap; }
 .mbx-tl-eur { font-size:12.5px; font-weight:800; color:var(--text); font-variant-numeric:tabular-nums; }
 .mbx-tl-desc { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-faint); margin-top:2px; }
@@ -2304,6 +2310,7 @@ function _miniBars(monthly, color, caption) {
 // ---- Carte statistique (héros + pill + jauge à 3 repères + mini-graphe mensuel) ----
 function _statCardHTML(cfg) {
   var value = cfg.value, goal = cfg.goal || 0, refSame = cfg.refSame, refFull = cfg.refFull, refYear = cfg.refYear;
+  var yearProgress = cfg.yearProgress;
   var over = goal > 0 && value >= goal;
   var scaleMax = Math.max(goal, value, (refFull != null ? refFull * 1.03 : 0)) || 1;
   var pct = function (v) { return 100 * v / scaleMax; };
@@ -2329,6 +2336,11 @@ function _statCardHTML(cfg) {
     if (pctOfGoal(refFull)) tpcts += '<div class="mbx-tpct" style="left:' + pct(refFull) + '%">' + pctOfGoal(refFull) + '</div>';
     tlabels += '<div class="mbx-tlabel" style="left:' + pct(refFull) + '%"><div class="mbx-tl-eur">' + fmtEUR(refFull) + '</div>' + (refLbl ? '<div class="mbx-tl-desc">' + refLbl + '</div>' : '') + '</div>';
   }
+  if (yearProgress != null && goal > 0) {
+    var paceValue = goal * yearProgress;
+    ticks += '<div class="mbx-tick pace" style="left:' + pct(paceValue) + '%" title="Avancement de l’année : ' + fmtPct(yearProgress, 1) + '"></div>';
+    tpcts += '<div class="mbx-tpct pace" style="left:' + pct(paceValue) + '%">' + fmtPct(yearProgress, 1) + '</div>';
+  }
   if (over) {
     ticks += '<div class="mbx-tick white" style="left:' + pct(goal) + '%"></div>';
     tlabels += '<div class="mbx-tlabel" style="left:' + pct(goal) + '%"><div class="mbx-tl-eur" style="font-weight:700; color:var(--text-dim)">objectif</div></div>';
@@ -2338,7 +2350,14 @@ function _statCardHTML(cfg) {
   var objHead = '<div class="mbx-cell right"><div class="mbx-cell-lbl">Objectif annuel</div><div class="mbx-cell-val">' + fmtEUR(goal) + '</div></div>';
   var deptCell = over ? '<div class="mbx-cell over"><div class="mbx-cell-lbl">Dépassement</div><div class="mbx-cell-val">+' + fmtEUR(value - goal) + '</div></div>' : '';
   var restLine = (!over && goal > 0) ? '<div class="mbx-att-rest"><b>' + fmtEUR(Math.max(0, goal - value)) + '</b> restant pour atteindre ton objectif</div>' : '';
-  var attHtml = (attSelf != null) ? '<div class="mbx-att"><div><b style="color:' + accent + '">' + attSelf + '%</b> de l\'objectif atteint</div>' + restLine + '</div>' : '<div>' + restLine + '</div>';
+  var paceLine = '';
+  if (yearProgress != null && goal > 0) {
+    var paceGap = value - (goal * yearProgress);
+    var paceClass = paceGap >= 0 ? 'ahead' : 'behind';
+    var paceLabel = paceGap >= 0 ? 'd’avance sur le rythme' : 'de retard sur le rythme';
+    paceLine = '<div class="mbx-pace">Avancement de l’année : <strong>' + fmtPct(yearProgress, 1) + '</strong><span class="' + paceClass + '">· ' + fmtEUR(Math.abs(paceGap)) + ' ' + paceLabel + '</span></div>';
+  }
+  var attHtml = (attSelf != null) ? '<div class="mbx-att"><div><b style="color:' + accent + '">' + attSelf + '%</b> de l\'objectif atteint</div>' + restLine + paceLine + '</div>' : '<div>' + restLine + paceLine + '</div>';
   return '<div class="card statx-card">' +
     '<div class="mbx-head"><div class="mbx-title">' + cfg.title + '</div>' + badge + '</div>' +
     '<div class="mbx-heroline"><div class="mbx-hero">' + fmtEUR(value) + '</div>' + pillHtml + '</div>' +
@@ -2356,17 +2375,26 @@ function renderBanner(data, cur, prev) {
     var refYear = cur.reference_year;
     var sp = (refYear && cur.same_period && cur.same_period[refYear]) ? cur.same_period[refYear] : null;
     var cy = data.years[cur.year];
+    var asOf = new Date(data.res_export_iso || data.file_mtime_iso || Date.now());
+    var yearProgress = null;
+    if (!isNaN(asOf.getTime()) && String(asOf.getFullYear()) === String(cur.year)) {
+      var year = asOf.getFullYear();
+      var asOfDay = Date.UTC(year, asOf.getMonth(), asOf.getDate());
+      var startOfYear = Date.UTC(year, 0, 0);
+      var daysInYear = (Date.UTC(year + 1, 0, 0) - startOfYear) / 86400000;
+      yearProgress = (asOfDay - startOfYear) / 86400000 / daysInYear;
+    }
     var b1 = document.getElementById('bloc1');
     if (b1) b1.innerHTML = _statCardHTML({
       title: 'Marge brute réalisée', value: cur.ytd_mb, goal: C.MB_AN_OBJ,
       refSame: sp ? sp.mb_ytd : null, refFull: sp ? sp.mb_full : null, refYear: refYear, shortLabel: 'MB',
-      monthly: cy.monthly.marge_brute, caption: 'Marge brute mensuelle', barColor: '#7C5AD6'
+      monthly: cy.monthly.marge_brute, caption: 'Marge brute mensuelle', barColor: '#7C5AD6', yearProgress: yearProgress
     });
     var bca = document.getElementById('bloc-ca');
     if (bca) bca.innerHTML = _statCardHTML({
       title: "Chiffre d'affaires cumulé", value: cur.ytd_ca, goal: C.CA_OBJ,
       refSame: sp ? sp.ca_ytd : null, refFull: sp ? sp.ca_full : null, refYear: refYear, shortLabel: 'CA',
-      monthly: cy.monthly.ca, caption: 'CA mensuel', barColor: COLORS.blue
+      monthly: cy.monthly.ca, caption: 'CA mensuel', barColor: COLORS.blue, yearProgress: yearProgress
     });
   } catch (e) { /* rendu optionnel */ }
 };
