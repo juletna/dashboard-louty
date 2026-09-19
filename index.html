@@ -2360,7 +2360,7 @@ function renderAnnualCap(data) {
     '<div class="cap-sim" id="cap-sim" hidden>' +
       '<div class="cap-sim-head"><div><h3>Simuler ma trajectoire</h3><p>Les leviers sont initialisés à partir de tes données réelles. Ils ne modifient les graphiques qu’après validation.</p></div><button type="button" class="btn ghost" id="cap-close">Fermer</button></div>' +
       '<div class="cap-inputs">' +
-        '<div class="cap-field"><label for="cap-salary">Salaire brut annuel à financer <output id="cap-salary-out">' + fmtEUR(PLAN.salary) + '</output></label><input id="cap-salary" type="number" min="0" step="100" value="' + Math.round(PLAN.salary) + '"><div class="cap-source">≈ ' + fmtEUR(PLAN.salary * NET_FROM_GROSS) + ' nets avant impôt / an · référence : ' + fmtEUR(ref.salary) + ' / an</div></div>' +
+        '<div class="cap-field"><label for="cap-salary">Salaire brut mensuel à financer <output id="cap-salary-out">' + fmtEUR(PLAN.salary / 12) + ' / mois</output></label><input id="cap-salary" type="number" min="0" step="50" value="' + Math.round(PLAN.salary / 12) + '"><div class="cap-source" id="cap-salary-source">≈ ' + fmtEUR(PLAN.salary / 12 * NET_FROM_GROSS) + ' nets avant impôt / mois · soit ' + fmtEUR(PLAN.salary) + ' bruts / an · référence Louty : ' + fmtEUR(ref.salary / 12) + ' / mois (' + fmtEUR(ref.salary) + ' / an)</div></div>' +
         '<div class="cap-field"><label for="cap-surplus">Surplus annuel visé <output id="cap-surplus-out">' + fmtEUR(PLAN.surplus) + '</output></label><input id="cap-surplus" type="number" min="0" step="100" value="' + Math.round(PLAN.surplus) + '"><div class="cap-source">Référence : ' + fmtEUR(ref.surplus) + ' · ' + _planFmtSource(ref) + '</div></div>' +
         '<div class="cap-field"><label>CA annuel nécessaire <output id="cap-ca-out">' + fmtEUR(requiredCA) + '</output></label><div class="cap-source" style="margin-top:9px">Calculé automatiquement à partir du cap et du taux de marge. Référence historique : ' + fmtEUR(ref.ca) + '.</div></div>' +
         '<div class="cap-field"><label for="cap-margin">Taux de marge brute <output id="cap-margin-out">' + fmtPct(PLAN.margin, 1) + '</output></label><input id="cap-margin" type="range" min="0.2" max="0.9" step="0.005" value="' + PLAN.margin + '"><div class="cap-source">Référence : ' + fmtPct(ref.margin, 1) + ' · ' + _planFmtSource(ref) + '</div></div>' +
@@ -2372,7 +2372,7 @@ function renderAnnualCap(data) {
   document.getElementById('cap-close').addEventListener('click', function () { toggle(false); });
   ['cap-salary','cap-surplus','cap-margin','cap-charges'].forEach(function (id) { document.getElementById(id).addEventListener('input', function () { updateCapPreview(ref); }); });
   document.getElementById('cap-apply').addEventListener('click', function () {
-    PLAN.salary = Math.max(0, _planNum('cap-salary') || 0); PLAN.surplus = Math.max(0, _planNum('cap-surplus') || 0);
+    PLAN.salary = Math.max(0, _planNum('cap-salary') || 0) * 12; PLAN.surplus = Math.max(0, _planNum('cap-surplus') || 0);
     PLAN.margin = Math.max(0, _planNum('cap-margin') || 0); PLAN.charges = Math.max(0, _planNum('cap-charges') || 0); PLAN.ca = (PLAN.salary + PLAN.charges + PLAN.surplus) / PLAN.margin; PLAN.source = 'custom';
     savePlan(); applyPlanToCharts(); renderParsed(LAST_DATA);
   });
@@ -2382,9 +2382,9 @@ function renderAnnualCap(data) {
   });
 }
 function updateCapPreview(ref) {
-  var salary = Math.max(0, _planNum('cap-salary') || 0), surplus = Math.max(0, _planNum('cap-surplus') || 0), margin = Math.max(0, _planNum('cap-margin') || 0), charges = Math.max(0, _planNum('cap-charges') || 0);
+  var monthlySalary = Math.max(0, _planNum('cap-salary') || 0), salary = monthlySalary * 12, surplus = Math.max(0, _planNum('cap-surplus') || 0), margin = Math.max(0, _planNum('cap-margin') || 0), charges = Math.max(0, _planNum('cap-charges') || 0);
   var wanted = salary + charges + surplus, ca = wanted / margin;
-  document.getElementById('cap-salary-out').textContent = fmtEUR(salary); document.getElementById('cap-surplus-out').textContent = fmtEUR(surplus); document.getElementById('cap-ca-out').textContent = fmtEUR(ca); document.getElementById('cap-margin-out').textContent = fmtPct(margin, 1); document.getElementById('cap-charges-out').textContent = fmtEUR(charges);
+  document.getElementById('cap-salary-out').textContent = fmtEUR(monthlySalary) + ' / mois'; document.getElementById('cap-salary-source').textContent = '≈ ' + fmtEUR(monthlySalary * NET_FROM_GROSS) + ' nets avant impôt / mois · soit ' + fmtEUR(salary) + ' bruts / an · référence Louty : ' + fmtEUR(ref.salary / 12) + ' / mois (' + fmtEUR(ref.salary) + ' / an)'; document.getElementById('cap-surplus-out').textContent = fmtEUR(surplus); document.getElementById('cap-ca-out').textContent = fmtEUR(ca); document.getElementById('cap-margin-out').textContent = fmtPct(margin, 1); document.getElementById('cap-charges-out').textContent = fmtEUR(charges);
   document.getElementById('cap-result').innerHTML = 'Pour financer le salaire brut, les charges et le surplus visé, l’activité doit générer <strong>' + fmtEUR(wanted) + ' de marge brute</strong>. Avec <strong>' + fmtPct(margin, 1) + ' de marge</strong>, cela correspond à <strong>' + fmtEUR(ca) + ' de CA à facturer</strong>.';
 }
 
