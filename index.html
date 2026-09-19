@@ -2231,6 +2231,8 @@ function renderAchatsCAChart(cy) {
 // ============ STANDALONE : upload + réglages + bootstrap ============
 var SETTINGS_KEY = 'cabestan_dashboard_settings_v1';
 var PLAN_KEY = 'cabestan_dashboard_annual_plan_v1';
+// Coefficient personnel indicatif : net avant impôt estimé à partir du brut Louty.
+var NET_FROM_GROSS = 0.76;
 var UPLOAD_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
 var PLAN = null;
 // Seuil (part du CA) au-delà duquel un poste de charges de fonctionnement ressort
@@ -2351,9 +2353,9 @@ function renderAnnualCap(data) {
   var maxCharges = Math.max(5000, Math.ceil(Math.max(ref.charges, PLAN.charges) * 1.8 / 1000) * 1000);
   var capState = estimatedSurplus >= PLAN.surplus ? 'Le scénario couvre ton cap.' : 'Il manque ' + fmtEUR(PLAN.surplus - estimatedSurplus) + ' de surplus.';
   host.innerHTML =
-    '<div class="annual-cap-head"><div><h2 id="annual-cap-title">Mon cap annuel</h2><p class="annual-cap-intro">Le revenu à financer et le surplus à dégager guident tous les repères du tableau de bord.</p></div><button type="button" class="btn ghost" id="cap-edit">Modifier mon cap</button></div>' +
+    '<div class="annual-cap-head"><div><h2 id="annual-cap-title">Mon cap annuel</h2><p class="annual-cap-intro">Le salaire brut à financer et le surplus à dégager guident tous les repères du tableau de bord.</p></div><button type="button" class="btn ghost" id="cap-edit">Modifier mon cap</button></div>' +
     '<div class="cap-summary">' +
-      '<div class="cap-stat"><span class="cap-label">Rémunération à financer</span><span class="cap-value">' + fmtEUR(PLAN.salary / 12) + ' / mois</span><span class="cap-note">Référence ' + ref.label + ' : ' + fmtEUR(ref.salary / 12) + ' / mois' + (salaryDelta ? ' · ' + (salaryDelta > 0 ? '+' : '') + fmtEUR(salaryDelta) + ' / an' : '') + '</span></div>' +
+      '<div class="cap-stat"><span class="cap-label">Salaire brut à financer</span><span class="cap-value">' + fmtEUR(PLAN.salary / 12) + ' / mois</span><span class="cap-note">≈ ' + fmtEUR(PLAN.salary / 12 * NET_FROM_GROSS) + ' nets / mois avant impôt · référence ' + ref.label + ' : ' + fmtEUR(ref.salary / 12) + ' bruts' + (salaryDelta ? ' · ' + (salaryDelta > 0 ? '+' : '') + fmtEUR(salaryDelta) + ' / an' : '') + '</span></div>' +
       '<div class="cap-stat"><span class="cap-label">Surplus annuel visé</span><span class="cap-value">' + fmtEUR(PLAN.surplus) + '</span><span class="cap-note">Après rémunérations et charges · référence ' + ref.label + ' : ' + fmtEUR(ref.surplus) + (surplusDelta ? ' · ' + (surplusDelta > 0 ? '+' : '') + fmtEUR(surplusDelta) : '') + '</span></div>' +
       '<div class="cap-stat"><span class="cap-label">CA de la trajectoire</span><span class="cap-value">' + fmtEUR(PLAN.ca) + '</span><span class="cap-note">Avec ' + fmtPct(PLAN.margin, 1) + ' de marge brute visée</span></div>' +
     '</div>' +
@@ -2361,7 +2363,7 @@ function renderAnnualCap(data) {
     '<div class="cap-sim" id="cap-sim" hidden>' +
       '<div class="cap-sim-head"><div><h3>Simuler ma trajectoire</h3><p>Les leviers sont initialisés à partir de tes données réelles. Ils ne modifient les graphiques qu’après validation.</p></div><button type="button" class="btn ghost" id="cap-close">Fermer</button></div>' +
       '<div class="cap-inputs">' +
-        '<div class="cap-field"><label for="cap-salary">Rémunération annuelle à financer <output id="cap-salary-out">' + fmtEUR(PLAN.salary) + '</output></label><input id="cap-salary" type="number" min="0" step="100" value="' + Math.round(PLAN.salary) + '"><div class="cap-source">Référence : ' + fmtEUR(ref.salary) + ' / an · ' + _planFmtSource(ref) + '</div></div>' +
+        '<div class="cap-field"><label for="cap-salary">Salaire brut annuel à financer <output id="cap-salary-out">' + fmtEUR(PLAN.salary) + '</output></label><input id="cap-salary" type="number" min="0" step="100" value="' + Math.round(PLAN.salary) + '"><div class="cap-source">≈ ' + fmtEUR(PLAN.salary * NET_FROM_GROSS) + ' nets avant impôt / an · référence : ' + fmtEUR(ref.salary) + ' / an</div></div>' +
         '<div class="cap-field"><label for="cap-surplus">Surplus annuel visé <output id="cap-surplus-out">' + fmtEUR(PLAN.surplus) + '</output></label><input id="cap-surplus" type="number" min="0" step="100" value="' + Math.round(PLAN.surplus) + '"><div class="cap-source">Référence : ' + fmtEUR(ref.surplus) + ' · ' + _planFmtSource(ref) + '</div></div>' +
         '<div class="cap-field"><label for="cap-ca">CA annuel <output id="cap-ca-out">' + fmtEUR(PLAN.ca) + '</output></label><input id="cap-ca" type="range" min="0" max="' + maxCA + '" step="1000" value="' + Math.min(maxCA, Math.round(PLAN.ca / 1000) * 1000) + '"><div class="cap-source">Référence : ' + fmtEUR(ref.ca) + ' · ' + _planFmtSource(ref) + '</div></div>' +
         '<div class="cap-field"><label for="cap-margin">Taux de marge brute <output id="cap-margin-out">' + fmtPct(PLAN.margin, 1) + '</output></label><input id="cap-margin" type="range" min="0.2" max="0.9" step="0.005" value="' + PLAN.margin + '"><div class="cap-source">Référence : ' + fmtPct(ref.margin, 1) + ' · ' + _planFmtSource(ref) + '</div></div>' +
@@ -2386,7 +2388,7 @@ function updateCapPreview(ref) {
   var salary = Math.max(0, _planNum('cap-salary') || 0), surplus = Math.max(0, _planNum('cap-surplus') || 0), ca = Math.max(0, _planNum('cap-ca') || 0), margin = Math.max(0, _planNum('cap-margin') || 0), charges = Math.max(0, _planNum('cap-charges') || 0);
   document.getElementById('cap-salary-out').textContent = fmtEUR(salary); document.getElementById('cap-surplus-out').textContent = fmtEUR(surplus); document.getElementById('cap-ca-out').textContent = fmtEUR(ca); document.getElementById('cap-margin-out').textContent = fmtPct(margin, 1); document.getElementById('cap-charges-out').textContent = fmtEUR(charges);
   var estimated = ca * margin - salary - charges, wanted = salary + charges + surplus;
-  document.getElementById('cap-result').innerHTML = 'Avec cette trajectoire, tu génères environ <strong>' + fmtEUR(ca * margin) + ' de marge brute</strong> et <strong>' + fmtEUR(estimated) + ' de surplus</strong>. Ton cap exige ' + fmtEUR(wanted) + ' de marge brute ' + (estimated >= surplus ? '— <strong>objectif couvert.</strong>' : '— <strong>il manque ' + fmtEUR(surplus - estimated) + '.</strong>');
+  document.getElementById('cap-result').innerHTML = 'Avec cette trajectoire, tu génères environ <strong>' + fmtEUR(ca * margin) + ' de marge brute</strong> et <strong>' + fmtEUR(estimated) + ' de surplus</strong>, après financement du salaire brut et des charges. Ton cap exige ' + fmtEUR(wanted) + ' de marge brute ' + (estimated >= surplus ? '— <strong>objectif couvert.</strong>' : '— <strong>il manque ' + fmtEUR(surplus - estimated) + '.</strong>');
 }
 
 // Panneau réglages
