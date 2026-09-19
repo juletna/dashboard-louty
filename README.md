@@ -19,6 +19,8 @@ Les deux fichiers se téléchargent dans Louty, rubrique **Rapports de gestion**
 
 **Tout se passe dans le navigateur.** Aucune donnée n'est envoyée sur internet : les bibliothèques (Chart.js, SheetJS) et la police sont embarquées dans le fichier, et une CSP bloque toute requête réseau sortante. Tes données sont mémorisées localement (localStorage) sur ton ordinateur uniquement.
 
-## Objectifs & seuils
+## Cap annuel & leviers
 
-Les objectifs annuels et seuils (marge brute, CA, ratio achats/CA…) sont **tes réglages personnels**, réglables via la roue crantée et mémorisés sur ton poste. Ils ne proviennent pas du fichier Louty.
+En tête du tableau de bord, définis ton **revenu annuel à financer** et le **surplus annuel** que tu souhaites dégager après rémunérations et charges. Le dashboard en déduit la marge brute à produire et reporte cette trajectoire sur les graphiques.
+
+Le simulateur de trajectoire (CA, taux de marge et charges) est initialisé à partir des données réelles des deux derniers exercices complets, puis mémorisé sur ton poste. Tu peux à tout moment revenir à cette référence historique. Les seuils de lecture des graphiques restent accessibles via la roue crantée.
