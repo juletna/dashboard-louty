@@ -802,7 +802,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .annual-cap-head { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; padding:20px 22px 10px; }
 .annual-cap h2 { margin:0; font-size:19px; letter-spacing:-.025em; }
 .annual-cap-intro { margin:4px 0 0; color:var(--text-dim); font-size:13px; line-height:1.45; }
-.cap-summary { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0; padding:4px 22px 18px; }
+.cap-summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:0; padding:4px 22px 18px; }
 .cap-stat { padding:12px 18px 12px 0; }
 .cap-stat + .cap-stat { padding-left:18px; border-left:1px solid var(--border); }
 .cap-label { display:block; color:var(--text-faint); font-size:11px; font-weight:800; letter-spacing:.055em; text-transform:uppercase; }
@@ -814,6 +814,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .cap-origin.custom::before { content:'✦'; font-size:9px; }
 .cap-reference-note { color:var(--text-faint); font-weight:700; white-space:nowrap; }
 .cap-need { padding:18px 22px; background:var(--bg-inset); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+.cap-summary .cap-need { padding:12px 0 12px 18px; background:transparent; border:0; border-left:1px solid var(--border); }
 .cap-need-kicker { display:block; color:var(--text-dim); font-size:12px; font-weight:800; }
 .cap-need strong { display:block; margin-top:2px; color:var(--text); font-size:22px; line-height:1.25; letter-spacing:-.025em; }
 .cap-need-detail { display:block; margin-top:3px; color:var(--text-dim); font-size:13px; }
@@ -841,7 +842,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .cap-result strong.cap-mb { color:var(--mb-violet); }
 .cap-result strong.cap-ca { color:var(--ca-blue); }
 .cap-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
-@media (max-width:700px) { .annual-cap-head { display:block; } .annual-cap-head .btn { margin-top:12px; } .cap-summary,.cap-inputs { grid-template-columns:1fr; } .cap-summary { padding:4px 18px 14px; } .cap-stat,.cap-stat + .cap-stat { padding:12px 0; border-left:0; } .cap-stat + .cap-stat { border-top:1px solid var(--border); } .cap-need { padding:16px 18px; } .cap-sim { margin:12px 18px 18px; } }
+@media (max-width:700px) { .annual-cap-head { display:block; } .annual-cap-head .btn { margin-top:12px; } .cap-summary,.cap-inputs { grid-template-columns:1fr; } .cap-summary { padding:4px 18px 14px; } .cap-stat,.cap-stat + .cap-stat,.cap-summary .cap-need { padding:12px 0; border-left:0; } .cap-stat + .cap-stat { border-top:1px solid var(--border); } .cap-need { padding:16px 18px; } .cap-sim { margin:12px 18px 18px; } }
 
 </style>
 <script>try{var _t=localStorage.getItem("cabestan_dashboard_theme");if(_t==="dark"||_t==="light")document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
@@ -2400,8 +2401,8 @@ function renderAnnualCap(data) {
     '<div class="cap-summary">' +
       '<div class="cap-stat"><span class="cap-label">Salaire brut à financer</span><span class="cap-value">' + fmtEUR(PLAN.salary / 12) + ' / mois</span><span class="cap-note">≈ ' + fmtEUR(PLAN.salary / 12 * NET_FROM_GROSS) + ' nets / mois avant impôt · ' + _planOrigin(PLAN.salary, ref.salary, ref, function (v) { return fmtEUR(v / 12) + ' / mois'; }) + '</span></div>' +
       '<div class="cap-stat"><span class="cap-label">Surplus annuel visé</span><span class="cap-value">' + fmtEUR(PLAN.surplus) + '</span><span class="cap-note">Après rémunérations et charges · ' + _planOrigin(PLAN.surplus, ref.surplus, ref, fmtEUR) + '</span></div>' +
+      '<div class="cap-need"><span class="cap-need-kicker">Pour atteindre ce cap</span><strong><span class="cap-mb">' + fmtEUR(neededMB) + '</span> de marge brute à produire</strong><span class="cap-need-detail">Soit <b class="cap-ca">' + fmtEUR(requiredCA) + ' de CA à facturer</b>, avec ' + fmtPct(PLAN.margin, 1) + ' de marge brute.</span><button type="button" class="cap-adjust" id="cap-adjust">☷ Ajuster les hypothèses de calcul</button></div>' +
     '</div>' +
-    '<div class="cap-need"><span class="cap-need-kicker">Pour atteindre ce cap</span><strong><span class="cap-mb">' + fmtEUR(neededMB) + '</span> de marge brute à produire</strong><span class="cap-need-detail">Soit <b class="cap-ca">' + fmtEUR(requiredCA) + ' de CA à facturer</b>, avec ' + fmtPct(PLAN.margin, 1) + ' de marge brute.</span><button type="button" class="cap-adjust" id="cap-adjust">☷ Ajuster les hypothèses de calcul</button></div>' +
     '<div class="cap-sim" id="cap-sim" hidden>' +
       '<div class="cap-sim-head"><div><h3>Modifier mon cap et mes hypothèses</h3><p><span class="cap-origin">Référence</span> vient de tes données réelles ; <span class="cap-origin custom">Personnalisé</span> signale une valeur modifiée.</p></div><button type="button" class="btn ghost" id="cap-close">Fermer</button></div>' +
       '<div class="cap-inputs">' +
