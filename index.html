@@ -562,6 +562,20 @@
   display:flex; flex-direction:column;
 }
 #settings-panel.open { transform:translateX(0); }
+#cap-drawer-backdrop {
+  position:fixed; inset:0; background:rgba(15,12,25,0.42); backdrop-filter:blur(2px);
+  display:none; z-index:60;
+}
+#cap-drawer {
+  position:fixed; top:0; right:0; height:100%; width:min(520px,94vw); z-index:70;
+  background:var(--bg-card); border-left:1px solid var(--border); box-shadow:var(--shadow-md);
+  transform:translateX(100%); transition:transform .25s cubic-bezier(.2,.7,.2,1);
+  display:flex; flex-direction:column;
+}
+#cap-drawer.open { transform:translateX(0); }
+.cap-drawer-body { overflow-y:auto; flex:1; }
+#cap-drawer .cap-sim { margin:0; min-height:100%; border:0; border-radius:0; background:var(--bg-card); }
+#cap-drawer .cap-sim-head > .btn { display:none; }
 .sp-head { display:flex; align-items:center; justify-content:space-between; padding:20px 22px 14px; border-bottom:1px solid var(--border); }
 .sp-head h2 { margin:0; font-size:18px; font-weight:800; }
 .sp-body { padding:18px 22px; overflow-y:auto; flex:1; }
@@ -1013,6 +1027,13 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
     <button class="btn ghost" id="settings-reset">Réinitialiser</button>
     <button class="btn primary" id="settings-save">Enregistrer</button>
   </div>
+</aside>
+
+<div id="cap-drawer-backdrop"></div>
+<aside id="cap-drawer" aria-label="Modifier le cap annuel" aria-hidden="true">
+  <div class="sp-head"><h2>Mon cap annuel</h2>
+    <button class="btn ghost btn-icon" id="cap-drawer-close" title="Fermer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+  <div id="cap-drawer-content" class="cap-drawer-body"></div>
 </aside>
 
 <script>/* Chart.js 4.5.0 (inline, hors-ligne) */
@@ -2412,21 +2433,31 @@ function renderAnnualCap(data) {
         '<div class="cap-field"><label for="cap-charges">Charges annuelles à financer<span class="sp-help" data-tip="Les charges à financer regroupent les charges de fonctionnement et la contribution coopérative. Elles s’ajoutent au salaire brut et au surplus visé pour calculer la marge brute nécessaire. N-1 (' + ref.n1.year + ') : ' + fmtEUR(ref.n1.chargesFonct) + ' de charges de fonctionnement + ' + fmtEUR(ref.n1.contribution) + ' de contribution coopérative = ' + fmtEUR(ref.n1.charges) + '." tabindex="0" aria-label="Détail des charges annuelles à financer">?</span><output id="cap-charges-out">' + fmtEUR(PLAN.charges) + '</output><button type="button" class="cap-mini-btn" id="cap-charges-n1">N-1 : ' + fmtEUR(ref.n1.charges) + '</button></label><input id="cap-charges" type="range" min="0" max="' + maxCharges + '" step="1" value="' + Math.min(maxCharges, Math.round(PLAN.charges)) + '"><div class="cap-source" id="cap-charges-source">Charges de fonctionnement + contribution coopérative · ' + _planOrigin(PLAN.charges, ref.charges, ref, fmtEUR, ref.n1.charges) + '</div></div>' +
       '</div><div class="cap-result" id="cap-result"></div><div class="cap-actions"><button type="button" class="btn primary" id="cap-apply">Utiliser cette trajectoire</button><button type="button" class="btn ghost" id="cap-reset">Revenir à mon historique</button></div>' +
     '</div>';
-  var toggle = function (open) { document.getElementById('cap-sim').hidden = !open; };
-  document.getElementById('cap-edit').addEventListener('click', function () { toggle(true); updateCapPreview(ref); });
-  document.getElementById('cap-adjust').addEventListener('click', function () { toggle(true); updateCapPreview(ref); });
+  var capDrawer = document.getElementById('cap-drawer');
+  var capDrawerBackdrop = document.getElementById('cap-drawer-backdrop');
+  var capSim = host.querySelector('#cap-sim');
+  capSim.hidden = false;
+  document.getElementById('cap-drawer-content').replaceChildren(capSim);
+  var toggle = function (open, focusId) {
+    capDrawer.classList.toggle('open', open); capDrawerBackdrop.style.display = open ? 'block' : 'none'; capDrawer.setAttribute('aria-hidden', open ? 'false' : 'true');
+    if (open) { updateCapPreview(ref); requestAnimationFrame(function () { var focus = document.getElementById(focusId); if (focus) { focus.focus({ preventScroll:true }); focus.closest('.cap-field').scrollIntoView({ block:'center' }); } }); }
+  };
+  document.getElementById('cap-edit').addEventListener('click', function () { toggle(true, 'cap-salary'); });
+  document.getElementById('cap-adjust').addEventListener('click', function () { toggle(true, 'cap-margin'); });
   document.getElementById('cap-close').addEventListener('click', function () { toggle(false); });
+  document.getElementById('cap-drawer-close').onclick = function () { toggle(false); };
+  capDrawerBackdrop.onclick = function () { toggle(false); };
   ['cap-salary','cap-surplus','cap-margin','cap-charges'].forEach(function (id) { document.getElementById(id).addEventListener('input', function () { updateCapPreview(ref); }); });
   document.getElementById('cap-margin-n1').addEventListener('click', function () { document.getElementById('cap-margin').value = ref.n1.margin; updateCapPreview(ref); });
   document.getElementById('cap-charges-n1').addEventListener('click', function () { document.getElementById('cap-charges').value = ref.n1.charges; updateCapPreview(ref); });
   document.getElementById('cap-apply').addEventListener('click', function () {
     PLAN.salary = Math.max(0, _planNum('cap-salary') || 0) * 12; PLAN.surplus = Math.max(0, _planNum('cap-surplus') || 0);
     PLAN.margin = Math.max(0, _planNum('cap-margin') || 0); PLAN.charges = Math.max(0, _planNum('cap-charges') || 0); PLAN.ca = (PLAN.salary + PLAN.charges + PLAN.surplus) / PLAN.margin; PLAN.source = 'custom';
-    savePlan(); applyPlanToCharts(); renderParsed(LAST_DATA);
+    toggle(false); savePlan(); applyPlanToCharts(); renderParsed(LAST_DATA);
   });
   document.getElementById('cap-reset').addEventListener('click', function () {
     PLAN = { salary:ref.salary, surplus:ref.surplus, margin:ref.margin, charges:ref.charges, source:'historical' }; PLAN.ca = (PLAN.salary + PLAN.charges + PLAN.surplus) / PLAN.margin;
-    savePlan(); applyPlanToCharts(); renderParsed(LAST_DATA);
+    toggle(false); savePlan(); applyPlanToCharts(); renderParsed(LAST_DATA);
   });
 }
 function updateCapPreview(ref) {
