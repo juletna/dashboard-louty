@@ -800,8 +800,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .cap-label { display:block; color:var(--text-faint); font-size:11px; font-weight:800; letter-spacing:.055em; text-transform:uppercase; }
 .cap-value { display:block; margin-top:4px; color:var(--text); font-size:20px; font-weight:900; letter-spacing:-.035em; font-variant-numeric:tabular-nums; }
 .cap-note { display:block; margin-top:4px; color:var(--text-dim); font-size:12px; line-height:1.35; }
-.cap-origin { display:inline-flex; align-items:center; gap:4px; padding:2px 7px; border:1px solid var(--border-strong); border-radius:999px; background:var(--bg-inset); color:var(--text-dim); font-size:10px; font-weight:900; line-height:1.25; letter-spacing:.015em; vertical-align:middle; white-space:nowrap; }
-.cap-origin::before { content:'↺'; font-size:11px; line-height:1; }
+.cap-origin { display:inline-flex; align-items:center; padding:2px 7px; border:1px solid var(--border-strong); border-radius:999px; background:var(--bg-inset); color:var(--text-dim); font-size:10px; font-weight:900; line-height:1.25; letter-spacing:.015em; vertical-align:middle; white-space:nowrap; }
 .cap-origin.custom { border-color:transparent; background:var(--violet-bg); color:var(--violet); }
 .cap-origin.custom::before { content:'✦'; font-size:9px; }
 .cap-reference-note { color:var(--text-faint); font-weight:700; white-space:nowrap; }
@@ -2369,7 +2368,7 @@ function _planFmtSource(ref) { return 'Moyenne réelle pondérée · ' + ref.lab
 function _planIsReference(value, reference) { return Math.abs((value || 0) - (reference || 0)) < 0.01; }
 function _planOrigin(value, reference, ref, formatter) {
   var same = _planIsReference(value, reference);
-  return '<span class="cap-origin' + (same ? '' : ' custom') + '" title="' + (same ? 'Valeur issue de tes données réelles ' + ref.label : 'Valeur modifiée par rapport à ta référence historique') + '">' + (same ? 'Référence · ' + ref.label : 'Personnalisé') + '</span>' +
+  return '<span class="cap-origin' + (same ? '' : ' custom') + '" title="' + (same ? 'Valeur issue de tes données réelles ' + ref.label : 'Valeur modifiée par rapport à ta référence historique') + '">' + (same ? 'Base historique · ' + ref.label : 'Personnalisé') + '</span>' +
     (same ? '' : ' <span class="cap-reference-note">Réf. ' + ref.label + ' : ' + formatter(reference) + '</span>');
 }
 function renderAnnualCap(data) {
