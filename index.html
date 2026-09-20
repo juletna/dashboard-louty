@@ -2442,7 +2442,7 @@ function renderAnnualCap(data) {
     '<div class="cap-summary">' +
       '<div class="cap-stat"><span class="cap-label">Salaire net mensuel visé</span><span class="cap-value">' + fmtEUR(PLAN.salary / 12 * NET_FROM_GROSS) + ' / mois</span><span class="cap-note">Soit ' + fmtEUR(PLAN.salary / 12) + ' bruts à financer · ' + _planGoalOrigin(PLAN.salary, roundedRefSalary, ref, function (v) { return fmtEUR(v / 12 * NET_FROM_GROSS) + ' / mois'; }) + '</span></div>' +
       '<div class="cap-stat"><span class="cap-label">Surplus annuel visé</span><span class="cap-value">' + fmtEUR(PLAN.surplus) + '</span><span class="cap-note">Après rémunérations et charges · ' + _planGoalOrigin(PLAN.surplus, ref.surplus, ref, fmtEUR) + '</span></div>' +
-      '<div class="cap-need"><span class="cap-need-kicker">Pour atteindre ce cap</span><strong><span class="cap-mb">' + fmtEUR(neededMB) + '</span> de marge brute à produire</strong><span class="cap-need-detail">Soit <b class="cap-ca">' + fmtEUR(requiredCA) + ' de CA à facturer</b>, avec ' + fmtPct(PLAN.margin, 1) + ' de marge brute.</span></div>' +
+      '<div class="cap-need"><span class="cap-need-kicker">Pour atteindre ce cap</span><strong><span class="cap-mb">' + fmtEUR(neededMB) + '</span> de marge brute à produire</strong><span class="cap-need-detail">Soit <b class="cap-ca">' + fmtEUR(requiredCA) + '</b> de CA à facturer, avec ' + fmtPct(PLAN.margin, 1) + ' de marge brute.</span></div>' +
     '</div>' +
     '<div class="cap-sim" id="cap-sim" hidden>' +
       '<div class="cap-sim-head"><div><h3>Modifier mon cap et mes hypothèses</h3><p><span class="cap-origin">Référence</span> vient de tes données réelles ; <span class="cap-origin custom">Personnalisé</span> signale une valeur modifiée.</p></div><button type="button" class="btn ghost" id="cap-close">Fermer</button></div>' +
@@ -2491,7 +2491,7 @@ function updateCapPreview(ref) {
   document.getElementById('cap-margin-source').innerHTML = _planOrigin(margin, ref.margin, ref, function (v) { return fmtPct(v, 1); }, ref.n1.margin, true);
   document.getElementById('cap-charges-out').textContent = fmtEUR(charges);
   document.getElementById('cap-charges-source').innerHTML = _planOrigin(charges, ref.charges, ref, fmtEUR, ref.n1.charges, true);
-  document.getElementById('cap-result').innerHTML = '<span class="cap-preview-label">Aperçu non enregistré</span>Pour cette trajectoire, il faut générer <strong class="cap-mb">' + fmtEUR(wanted) + ' de marge brute</strong>, soit <strong class="cap-ca">' + fmtEUR(ca) + ' de CA à facturer</strong> avec ' + fmtPct(margin, 1) + ' de marge brute sur CA.';
+  document.getElementById('cap-result').innerHTML = '<span class="cap-preview-label">Aperçu non enregistré</span>Pour cette trajectoire, il faut générer <strong class="cap-mb">' + fmtEUR(wanted) + ' de marge brute</strong>, soit <strong class="cap-ca">' + fmtEUR(ca) + '</strong> de CA à facturer avec ' + fmtPct(margin, 1) + ' de marge brute sur CA.';
 }
 
 // Panneau réglages
