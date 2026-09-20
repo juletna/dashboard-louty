@@ -835,8 +835,6 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .cap-need-detail { display:block; margin-top:3px; color:var(--text-dim); font-size:13px; }
 .cap-mb { color:var(--mb-violet); }
 .cap-ca { color:var(--ca-blue); }
-.cap-adjust { appearance:none; border:0; padding:9px 0 0; background:transparent; color:var(--text-dim); font:inherit; font-size:12px; font-weight:800; cursor:pointer; text-decoration-line:underline; text-decoration-style:dotted; text-decoration-thickness:1px; text-underline-offset:3px; }
-.cap-adjust:hover { color:var(--text); }
 .cap-sim { margin:14px 22px 22px; padding:18px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--bg-inset); }
 .cap-sim[hidden] { display:none; }
 .cap-sim-head { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; margin-bottom:12px; }
@@ -2444,7 +2442,7 @@ function renderAnnualCap(data) {
     '<div class="cap-summary">' +
       '<div class="cap-stat"><span class="cap-label">Salaire net mensuel visé</span><span class="cap-value">' + fmtEUR(PLAN.salary / 12 * NET_FROM_GROSS) + ' / mois</span><span class="cap-note">Soit ' + fmtEUR(PLAN.salary / 12) + ' bruts à financer · ' + _planGoalOrigin(PLAN.salary, roundedRefSalary, ref, function (v) { return fmtEUR(v / 12 * NET_FROM_GROSS) + ' / mois'; }) + '</span></div>' +
       '<div class="cap-stat"><span class="cap-label">Surplus annuel visé</span><span class="cap-value">' + fmtEUR(PLAN.surplus) + '</span><span class="cap-note">Après rémunérations et charges · ' + _planGoalOrigin(PLAN.surplus, ref.surplus, ref, fmtEUR) + '</span></div>' +
-      '<div class="cap-need"><span class="cap-need-kicker">Pour atteindre ce cap</span><strong><span class="cap-mb">' + fmtEUR(neededMB) + '</span> de marge brute à produire</strong><span class="cap-need-detail">Soit <b class="cap-ca">' + fmtEUR(requiredCA) + ' de CA à facturer</b>, avec ' + fmtPct(PLAN.margin, 1) + ' de marge brute.</span><button type="button" class="cap-adjust" id="cap-adjust">☷ Ajuster les hypothèses de calcul</button></div>' +
+      '<div class="cap-need"><span class="cap-need-kicker">Pour atteindre ce cap</span><strong><span class="cap-mb">' + fmtEUR(neededMB) + '</span> de marge brute à produire</strong><span class="cap-need-detail">Soit <b class="cap-ca">' + fmtEUR(requiredCA) + ' de CA à facturer</b>, avec ' + fmtPct(PLAN.margin, 1) + ' de marge brute.</span></div>' +
     '</div>' +
     '<div class="cap-sim" id="cap-sim" hidden>' +
       '<div class="cap-sim-head"><div><h3>Modifier mon cap et mes hypothèses</h3><p><span class="cap-origin">Référence</span> vient de tes données réelles ; <span class="cap-origin custom">Personnalisé</span> signale une valeur modifiée.</p></div><button type="button" class="btn ghost" id="cap-close">Fermer</button></div>' +
@@ -2465,7 +2463,6 @@ function renderAnnualCap(data) {
     if (open) { updateCapPreview(ref); requestAnimationFrame(function () { var focus = document.getElementById(focusId); if (focus) { focus.focus({ preventScroll:true }); focus.closest('.cap-field').scrollIntoView({ block:'center' }); } }); }
   };
   document.getElementById('cap-edit').addEventListener('click', function () { toggle(true, 'cap-salary'); });
-  document.getElementById('cap-adjust').addEventListener('click', function () { toggle(true, 'cap-margin'); });
   document.getElementById('cap-close').addEventListener('click', function () { toggle(false); });
   document.getElementById('cap-drawer-close').onclick = function () { toggle(false); };
   capDrawerBackdrop.onclick = function () { toggle(false); };
