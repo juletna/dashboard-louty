@@ -762,7 +762,8 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .mbx-cell-val { font-size:22px; font-weight:800; color:var(--text); letter-spacing:-0.01em; margin-top:4px; font-variant-numeric:tabular-nums; }
 .mbx-cell.right { text-align:right; }
 .mbx-cell.over .mbx-cell-val { color:var(--green); }
-.mbx-compare { display:grid; gap:12px; }
+.mbx-compare { display:grid; gap:0; }
+.mbx-gauge-separator { height:1px; margin:32px 0; background:var(--border); }
 .mbx-gauge { display:grid; grid-template-columns:92px minmax(0,1fr) 118px; gap:14px; align-items:start; }
 .mbx-gauge-period { display:flex; flex-direction:column; color:var(--text-dim); line-height:1.18; }
 .mbx-gauge-period { align-self:center; }
@@ -2796,11 +2797,12 @@ function _statCardHTML(cfg) {
       (priorRest ? '<div class="mbx-gauge-callout remaining prior"><strong>' + fmtEUR(priorRest) + '</strong><span>' + priorRestPct + '% Restant</span></div>' : '') +
       '</div></div><div class="mbx-gauge-total"><strong>' + fmtEUR(priorTotal) + '</strong><span>Total ' + (cfg.shortLabel || '') + ' ' + (refYear || '') + '</span></div></div>';
   }
+  var gaugeSeparator = priorGauge ? '<div class="mbx-gauge-separator" aria-hidden="true"></div>' : '';
   return '<div class="card statx-card"><div class="mbx-summary">' +
     '<div class="mbx-main"><div class="mbx-head"><div class="mbx-title">' + cfg.title + '</div>' + badge + '</div>' +
     '<div class="mbx-heroline"><div class="mbx-hero">' + fmtEUR(value) + '</div>' + pillHtml + '</div>' + context + '</div>' +
     '<div class="mbx-objective"><div class="mbx-prog-head">' + attHtml + '</div></div></div>' +
-    '<div class="mbx-div"></div><div class="mbx-compare">' + currentGauge + priorGauge + '</div></div>';
+    '<div class="mbx-div"></div><div class="mbx-compare">' + currentGauge + gaugeSeparator + priorGauge + '</div></div>';
 }
 
 // ---- Ligne 1 : cartes "Marge brute réalisée" + "Chiffre d'affaires cumulé" ----
