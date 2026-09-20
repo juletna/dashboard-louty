@@ -259,7 +259,7 @@
   .chart-wrap.tall { height: 350px; }
   .chart-wrap.short { height: 200px; }
   .chart-reference-note { display:flex; align-items:center; gap:6px; margin:-4px 0 4px; color:var(--text-dim); font-size:11px; font-weight:700; }
-  .chart-reference-note::before { content:''; width:18px; border-top:2px dashed var(--violet); }
+  .chart-reference-note::before { content:''; width:18px; border-top:2px dashed var(--gray); }
   .chart-reference-note strong { color:var(--text); }
 
   /* Concentration de marge : deux lectures volontairement différentes du graphe annuel empilé */
@@ -2156,7 +2156,7 @@ function renderTauxAnnuel(cur, years) {
         var xScale = chart.scales.x, area = chart.chartArea, x = xScale.getPixelForValue(historicalMarginPct), styles = getComputedStyle(document.documentElement);
         var ctx = chart.ctx;
         ctx.save();
-        ctx.strokeStyle = styles.getPropertyValue('--violet').trim();
+        ctx.strokeStyle = styles.getPropertyValue('--gray').trim();
         ctx.lineWidth = 2;
         ctx.setLineDash([5, 4]);
         ctx.beginPath(); ctx.moveTo(x, area.top); ctx.lineTo(x, area.bottom); ctx.stroke();
@@ -3543,6 +3543,17 @@ function classifyBooks(books) {
   return { resBook: resBook, balBook: balBook, piecesBook: piecesBook };
 }
 
+// Un RES et ses exports complémentaires doivent toujours provenir du même instant.
+// Lors d'un nouveau RES, ne jamais conserver les données facultatives du précédent
+// import : elles seraient sinon affichées avec une période potentiellement différente.
+function resetDependentImports(data) {
+  [
+    'revenue_distribution', 'margin_distribution', 'mb_distribution',
+    'sante', 'sante_error',
+    'bal_name', 'pieces_name', 'bal_export_iso', 'pieces_export_iso'
+  ].forEach(function (key) { delete data[key]; });
+}
+
 // Point d'entrée unique : accepte RES et/ou BAL, dans n'importe quel ordre.
 function ingest(fileList) {
   hideWelcomeErr();
@@ -3553,6 +3564,7 @@ function ingest(fileList) {
     if (c.resBook) {
       // Nouveau Résultat d'Activité -> on (re)construit tout
       var data = CabestanParser.parseRES(XLSX, c.resBook.wb);
+      resetDependentImports(data);
       if (!Object.keys(data.years).length) {
         throw new Error("Le fichier Résultat d'Activité ne contient aucune année exploitable (colonnes de mois introuvables dans la feuille « Rapport »).");
       }
