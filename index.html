@@ -759,6 +759,26 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .mbx-cell-val { font-size:22px; font-weight:800; color:var(--text); letter-spacing:-0.01em; margin-top:4px; font-variant-numeric:tabular-nums; }
 .mbx-cell.right { text-align:right; }
 .mbx-cell.over .mbx-cell-val { color:var(--green); }
+.mbx-compare { display:grid; gap:22px; }
+.mbx-gauge { display:grid; grid-template-columns:92px minmax(0,1fr); gap:14px; align-items:center; }
+.mbx-gauge-period { display:flex; flex-direction:column; color:var(--text-dim); line-height:1.18; }
+.mbx-gauge-period strong { color:var(--text); font-size:18px; font-weight:800; }
+.mbx-gauge-period span { margin-top:4px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.035em; }
+.mbx-gauge-values { display:flex; justify-content:space-between; align-items:flex-end; gap:14px; margin-bottom:7px; }
+.mbx-gauge-value { display:flex; flex-direction:column; min-width:0; }
+.mbx-gauge-value.end { text-align:right; align-items:flex-end; }
+.mbx-gauge-value strong { color:var(--text); font-size:15px; font-weight:800; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.mbx-gauge-value.current strong { color:var(--violet); }
+.mbx-gauge-value.prior strong { color:var(--gray); }
+.mbx-gauge-value span { margin-top:2px; color:var(--text-faint); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.035em; white-space:nowrap; }
+.mbx-gauge-track { position:relative; height:18px; overflow:hidden; border-radius:999px; background:var(--bg-soft); }
+.mbx-gauge-fill,.mbx-gauge-rest { position:absolute; top:0; bottom:0; }
+.mbx-gauge-fill.current { background:var(--gauge-accent); border-radius:999px 0 0 999px; }
+.mbx-gauge-rest.current { background:#ff934b; }
+.mbx-gauge-fill.prior { background:var(--gray); border-radius:999px 0 0 999px; }
+.mbx-gauge-rest.prior { background:rgba(167,161,180,.28); }
+.mbx-gauge-marker { position:absolute; top:-4px; bottom:-4px; width:4px; transform:translateX(-50%); border-radius:3px; background:var(--text); z-index:2; }
+@media (max-width:700px) { .mbx-gauge { grid-template-columns:1fr; gap:7px; } .mbx-gauge-period { flex-direction:row; align-items:baseline; gap:7px; } .mbx-gauge-period span { margin-top:0; } }
 .statx-card { height:100%; }
 
 /* Mini-graphe barres mensuel (simple, épuré) */
@@ -2667,66 +2687,36 @@ function _miniBars(monthly, color, caption) {
     '<span>' + MONTH_NAMES[11].toUpperCase() + '</span></div></div>';
 }
 
-// ---- Carte statistique (héros + pill + jauge à 3 repères + mini-graphe mensuel) ----
+// ---- Carte statistique : deux jauges absolues, année en cours et N-1 ----
 function _statCardHTML(cfg) {
-  var value = cfg.value, goal = cfg.goal || 0, refSame = cfg.refSame, refFull = cfg.refFull, refYear = cfg.refYear;
-  var yearProgress = cfg.yearProgress;
-  var over = goal > 0 && value >= goal;
-  var scaleMax = Math.max(goal, value, (refFull != null ? refFull * 1.03 : 0)) || 1;
-  var pct = function (v) { return 100 * v / scaleMax; };
-  var attSelf = goal > 0 ? Math.round(value / goal * 100) : null;
-  var delta = (refSame != null) ? (value - refSame) : null;
-  var dPos = (delta != null && delta >= 0);
-  var pillHtml = (delta != null) ? '<span class="mbx-pill ' + (dPos ? 'pos' : 'neg') + '">' + (dPos ? '▲' : '▼') + ' ' + fmtEUR(Math.abs(delta)) + '</span>' : '';
-  var ctxHtml = (refSame != null) ? '<div class="mbx-ctx">vs <b>' + fmtEUR(refSame) + '</b> sur la même période en ' + refYear + '</div>' : '';
-  var badge = over ? '<span class="mbx-badge">✓ Objectif atteint</span>' : '';
+  var value = cfg.value || 0, goal = cfg.goal || 0, refSame = cfg.refSame, refFull = cfg.refFull, refYear = cfg.refYear;
+  var delta = (refSame != null) ? value - refSame : null;
+  var deltaPositive = delta != null && delta >= 0;
   var accent = cfg.barColor || '#7C5AD6';
-  var fillW = pct(Math.min(value, goal));
-  var overHtml = over ? '<div class="mbx-over" style="left:' + pct(goal) + '%; width:' + pct(value - goal) + '%"></div>' : '';
-  var ticks = '', tlabels = '', tpcts = '';
-  var pctOfGoal = function (v) { return (goal > 0) ? Math.round(v / goal * 100) + '%' : ''; };
-  var refLbl = (cfg.shortLabel && refYear) ? ('Total ' + cfg.shortLabel + ' ' + refYear) : '';
+  var scaleMax = Math.max(value, goal, refSame || 0, refFull || 0, 1);
+  var width = function (amount) { return Math.max(0, Math.min(100, amount / scaleMax * 100)); };
+  var pillHtml = delta != null ? '<span class="mbx-pill ' + (deltaPositive ? 'pos' : 'neg') + '">' + (deltaPositive ? '▲' : '▼') + ' ' + fmtEUR(Math.abs(delta)) + '</span>' : '';
+  var context = refSame != null ? '<div class="mbx-ctx">vs <b>' + fmtEUR(refSame) + '</b> sur la même période en ' + refYear + '</div>' : '';
+  var currentRest = Math.max(0, goal - value);
+  var currentGauge = '<div class="mbx-gauge"><div class="mbx-gauge-period"><strong>' + (cfg.currentYear || 'N') + '</strong><span>à date</span></div><div>' +
+    '<div class="mbx-gauge-values"><div class="mbx-gauge-value current"><strong>' + fmtEUR(value) + '</strong><span>Réalisé</span></div><div class="mbx-gauge-value end"><strong>' + fmtEUR(goal) + '</strong><span>Objectif annuel</span></div></div>' +
+    '<div class="mbx-gauge-track" style="--gauge-accent:' + accent + '"><div class="mbx-gauge-fill current" style="width:' + width(value) + '%"></div>' +
+    (currentRest ? '<div class="mbx-gauge-rest current" style="left:' + width(value) + '%; width:' + width(currentRest) + '%"></div>' : '') +
+    '<div class="mbx-gauge-marker" style="left:' + width(value) + '%"></div></div></div></div>';
+  var priorGauge = '';
   if (refSame != null) {
-    ticks += '<div class="mbx-tick white" style="left:' + pct(refSame) + '%"></div>';
-    if (pctOfGoal(refSame)) tpcts += '<div class="mbx-tpct" style="left:' + pct(refSame) + '%">' + pctOfGoal(refSame) + '</div>';
-    tlabels += '<div class="mbx-tlabel" style="left:' + pct(refSame) + '%"><div class="mbx-tl-eur">' + fmtEUR(refSame) + '</div><div class="mbx-tl-desc">' + (refYear ? refYear + ' · Même période' : 'Même période') + '</div></div>';
+    var priorTotal = Math.max(refSame, refFull || 0);
+    var priorRest = Math.max(0, priorTotal - refSame);
+    priorGauge = '<div class="mbx-gauge"><div class="mbx-gauge-period"><strong>' + (refYear || 'N-1') + '</strong><span>Même période</span></div><div>' +
+      '<div class="mbx-gauge-values"><div class="mbx-gauge-value prior"><strong>' + fmtEUR(refSame) + '</strong><span>Réalisé</span></div><div class="mbx-gauge-value end"><strong>' + fmtEUR(priorTotal) + '</strong><span>Total ' + (cfg.shortLabel || '') + ' ' + (refYear || '') + '</span></div></div>' +
+      '<div class="mbx-gauge-track"><div class="mbx-gauge-fill prior" style="width:' + width(refSame) + '%"></div>' +
+      (priorRest ? '<div class="mbx-gauge-rest prior" style="left:' + width(refSame) + '%; width:' + width(priorRest) + '%"></div>' : '') +
+      '<div class="mbx-gauge-marker" style="left:' + width(refSame) + '%"></div></div></div></div>';
   }
-  if (refFull != null) {
-    ticks += '<div class="mbx-tick black" style="left:' + pct(refFull) + '%"></div>';
-    if (pctOfGoal(refFull)) tpcts += '<div class="mbx-tpct" style="left:' + pct(refFull) + '%">' + pctOfGoal(refFull) + '</div>';
-    tlabels += '<div class="mbx-tlabel" style="left:' + pct(refFull) + '%"><div class="mbx-tl-eur">' + fmtEUR(refFull) + '</div>' + (refLbl ? '<div class="mbx-tl-desc">' + refLbl + '</div>' : '') + '</div>';
-  }
-  if (yearProgress != null && goal > 0) {
-    var paceValue = goal * yearProgress;
-    ticks += '<div class="mbx-tick pace" style="left:' + pct(paceValue) + '%" title="Avancement de l’année : ' + fmtPct(yearProgress, 1) + '"></div>';
-    tpcts += '<div class="mbx-tpct pace" style="left:' + pct(paceValue) + '%">' + fmtPct(yearProgress, 1) + '</div>';
-  }
-  if (over) {
-    ticks += '<div class="mbx-tick white" style="left:' + pct(goal) + '%"></div>';
-    tlabels += '<div class="mbx-tlabel" style="left:' + pct(goal) + '%"><div class="mbx-tl-eur" style="font-weight:700; color:var(--text-dim)">objectif</div></div>';
-  }
-  // Objectif annuel remonté en haut à droite (aligné avec le bloc "% atteint / reste").
-  // Le dépassement, lui, reste affiché sous la barre quand l'objectif est atteint.
-  var objHead = '<div class="mbx-cell right"><div class="mbx-cell-lbl">Objectif annuel</div><div class="mbx-cell-val">' + fmtEUR(goal) + '</div></div>';
-  var deptCell = over ? '<div class="mbx-cell over"><div class="mbx-cell-lbl">Dépassement</div><div class="mbx-cell-val">+' + fmtEUR(value - goal) + '</div></div>' : '';
-  var restLine = (!over && goal > 0) ? '<div class="mbx-att-rest"><b>' + fmtEUR(Math.max(0, goal - value)) + '</b> restant pour atteindre ton objectif</div>' : '';
-  var paceLine = '';
-  if (yearProgress != null && goal > 0) {
-    var paceGap = value - (goal * yearProgress);
-    var paceClass = paceGap >= 0 ? 'ahead' : 'behind';
-    var paceLabel = paceGap >= 0 ? 'd’avance sur le rythme' : 'de retard sur le rythme';
-    paceLine = '<div class="mbx-pace">Avancement de l’année : <strong>' + fmtPct(yearProgress, 1) + '</strong><span class="' + paceClass + '">· ' + fmtEUR(Math.abs(paceGap)) + ' ' + paceLabel + '</span></div>';
-  }
-  var attHtml = (attSelf != null) ? '<div class="mbx-att"><div><b style="color:' + accent + '">' + attSelf + '%</b> de l\'objectif atteint</div>' + restLine + paceLine + '</div>' : '<div>' + restLine + paceLine + '</div>';
   return '<div class="card statx-card">' +
-    '<div class="mbx-head"><div class="mbx-title">' + cfg.title + '</div>' + badge + '</div>' +
-    '<div class="mbx-heroline"><div class="mbx-hero">' + fmtEUR(value) + '</div>' + pillHtml + '</div>' +
-    ctxHtml +
-    '<div class="mbx-div"></div>' +
-    '<div class="mbx-prog-head">' + attHtml + objHead + '</div>' +
-    '<div class="mbx-bar">' + tpcts + '<div class="mbx-track"><div class="mbx-fill" style="width:' + fillW + '%; background:' + accent + '"></div>' + overHtml + ticks + '</div>' + tlabels + '</div>' +
-    (deptCell ? '<div class="mbx-foot">' + deptCell + '</div>' : '') +
-    '</div>';
+    '<div class="mbx-head"><div class="mbx-title">' + cfg.title + '</div></div>' +
+    '<div class="mbx-heroline"><div class="mbx-hero">' + fmtEUR(value) + '</div>' + pillHtml + '</div>' + context +
+    '<div class="mbx-div"></div><div class="mbx-compare">' + currentGauge + priorGauge + '</div></div>';
 }
 
 // ---- Ligne 1 : cartes "Marge brute réalisée" + "Chiffre d'affaires cumulé" ----
@@ -2749,11 +2739,11 @@ function renderBanner(data, cur, prev) {
     var isCA = pilotageMetric === 'ca';
     pilotageCard.innerHTML = _statCardHTML(isCA ? {
       title: "Chiffre d'affaires cumulé", value: cur.ytd_ca, goal: C.CA_OBJ,
-      refSame: sp ? sp.ca_ytd : null, refFull: sp ? sp.ca_full : null, refYear: refYear, shortLabel: 'CA',
+      refSame: sp ? sp.ca_ytd : null, refFull: sp ? sp.ca_full : null, refYear: refYear, currentYear: cur.year, shortLabel: 'CA',
       monthly: cy.monthly.ca, caption: 'CA mensuel', barColor: COLORS.blue, yearProgress: yearProgress
     } : {
       title: 'Marge brute réalisée', value: cur.ytd_mb, goal: C.MB_AN_OBJ,
-      refSame: sp ? sp.mb_ytd : null, refFull: sp ? sp.mb_full : null, refYear: refYear, shortLabel: 'MB',
+      refSame: sp ? sp.mb_ytd : null, refFull: sp ? sp.mb_full : null, refYear: refYear, currentYear: cur.year, shortLabel: 'MB',
       monthly: cy.monthly.marge_brute, caption: 'Marge brute mensuelle', barColor: '#7C5AD6', yearProgress: yearProgress
     });
   } catch (e) { /* rendu optionnel */ }
