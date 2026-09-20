@@ -2707,7 +2707,6 @@ function _statCardHTML(cfg) {
   var pillHtml = delta != null ? '<span class="mbx-pill ' + (deltaPositive ? 'pos' : 'neg') + '">' + (deltaPositive ? '▲' : '▼') + ' ' + fmtEUR(Math.abs(delta)) + '</span>' : '';
   var context = refSame != null ? '<div class="mbx-ctx">vs <b>' + fmtEUR(refSame) + '</b> sur la même période en ' + refYear + '</div>' : '';
   var badge = over ? '<span class="mbx-badge">✓ Objectif atteint</span>' : '';
-  var restLine = (!over && goal > 0) ? '<div class="mbx-att-rest"><b>' + fmtEUR(Math.max(0, goal - value)) + '</b> restant pour atteindre ton objectif</div>' : '';
   var paceLine = '';
   if (yearProgress != null && goal > 0) {
     var paceGap = value - (goal * yearProgress);
@@ -2715,8 +2714,7 @@ function _statCardHTML(cfg) {
     var paceLabel = paceGap >= 0 ? 'd’avance sur le rythme' : 'de retard sur le rythme';
     paceLine = '<div class="mbx-pace">Avancement de l’année : <strong>' + fmtPct(yearProgress, 1) + '</strong><span class="' + paceClass + '">· ' + fmtEUR(Math.abs(paceGap)) + ' ' + paceLabel + '</span></div>';
   }
-  var attHtml = attSelf != null ? '<div class="mbx-att"><div><b style="color:' + accent + '">' + attSelf + '%</b> de l\'objectif atteint</div>' + restLine + paceLine + '</div>' : '<div>' + restLine + paceLine + '</div>';
-  var objHead = '<div class="mbx-cell right"><div class="mbx-cell-lbl">Objectif annuel</div><div class="mbx-cell-val">' + fmtEUR(goal) + '</div></div>';
+  var attHtml = attSelf != null ? '<div class="mbx-att"><div><b style="color:' + accent + '">' + attSelf + '%</b> de l\'objectif atteint</div>' + paceLine + '</div>' : '<div>' + paceLine + '</div>';
   var currentTotal = Math.max(value, goal);
   var currentRest = Math.max(0, currentTotal - value);
   var currentGauge = '<div class="mbx-gauge"><div class="mbx-gauge-period"><strong>' + (cfg.currentYear || 'N') + '</strong><span>à date</span></div><div class="mbx-gauge-plot" style="width:' + width(currentTotal) + '%">' +
@@ -2741,7 +2739,7 @@ function _statCardHTML(cfg) {
   return '<div class="card statx-card">' +
     '<div class="mbx-head"><div class="mbx-title">' + cfg.title + '</div>' + badge + '</div>' +
     '<div class="mbx-heroline"><div class="mbx-hero">' + fmtEUR(value) + '</div>' + pillHtml + '</div>' + context +
-    '<div class="mbx-div"></div><div class="mbx-prog-head">' + attHtml + objHead + '</div><div class="mbx-compare">' + currentGauge + priorGauge + '</div></div>';
+    '<div class="mbx-div"></div><div class="mbx-prog-head">' + attHtml + '</div><div class="mbx-compare">' + currentGauge + priorGauge + '</div></div>';
 }
 
 // ---- Ligne 1 : cartes "Marge brute réalisée" + "Chiffre d'affaires cumulé" ----
