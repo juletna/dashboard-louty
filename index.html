@@ -832,6 +832,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .cap-summary .cap-need { padding:12px 0 12px 18px; background:transparent; border:0; border-left:1px solid var(--border); }
 .cap-need-kicker { display:block; color:var(--text-dim); font-size:12px; font-weight:800; }
 .cap-need strong { display:block; margin-top:2px; color:var(--text); font-size:22px; line-height:1.25; letter-spacing:-.025em; }
+.cap-need-label { font-size:16px; font-weight:800; letter-spacing:-.01em; }
 .cap-need-detail { display:block; margin-top:3px; color:var(--text-dim); font-size:13px; }
 .cap-mb { color:var(--mb-violet); }
 .cap-ca { color:var(--ca-blue); }
@@ -2444,7 +2445,7 @@ function renderAnnualCap(data) {
     '<div class="cap-summary">' +
       '<div class="cap-stat"><span class="cap-label">Salaire net mensuel visé</span><span class="cap-value">' + fmtEUR(PLAN.salary / 12 * NET_FROM_GROSS) + ' / mois</span><span class="cap-note">Salaire net ' + ref.n1.year + ' : ' + fmtEUR(roundedRefSalary / 12 * NET_FROM_GROSS) + ' / mois</span></div>' +
       '<div class="cap-stat"><span class="cap-label">Surplus annuel visé</span><span class="cap-value">' + fmtEUR(PLAN.surplus) + '</span><span class="cap-note">Résultat net ' + ref.n1.year + ' : ' + fmtEUR(ref.surplus) + '</span></div>' +
-      '<div class="cap-need"><span class="cap-need-kicker">Pour atteindre ce cap</span><strong><span class="cap-mb">' + fmtEUR(neededMB) + '</span> de marge brute</strong><span class="cap-need-detail">Soit <b class="cap-ca">' + fmtEUR(requiredCA) + '</b> de CA à facturer sur une base de ' + fmtPct(PLAN.margin, 1) + ' de marge brute.</span></div>' +
+      '<div class="cap-need"><span class="cap-need-kicker">Pour atteindre ce cap</span><strong><span class="cap-mb">' + fmtEUR(neededMB) + '</span> <span class="cap-need-label">de marge brute</span></strong><span class="cap-need-detail">Soit <b class="cap-ca">' + fmtEUR(requiredCA) + '</b> de CA à facturer sur une base de ' + fmtPct(PLAN.margin, 1) + ' de marge brute.</span></div>' +
     '</div>' +
     '<div class="cap-sim" id="cap-sim" hidden>' +
       '<div class="cap-sim-head"><div><h3>Modifier mon cap et mes hypothèses</h3><p><span class="cap-origin">Référence</span> vient de tes données réelles ; <span class="cap-origin custom">Personnalisé</span> signale une valeur modifiée.</p></div><button type="button" class="btn ghost" id="cap-close">Fermer</button></div>' +
