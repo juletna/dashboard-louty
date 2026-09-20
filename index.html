@@ -2768,23 +2768,27 @@ function _statCardHTML(cfg) {
   var attHtml = attSelf != null ? '<div class="mbx-att"><div><b style="color:' + accent + '">' + attSelf + '%</b> de l\'objectif atteint</div>' + paceLine + '</div>' : '<div>' + paceLine + '</div>';
   var currentTotal = Math.max(value, goal);
   var currentRest = Math.max(0, currentTotal - value);
+  var currentPct = Math.round(relativeWidth(value, currentTotal));
+  var currentRestPct = Math.round(relativeWidth(currentRest, currentTotal));
   var currentGauge = '<div class="mbx-gauge"><div class="mbx-gauge-period"><strong>' + (cfg.currentYear || 'N') + '</strong><span>à date</span></div><div class="mbx-gauge-plot" style="width:' + width(currentTotal) + '%">' +
     '<div class="mbx-gauge-track" style="--gauge-accent:' + accent + ';--marker-left:' + relativeWidth(value, currentTotal) + '%"><div class="mbx-gauge-fill current" style="width:' + relativeWidth(value, currentTotal) + '%"></div>' +
     (currentRest ? '<div class="mbx-gauge-rest current" style="left:' + relativeWidth(value, currentTotal) + '%; width:' + relativeWidth(currentRest, currentTotal) + '%"></div>' : '') +
     '<div class="mbx-gauge-marker" style="left:' + relativeWidth(value, currentTotal) + '%"></div>' +
-    '<div class="mbx-gauge-callout realized current"><strong>' + fmtEUR(value) + ' (' + Math.round(relativeWidth(value, currentTotal)) + '%)</strong><span>Réalisé</span></div>' +
-    (currentRest ? '<div class="mbx-gauge-callout remaining"><strong>' + fmtEUR(currentRest) + '</strong><span>Restant</span></div>' : '') +
+    '<div class="mbx-gauge-callout realized current"><strong>' + fmtEUR(value) + '</strong><span>' + currentPct + '% Réalisé</span></div>' +
+    (currentRest ? '<div class="mbx-gauge-callout remaining"><strong>' + fmtEUR(currentRest) + '</strong><span>' + currentRestPct + '% Restant</span></div>' : '') +
     '</div></div><div class="mbx-gauge-total"><strong>' + fmtEUR(currentTotal) + '</strong><span>Objectif annuel</span></div></div>';
   var priorGauge = '';
   if (refSame != null) {
     var priorTotal = Math.max(refSame, refFull || 0);
     var priorRest = Math.max(0, priorTotal - refSame);
+    var priorPct = Math.round(relativeWidth(refSame, priorTotal));
+    var priorRestPct = Math.round(relativeWidth(priorRest, priorTotal));
     priorGauge = '<div class="mbx-gauge"><div class="mbx-gauge-period"><strong>' + (refYear || 'N-1') + '</strong><span>Même période</span></div><div class="mbx-gauge-plot" style="width:' + width(priorTotal) + '%">' +
       '<div class="mbx-gauge-track" style="--marker-left:' + relativeWidth(refSame, priorTotal) + '%"><div class="mbx-gauge-fill prior" style="width:' + relativeWidth(refSame, priorTotal) + '%"></div>' +
       (priorRest ? '<div class="mbx-gauge-rest prior" style="left:' + relativeWidth(refSame, priorTotal) + '%; width:' + relativeWidth(priorRest, priorTotal) + '%"></div>' : '') +
       '<div class="mbx-gauge-marker" style="left:' + relativeWidth(refSame, priorTotal) + '%"></div>' +
-      '<div class="mbx-gauge-callout realized prior"><strong>' + fmtEUR(refSame) + ' (' + Math.round(relativeWidth(refSame, priorTotal)) + '%)</strong><span>Réalisé</span></div>' +
-      (priorRest ? '<div class="mbx-gauge-callout remaining"><strong>' + fmtEUR(priorRest) + '</strong><span>Restant</span></div>' : '') +
+      '<div class="mbx-gauge-callout realized prior"><strong>' + fmtEUR(refSame) + '</strong><span>' + priorPct + '% Réalisé</span></div>' +
+      (priorRest ? '<div class="mbx-gauge-callout remaining"><strong>' + fmtEUR(priorRest) + '</strong><span>' + priorRestPct + '% Restant</span></div>' : '') +
       '</div></div><div class="mbx-gauge-total"><strong>' + fmtEUR(priorTotal) + '</strong><span>Total ' + (cfg.shortLabel || '') + ' ' + (refYear || '') + '</span></div></div>';
   }
   return '<div class="card statx-card">' +
