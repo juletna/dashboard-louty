@@ -2779,10 +2779,10 @@ function _statCardHTML(cfg) {
     var paceLabel = paceGap >= 0 ? 'd’avance sur le rythme' : 'de retard sur le rythme';
     var paceSign = paceGap >= 0 ? '+ ' : '− ';
     var attainmentLine = attSelf != null ? '<div class="mbx-progress-line"><strong class="mbx-attainment ' + paceClass + '">' + attSelf + ' %</strong> de l’objectif atteint</div>' : '';
-    progressHtml = '<div class="mbx-progress-title">Avancement sur l’année</div>' +
+    progressHtml = '<div class="mbx-progress-summary"><div class="mbx-progress-title">Avancement sur l’année</div>' +
       '<div class="mbx-progress-line"><strong>' + fmtPct(yearProgress, 1) + '</strong> de l’année écoulée</div>' +
       attainmentLine +
-      '<div class="mbx-progress-pace"><strong class="' + paceClass + '">' + paceSign + fmtEUR(Math.abs(paceGap)) + '</strong> ' + paceLabel + '</div>';
+      '<div class="mbx-progress-pace"><strong class="' + paceClass + '">' + paceSign + fmtEUR(Math.abs(paceGap)) + '</strong> ' + paceLabel + '</div></div>';
   }
   var attHtml = progressHtml;
   var currentTotal = Math.max(value, goal);
