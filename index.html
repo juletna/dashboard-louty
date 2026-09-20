@@ -2479,7 +2479,7 @@ function updateCapPreview(ref) {
   document.getElementById('cap-margin-source').innerHTML = _planOrigin(margin, ref.margin, ref, function (v) { return fmtPct(v, 1); }, ref.n1.margin);
   document.getElementById('cap-charges-out').textContent = fmtEUR(charges);
   document.getElementById('cap-charges-source').innerHTML = _planOrigin(charges, ref.charges, ref, fmtEUR, ref.n1.charges);
-  document.getElementById('cap-result').innerHTML = '<span class="cap-preview-label">Aperçu non enregistré</span>Pour cette trajectoire, il faut générer <strong class="cap-mb">' + fmtEUR(wanted) + ' de marge brute</strong>, soit <strong class="cap-ca">' + fmtEUR(ca) + ' de CA à facturer</strong> avec ' + fmtPct(margin, 1) + ' de marge.';
+  document.getElementById('cap-result').innerHTML = '<span class="cap-preview-label">Aperçu non enregistré</span>Pour cette trajectoire, il faut générer <strong class="cap-mb">' + fmtEUR(wanted) + ' de marge brute</strong>, soit <strong class="cap-ca">' + fmtEUR(ca) + ' de CA à facturer</strong> avec ' + fmtPct(margin, 1) + ' de marge brute sur CA.';
 }
 
 // Panneau réglages
