@@ -951,7 +951,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
   </div>
   <div class="grid" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr); margin-top:16px">
     <div class="card">
-      <h3>Chiffre d'affaires &amp; marge brute mensuels<span class="sp-help" data-tip="Chaque barre = ton CA du mois, décomposé en marge brute (vert, ce qui te reste) et achats &amp; coûts (rouge, le reste du CA). La courbe grise en pointillés est la moyenne du CA des années précédentes au même mois.">?</span></h3>
+      <h3>Chiffre d'affaires &amp; marge brute mensuels<span class="sp-help" data-tip="Chaque barre = ton CA du mois, décomposé en marge brute (vert, ce qui te reste) et achats &amp; coûts (rouge, le reste du CA). Les courbes pointillées montrent les moyennes historiques de CA et de marge brute. La ligne orange indique le seuil mensuel de salaire brut à financer.">?</span></h3>
       <div class="chart-wrap tall"><canvas id="chart-ca-mb"></canvas></div>
     </div>
     <div class="card">
@@ -962,10 +962,6 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
   </div>
   <div class="sante-row" style="margin-top:16px">
     <div id="bloc-sante"></div>
-  </div>
-  <div class="card" style="margin-top:16px">
-    <h3>Marge brute mensuelle<span class="sp-help" data-tip="Ta marge brute mois par mois (barres) : rouge = mois négatif, orange = sous ton seuil de salaire, vert = au-dessus. La ligne orange est ton seuil salaire brut ; la courbe grise, la moyenne des années précédentes.">?</span></h3>
-    <div class="chart-wrap tall"><canvas id="chart-mb"></canvas></div>
   </div>
   <div class="grid grid-2" style="margin-top:16px; align-items:stretch">
     <div class="card repart-card">
@@ -1734,7 +1730,6 @@ function render(data) {
   renderRepartYears(cur, years);
   renderCAMB(cy, currentYear, years);
   renderTauxAnnuel(cur, years);
-  renderMonthlyChart(cy, years, currentYear);
   renderCumulChart(years, currentYear, pilotageMetric);
   document.querySelectorAll('[data-pilotage-metric]').forEach(function (button) {
     button.setAttribute('aria-pressed', button.dataset.pilotageMetric === pilotageMetric ? 'true' : 'false');
@@ -2072,7 +2067,21 @@ function renderCAMB(cy, curYear, years) {
       interaction: { mode: 'index', intersect: false },
       scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: { callback: v => fmtEUR(v) } } },
       plugins: {
-        legend: { position: 'bottom', labels: { font: { size: 11 } } },
+        legend: {
+          position: 'bottom',
+          labels: {
+            font: { size: 11 },
+            generateLabels: function (chart) {
+              var base = Chart.defaults.plugins.legend.labels.generateLabels(chart);
+              return [{ text: 'Seuil salaire brut ' + fmtEUR(C.MB_MIN), strokeStyle: COLORS.orange, fillStyle: 'transparent', lineWidth: 2, pointStyle: 'circle', hidden: false, datasetIndex: -1 }].concat(base);
+            }
+          },
+          onClick: function (e, item, legend) {
+            if (item.datasetIndex === -1 || item.datasetIndex == null) return;
+            var chart = legend.chart, datasetIndex = item.datasetIndex;
+            if (chart.isDatasetVisible(datasetIndex)) chart.hide(datasetIndex); else chart.show(datasetIndex);
+          }
+        },
         tooltip: {
           callbacks: {
             afterBody: (items) => {
@@ -2083,7 +2092,20 @@ function renderCAMB(cy, curYear, years) {
           }
         }
       }
-    }
+    },
+    plugins: [{
+      id: 'salaryThreshold',
+      afterDatasetsDraw: function (chart) {
+        var area = chart.chartArea, ctx = chart.ctx, y = chart.scales.y;
+        ctx.save();
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([5, 4]);
+        ctx.strokeStyle = COLORS.orange;
+        var thresholdY = y.getPixelForValue(C.MB_MIN);
+        ctx.beginPath(); ctx.moveTo(area.left, thresholdY); ctx.lineTo(area.right, thresholdY); ctx.stroke();
+        ctx.restore();
+      }
+    }]
   });
 }
 // Comparatif annuel horizontal : année en cours à date, exercices historiques complets.
