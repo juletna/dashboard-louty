@@ -2073,12 +2073,12 @@ function renderCAMB(cy, curYear, years) {
     datasets.push({
       type: 'line', label: avgLabel, data: avgCA, stack: 'avgCA',
       borderColor: 'rgba(128, 122, 140, 0.45)', backgroundColor: 'rgba(201, 197, 207, 0.28)',
-      borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 6, tension: 0.4, fill: 'origin', order: 0, spanGaps: true,
+      borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 6, tension: 0.4, fill: 'origin', order: 10, spanGaps: true,
     });
     datasets.push({
       type: 'line', label: avgLabelMB, data: avgMB, stack: 'avgMB',
       borderColor: 'rgba(128, 122, 140, 0.30)', backgroundColor: 'rgba(221, 218, 226, 0.48)',
-      borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 6, tension: 0.4, fill: 'origin', order: 0, spanGaps: true,
+      borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 6, tension: 0.4, fill: 'origin', order: 10, spanGaps: true,
     });
   }
   makeChart('chart-ca-mb', {
