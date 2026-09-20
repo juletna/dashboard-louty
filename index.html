@@ -2381,12 +2381,13 @@ function historicalPlanReference(data) {
     }
   };
 }
+function _planRoundedSalaryReference(ref) { return Math.ceil(ref.salary / 12 * NET_FROM_GROSS) / NET_FROM_GROSS * 12; }
 function loadPlan(data) {
   var ref = historicalPlanReference(data);
   var saved = null;
   try { saved = JSON.parse(localStorage.getItem(PLAN_KEY) || 'null'); } catch (e) {}
   PLAN = {
-    salary: saved && isFinite(saved.salary) ? saved.salary : ref.salary,
+    salary: saved && isFinite(saved.salary) ? saved.salary : _planRoundedSalaryReference(ref),
     surplus: saved && isFinite(saved.surplus) ? saved.surplus : ref.surplus,
     margin: saved && isFinite(saved.margin) ? saved.margin : ref.margin,
     charges: saved && isFinite(saved.charges) ? saved.charges : ref.charges,
@@ -2422,18 +2423,19 @@ function renderAnnualCap(data) {
   if (!PLAN) loadPlan(data);
   var neededMB = PLAN.salary + PLAN.charges + PLAN.surplus;
   var requiredCA = neededMB / PLAN.margin;
+  var roundedRefSalary = _planRoundedSalaryReference(ref);
   var maxCharges = Math.max(5000, Math.ceil(Math.max(ref.charges, PLAN.charges) * 1.8 / 1000) * 1000);
   host.innerHTML =
     '<div class="annual-cap-head"><div><h2 id="annual-cap-title">Mon cap annuel</h2><p class="annual-cap-intro">Tes objectifs personnels fixent les repères du tableau de bord.</p></div><button type="button" class="btn ghost" id="cap-edit">Modifier mes objectifs</button></div>' +
     '<div class="cap-summary">' +
-      '<div class="cap-stat"><span class="cap-label">Salaire net mensuel visé</span><span class="cap-value">' + fmtEUR(PLAN.salary / 12 * NET_FROM_GROSS) + ' / mois</span><span class="cap-note">Soit ' + fmtEUR(PLAN.salary / 12) + ' bruts à financer · ' + _planOrigin(PLAN.salary, ref.salary, ref, function (v) { return fmtEUR(v / 12 * NET_FROM_GROSS) + ' / mois'; }) + '</span></div>' +
+      '<div class="cap-stat"><span class="cap-label">Salaire net mensuel visé</span><span class="cap-value">' + fmtEUR(PLAN.salary / 12 * NET_FROM_GROSS) + ' / mois</span><span class="cap-note">Soit ' + fmtEUR(PLAN.salary / 12) + ' bruts à financer · ' + _planOrigin(PLAN.salary, roundedRefSalary, ref, function (v) { return fmtEUR(v / 12 * NET_FROM_GROSS) + ' / mois'; }) + '</span></div>' +
       '<div class="cap-stat"><span class="cap-label">Surplus annuel visé</span><span class="cap-value">' + fmtEUR(PLAN.surplus) + '</span><span class="cap-note">Après rémunérations et charges · ' + _planOrigin(PLAN.surplus, ref.surplus, ref, fmtEUR) + '</span></div>' +
       '<div class="cap-need"><span class="cap-need-kicker">Pour atteindre ce cap</span><strong><span class="cap-mb">' + fmtEUR(neededMB) + '</span> de marge brute à produire</strong><span class="cap-need-detail">Soit <b class="cap-ca">' + fmtEUR(requiredCA) + ' de CA à facturer</b>, avec ' + fmtPct(PLAN.margin, 1) + ' de marge brute.</span><button type="button" class="cap-adjust" id="cap-adjust">☷ Ajuster les hypothèses de calcul</button></div>' +
     '</div>' +
     '<div class="cap-sim" id="cap-sim" hidden>' +
       '<div class="cap-sim-head"><div><h3>Modifier mon cap et mes hypothèses</h3><p><span class="cap-origin">Référence</span> vient de tes données réelles ; <span class="cap-origin custom">Personnalisé</span> signale une valeur modifiée.</p></div><button type="button" class="btn ghost" id="cap-close">Fermer</button></div>' +
       '<div class="cap-inputs">' +
-        '<div class="cap-field"><label for="cap-salary">Salaire net mensuel à financer <span class="cap-field-actions"><output id="cap-salary-out">' + fmtEUR(PLAN.salary / 12 * NET_FROM_GROSS) + ' / mois</output><button type="button" class="cap-mini-btn" id="cap-salary-ref">Réf. : ' + fmtEUR(ref.salary / 12 * NET_FROM_GROSS) + '</button></span></label><input id="cap-salary" type="number" min="0" step="1" value="' + Math.round(PLAN.salary / 12 * NET_FROM_GROSS) + '"><div class="cap-source" id="cap-salary-source">' + _planOrigin(PLAN.salary, ref.salary, ref, function (v) { return fmtEUR(v / 12 * NET_FROM_GROSS) + ' / mois'; }, null, true) + '</div></div>' +
+        '<div class="cap-field"><label for="cap-salary">Salaire net mensuel à financer <span class="cap-field-actions"><output id="cap-salary-out">' + fmtEUR(PLAN.salary / 12 * NET_FROM_GROSS) + ' / mois</output><button type="button" class="cap-mini-btn" id="cap-salary-ref">Réf. : ' + fmtEUR(roundedRefSalary / 12 * NET_FROM_GROSS) + '</button></span></label><input id="cap-salary" type="number" min="0" step="1" value="' + Math.round(PLAN.salary / 12 * NET_FROM_GROSS) + '"><div class="cap-source" id="cap-salary-source">' + _planOrigin(PLAN.salary, roundedRefSalary, ref, function (v) { return fmtEUR(v / 12 * NET_FROM_GROSS) + ' / mois'; }, null, true) + '</div></div>' +
         '<div class="cap-field"><label for="cap-surplus">Surplus annuel visé <span class="cap-field-actions"><output id="cap-surplus-out">' + fmtEUR(PLAN.surplus) + '</output><button type="button" class="cap-mini-btn" id="cap-surplus-ref">Réf. : ' + fmtEUR(ref.surplus) + '</button></span></label><input id="cap-surplus" type="number" min="0" step="1" value="' + Math.round(PLAN.surplus) + '"><div class="cap-source" id="cap-surplus-source">' + _planOrigin(PLAN.surplus, ref.surplus, ref, fmtEUR, null, true) + '</div></div>' +
         '<div class="cap-field"><label for="cap-margin">Taux de marge brute sur CA <span class="sp-help" data-tip="Taux de marge brute = marge brute ÷ chiffre d’affaires. La marge brute est ce qui reste du CA après les achats matières ; elle sert ensuite à financer salaires, charges, contribution coopérative et surplus." tabindex="0" aria-label="Explication du taux de marge brute">?</span><output id="cap-margin-out">' + fmtPct(PLAN.margin, 1) + '</output><button type="button" class="cap-mini-btn" id="cap-margin-n1">N-1 : ' + fmtPct(ref.n1.margin, 1) + '</button></label><div class="cap-range"><input id="cap-margin" type="range" min="0.2" max="0.9" step="0.005" value="' + PLAN.margin + '"><span class="cap-range-marker" style="left:' + Math.max(0, Math.min(100, (ref.n1.margin - 0.2) / 0.7 * 100)) + '%" title="Repère N-1 : ' + fmtPct(ref.n1.margin, 1) + '" aria-hidden="true"></span></div><div class="cap-source" id="cap-margin-source">' + _planOrigin(PLAN.margin, ref.margin, ref, function (v) { return fmtPct(v, 1); }, ref.n1.margin) + '</div></div>' +
         '<div class="cap-field"><label for="cap-charges">Charges annuelles à financer<span class="sp-help" data-tip="Les charges à financer regroupent les charges de fonctionnement et la contribution coopérative. Elles s’ajoutent au salaire brut et au surplus visé pour calculer la marge brute nécessaire. N-1 (' + ref.n1.year + ') : ' + fmtEUR(ref.n1.chargesFonct) + ' de charges de fonctionnement + ' + fmtEUR(ref.n1.contribution) + ' de contribution coopérative = ' + fmtEUR(ref.n1.charges) + '." tabindex="0" aria-label="Détail des charges annuelles à financer">?</span><output id="cap-charges-out">' + fmtEUR(PLAN.charges) + '</output><button type="button" class="cap-mini-btn" id="cap-charges-n1">N-1 : ' + fmtEUR(ref.n1.charges) + '</button></label><div class="cap-range"><input id="cap-charges" type="range" min="0" max="' + maxCharges + '" step="1" value="' + Math.min(maxCharges, Math.round(PLAN.charges)) + '"><span class="cap-range-marker" style="left:' + Math.max(0, Math.min(100, ref.n1.charges / maxCharges * 100)) + '%" title="Repère N-1 : ' + fmtEUR(ref.n1.charges) + '" aria-hidden="true"></span></div><div class="cap-source" id="cap-charges-source">' + _planOrigin(PLAN.charges, ref.charges, ref, fmtEUR, ref.n1.charges) + '</div></div>' +
@@ -2457,7 +2459,7 @@ function renderAnnualCap(data) {
     var field = document.getElementById(id);
     ['input','change'].forEach(function (eventName) { field.addEventListener(eventName, function () { updateCapPreview(ref); }); });
   });
-  document.getElementById('cap-salary-ref').addEventListener('click', function () { document.getElementById('cap-salary').value = ref.salary / 12 * NET_FROM_GROSS; updateCapPreview(ref); });
+  document.getElementById('cap-salary-ref').addEventListener('click', function () { document.getElementById('cap-salary').value = Math.ceil(ref.salary / 12 * NET_FROM_GROSS); updateCapPreview(ref); });
   document.getElementById('cap-surplus-ref').addEventListener('click', function () { document.getElementById('cap-surplus').value = ref.surplus; updateCapPreview(ref); });
   document.getElementById('cap-margin-n1').addEventListener('click', function () { document.getElementById('cap-margin').value = ref.n1.margin; updateCapPreview(ref); });
   document.getElementById('cap-charges-n1').addEventListener('click', function () { document.getElementById('cap-charges').value = ref.n1.charges; updateCapPreview(ref); });
@@ -2467,7 +2469,7 @@ function renderAnnualCap(data) {
     toggle(false); savePlan(); applyPlanToCharts(); renderParsed(LAST_DATA);
   });
   document.getElementById('cap-reset').addEventListener('click', function () {
-    PLAN = { salary:ref.salary, surplus:ref.surplus, margin:ref.margin, charges:ref.charges, source:'historical' }; PLAN.ca = (PLAN.salary + PLAN.charges + PLAN.surplus) / PLAN.margin;
+    PLAN = { salary:_planRoundedSalaryReference(ref), surplus:ref.surplus, margin:ref.margin, charges:ref.charges, source:'historical' }; PLAN.ca = (PLAN.salary + PLAN.charges + PLAN.surplus) / PLAN.margin;
     toggle(false); savePlan(); applyPlanToCharts(); renderParsed(LAST_DATA);
   });
 }
@@ -2475,7 +2477,7 @@ function updateCapPreview(ref) {
   var monthlyNetSalary = Math.max(0, _planNum('cap-salary') || 0), salary = monthlyNetSalary / NET_FROM_GROSS * 12, surplus = Math.max(0, _planNum('cap-surplus') || 0), margin = Math.max(0, _planNum('cap-margin') || 0), charges = Math.max(0, _planNum('cap-charges') || 0);
   var wanted = salary + charges + surplus, ca = wanted / margin;
   document.getElementById('cap-salary-out').textContent = fmtEUR(monthlyNetSalary) + ' / mois';
-  document.getElementById('cap-salary-source').innerHTML = _planOrigin(salary, ref.salary, ref, function (v) { return fmtEUR(v / 12 * NET_FROM_GROSS) + ' / mois'; }, null, true);
+  document.getElementById('cap-salary-source').innerHTML = _planOrigin(salary, _planRoundedSalaryReference(ref), ref, function (v) { return fmtEUR(v / 12 * NET_FROM_GROSS) + ' / mois'; }, null, true);
   document.getElementById('cap-surplus-out').textContent = fmtEUR(surplus);
   document.getElementById('cap-surplus-source').innerHTML = _planOrigin(surplus, ref.surplus, ref, fmtEUR, null, true);
   document.getElementById('cap-margin-out').textContent = fmtPct(margin, 1);
