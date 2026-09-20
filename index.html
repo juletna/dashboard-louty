@@ -724,6 +724,9 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .mbx-head { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
 .mbx-title { font-size:17px; font-weight:800; color:var(--text); letter-spacing:-0.015em; }
 .mbx-badge { display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.03em; color:var(--green); background:var(--green-bg); padding:4px 11px; border-radius:999px; }
+.mbx-summary { display:grid; grid-template-columns:minmax(0,1fr) minmax(300px,.8fr); gap:28px; align-items:center; }
+.mbx-objective { min-width:0; }
+.mbx-objective .mbx-prog-head { margin-bottom:0; }
 .mbx-heroline { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
 .mbx-hero { font-size:44px; font-weight:800; letter-spacing:-0.03em; line-height:1; color:var(--text); white-space:nowrap; }
 .mbx-pill { display:inline-flex; align-items:center; gap:6px; font-size:16px; font-weight:800; padding:8px 16px; border-radius:999px; white-space:nowrap; }
@@ -785,6 +788,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .mbx-gauge-total { align-self:center; display:flex; flex-direction:column; min-width:0; white-space:nowrap; }
 .mbx-gauge-total strong { color:var(--text); font-size:15px; font-weight:800; font-variant-numeric:tabular-nums; }
 @media (max-width:700px) { .mbx-gauge { grid-template-columns:1fr; gap:0; } .mbx-gauge-period { flex-direction:row; align-items:baseline; gap:7px; } .mbx-gauge-period span { margin-top:0; } .mbx-gauge-total { text-align:right; align-items:flex-end; } .mbx-gauge-plot { margin-bottom:20px; } }
+@media (max-width:900px) { .mbx-summary { grid-template-columns:1fr; gap:16px; } }
 .statx-card { height:100%; }
 
 /* Mini-graphe barres mensuel (simple, épuré) */
@@ -2792,10 +2796,11 @@ function _statCardHTML(cfg) {
       (priorRest ? '<div class="mbx-gauge-callout remaining prior"><strong>' + fmtEUR(priorRest) + '</strong><span>' + priorRestPct + '% Restant</span></div>' : '') +
       '</div></div><div class="mbx-gauge-total"><strong>' + fmtEUR(priorTotal) + '</strong><span>Total ' + (cfg.shortLabel || '') + ' ' + (refYear || '') + '</span></div></div>';
   }
-  return '<div class="card statx-card">' +
-    '<div class="mbx-head"><div class="mbx-title">' + cfg.title + '</div>' + badge + '</div>' +
-    '<div class="mbx-heroline"><div class="mbx-hero">' + fmtEUR(value) + '</div>' + pillHtml + '</div>' + context +
-    '<div class="mbx-prog-head">' + attHtml + '</div><div class="mbx-div"></div><div class="mbx-compare">' + currentGauge + priorGauge + '</div></div>';
+  return '<div class="card statx-card"><div class="mbx-summary">' +
+    '<div class="mbx-main"><div class="mbx-head"><div class="mbx-title">' + cfg.title + '</div>' + badge + '</div>' +
+    '<div class="mbx-heroline"><div class="mbx-hero">' + fmtEUR(value) + '</div>' + pillHtml + '</div>' + context + '</div>' +
+    '<div class="mbx-objective"><div class="mbx-prog-head">' + attHtml + '</div></div></div>' +
+    '<div class="mbx-div"></div><div class="mbx-compare">' + currentGauge + priorGauge + '</div></div>';
 }
 
 // ---- Ligne 1 : cartes "Marge brute réalisée" + "Chiffre d'affaires cumulé" ----
