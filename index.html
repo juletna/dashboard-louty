@@ -859,7 +859,8 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .cap-range-marker::before { content:''; position:absolute; top:-4px; left:50%; width:6px; height:6px; border-radius:50%; background:var(--text-dim); transform:translateX(-50%); }
 .cap-source { display:block; margin-top:8px; color:var(--text-dim); font-size:12px; line-height:1.35; }
 .cap-result { margin-top:16px; padding:13px 14px; border-radius:10px; background:var(--bg-card); border:1px solid var(--border); color:var(--text-dim); font-size:13px; line-height:1.45; }
-.cap-preview-label { display:block; margin-bottom:3px; color:var(--violet); font-size:10px; font-weight:900; letter-spacing:.06em; text-transform:uppercase; }
+.cap-preview-label { display:inline-flex; align-items:center; gap:4px; margin-bottom:8px; padding:3px 7px; border-radius:999px; background:color-mix(in srgb, var(--ca-blue) 12%, transparent); color:var(--ca-blue); font-size:10px; font-weight:900; letter-spacing:.06em; text-transform:uppercase; }
+.cap-preview-label::before { content:'ⓘ'; font-size:13px; line-height:1; }
 .cap-result strong { color:var(--text); }
 .cap-result strong.cap-mb { color:var(--mb-violet); }
 .cap-result strong.cap-ca { color:var(--ca-blue); }
