@@ -2077,7 +2077,7 @@ function renderCAMB(cy, curYear, years) {
     datasets.push({
       type: 'line', label: avgLabel, data: avgCA, stack: 'avgCA',
       borderColor: 'rgba(128, 122, 140, 0.45)', backgroundColor: 'rgba(201, 197, 207, 0.28)',
-      borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 6, tension: 0.4, fill: 'origin', order: 10, spanGaps: true,
+      borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 6, tension: 0.4, fill: 'origin', order: 10, spanGaps: true, _drawSalaryThresholdAfter: true,
     });
     datasets.push({
       type: 'line', label: avgLabelMB, data: avgMB, stack: 'avgMB',
@@ -2120,7 +2120,7 @@ function renderCAMB(cy, curYear, years) {
     },
     plugins: [{
       id: 'salaryThreshold',
-      afterDatasetsDraw: function (chart) {
+      draw: function (chart) {
         var area = chart.chartArea, ctx = chart.ctx, y = chart.scales.y;
         ctx.save();
         ctx.lineWidth = 1.5;
@@ -2129,6 +2129,12 @@ function renderCAMB(cy, curYear, years) {
         var thresholdY = y.getPixelForValue(C.MB_MIN);
         ctx.beginPath(); ctx.moveTo(area.left, thresholdY); ctx.lineTo(area.right, thresholdY); ctx.stroke();
         ctx.restore();
+      },
+      beforeDatasetsDraw: function (chart) {
+        if (!chart.data.datasets.some(function (dataset) { return dataset._drawSalaryThresholdAfter; })) this.draw(chart);
+      },
+      afterDatasetDraw: function (chart, args) {
+        if (chart.data.datasets[args.index]._drawSalaryThresholdAfter) this.draw(chart);
       }
     }]
   });
