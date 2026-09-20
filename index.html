@@ -2506,7 +2506,7 @@ function updateCapPreview(ref) {
   document.getElementById('cap-surplus-ref').hidden = _planIsReference(surplus, ref.surplus);
   document.getElementById('cap-margin-n1').hidden = _planIsReference(margin, ref.n1.margin);
   document.getElementById('cap-charges-n1').hidden = _planIsReference(charges, ref.n1.charges);
-  document.getElementById('cap-result').innerHTML = 'Pour cette trajectoire, il faut générer <strong class="cap-mb">' + fmtEUR(wanted) + ' de marge brute</strong>, soit <strong class="cap-ca">' + fmtEUR(ca) + '</strong> de CA à facturer avec ' + fmtPct(margin, 1) + ' de marge brute sur CA.';
+  document.getElementById('cap-result').innerHTML = 'Pour atteindre ce cap, il faut générer <strong><span class="cap-mb">' + fmtEUR(wanted) + '</span> de marge brute</strong>, soit <strong class="cap-ca">' + fmtEUR(ca) + '</strong> de CA à facturer sur une base de <strong>' + fmtPct(margin, 1) + '</strong> de marge brute et <strong>' + fmtEUR(charges) + '</strong> de charges annuelles.';
   document.getElementById('cap-preview-status').innerHTML = hasUnsavedChanges ? '<span class="cap-preview-label">Aperçu non enregistré. Cliquer sur « Utiliser cette trajectoire » pour appliquer ces modifications.</span>' : '';
 }
 
