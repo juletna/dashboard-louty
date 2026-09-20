@@ -2523,6 +2523,13 @@ function renderAnnualCap(data) {
   var capSim = host.querySelector('#cap-sim');
   capSim.hidden = false;
   document.getElementById('cap-drawer-content').replaceChildren(capSim);
+  // Les actions « N-1 » sont des réinitialisations de champ : leur visibilité
+  // doit refléter l'état du champ à l'ouverture du tiroir, pas l'état des
+  // autres hypothèses ni la seule comparaison avec l'historique.
+  ['cap-salary', 'cap-surplus', 'cap-margin', 'cap-charges'].forEach(function (id) {
+    var input = document.getElementById(id);
+    input.dataset.initialValue = input.value;
+  });
   var toggle = function (open, focusId) {
     capDrawer.classList.toggle('open', open); capDrawerBackdrop.style.display = open ? 'block' : 'none'; capDrawer.setAttribute('aria-hidden', open ? 'false' : 'true');
     if (open) { updateCapPreview(ref); requestAnimationFrame(function () { var focus = document.getElementById(focusId); if (focus) { focus.focus({ preventScroll:true }); focus.closest('.cap-field').scrollIntoView({ block:'center' }); } }); }
@@ -2577,10 +2584,14 @@ function updateCapPreview(ref) {
   var referenceSalary = Math.ceil(ref.salary / 12 * NET_FROM_GROSS);
   document.getElementById('cap-margin-out').textContent = fmtPct(margin, 1);
   document.getElementById('cap-charges-out').textContent = fmtEUR(charges);
-  document.getElementById('cap-salary-ref').hidden = _planIsReference(monthlyNetSalary, referenceSalary);
-  document.getElementById('cap-surplus-ref').hidden = _planIsReference(surplus, ref.surplus);
-  document.getElementById('cap-margin-n1').hidden = _planIsReference(margin, ref.n1.margin);
-  document.getElementById('cap-charges-n1').hidden = _planIsReference(charges, ref.n1.charges);
+  var initialValue = function (id) {
+    var input = document.getElementById(id);
+    return input ? parseFloat(input.dataset.initialValue) : NaN;
+  };
+  document.getElementById('cap-salary-ref').hidden = _planIsReference(monthlyNetSalary, initialValue('cap-salary'));
+  document.getElementById('cap-surplus-ref').hidden = _planIsReference(surplus, initialValue('cap-surplus'));
+  document.getElementById('cap-margin-n1').hidden = _planIsReference(margin, initialValue('cap-margin'));
+  document.getElementById('cap-charges-n1').hidden = _planIsReference(charges, initialValue('cap-charges'));
   document.getElementById('cap-result').innerHTML = 'Pour atteindre ce cap, il faut générer <strong class="cap-mb">' + fmtEUR(wanted) + ' de marge brute</strong>, soit <strong class="cap-ca">' + fmtEUR(ca) + ' de CA</strong> à facturer sur une base de <strong>' + fmtPct(margin, 1) + ' de marge brute</strong> et <strong>' + fmtEUR(charges) + ' de charges annuelles</strong>.';
   document.getElementById('cap-preview-status').innerHTML = hasUnsavedChanges ? '<span class="cap-preview-label">Aperçu non enregistré. Cliquer sur « Utiliser cette trajectoire » pour appliquer ces modifications.</span>' : '';
 }
