@@ -2493,6 +2493,7 @@ function renderAnnualCap(data) {
 function updateCapPreview(ref) {
   var monthlyNetSalary = Math.max(0, _planNum('cap-salary') || 0), salary = monthlyNetSalary / NET_FROM_GROSS * 12, surplus = Math.max(0, _planNum('cap-surplus') || 0), margin = Math.max(0, _planNum('cap-margin') || 0), charges = Math.max(0, _planNum('cap-charges') || 0);
   var wanted = salary + charges + surplus, ca = wanted / margin;
+  var hasUnsavedChanges = !_planIsReference(salary, PLAN.salary) || !_planIsReference(surplus, PLAN.surplus) || !_planIsReference(margin, PLAN.margin) || !_planIsReference(charges, PLAN.charges);
   var referenceSalary = Math.ceil(ref.salary / 12 * NET_FROM_GROSS);
   document.getElementById('cap-margin-out').textContent = fmtPct(margin, 1);
   document.getElementById('cap-charges-out').textContent = fmtEUR(charges);
@@ -2500,7 +2501,7 @@ function updateCapPreview(ref) {
   document.getElementById('cap-surplus-ref').hidden = _planIsReference(surplus, ref.surplus);
   document.getElementById('cap-margin-n1').hidden = _planIsReference(margin, ref.n1.margin);
   document.getElementById('cap-charges-n1').hidden = _planIsReference(charges, ref.n1.charges);
-  document.getElementById('cap-result').innerHTML = '<span class="cap-preview-label">Aperçu non enregistré</span>Pour cette trajectoire, il faut générer <strong class="cap-mb">' + fmtEUR(wanted) + ' de marge brute</strong>, soit <strong class="cap-ca">' + fmtEUR(ca) + '</strong> de CA à facturer avec ' + fmtPct(margin, 1) + ' de marge brute sur CA.';
+  document.getElementById('cap-result').innerHTML = (hasUnsavedChanges ? '<span class="cap-preview-label">Aperçu non enregistré</span>' : '') + 'Pour cette trajectoire, il faut générer <strong class="cap-mb">' + fmtEUR(wanted) + ' de marge brute</strong>, soit <strong class="cap-ca">' + fmtEUR(ca) + '</strong> de CA à facturer avec ' + fmtPct(margin, 1) + ' de marge brute sur CA.';
 }
 
 // Panneau réglages
