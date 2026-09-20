@@ -2476,10 +2476,14 @@ function renderAnnualCap(data) {
     var field = document.getElementById(id);
     ['input','change'].forEach(function (eventName) { field.addEventListener(eventName, function () { updateCapPreview(ref); }); });
   });
-  document.getElementById('cap-salary-ref').addEventListener('click', function () { document.getElementById('cap-salary').value = Math.ceil(ref.salary / 12 * NET_FROM_GROSS); updateCapPreview(ref); });
-  document.getElementById('cap-surplus-ref').addEventListener('click', function () { document.getElementById('cap-surplus').value = ref.surplus; updateCapPreview(ref); });
-  document.getElementById('cap-margin-n1').addEventListener('click', function () { document.getElementById('cap-margin').value = ref.n1.margin; updateCapPreview(ref); });
-  document.getElementById('cap-charges-n1').addEventListener('click', function () { document.getElementById('cap-charges').value = ref.n1.charges; updateCapPreview(ref); });
+  document.getElementById('cap-salary-ref').addEventListener('click', function () { document.getElementById('cap-salary').value = Math.ceil(ref.salary / 12 * NET_FROM_GROSS); updateCapPreview(ref); this.hidden = true; });
+  document.getElementById('cap-surplus-ref').addEventListener('click', function () { document.getElementById('cap-surplus').value = ref.surplus; updateCapPreview(ref); this.hidden = true; });
+  document.getElementById('cap-margin-n1').addEventListener('click', function () { document.getElementById('cap-margin').value = ref.n1.margin; updateCapPreview(ref); this.hidden = true; });
+  document.getElementById('cap-charges-n1').addEventListener('click', function () {
+    document.getElementById('cap-charges').value = ref.n1.charges;
+    updateCapPreview(ref);
+    this.hidden = true;
+  });
   document.getElementById('cap-apply').addEventListener('click', function () {
     PLAN.salary = Math.max(0, _planNum('cap-salary') || 0) / NET_FROM_GROSS * 12; PLAN.surplus = Math.max(0, _planNum('cap-surplus') || 0);
     PLAN.margin = Math.max(0, _planNum('cap-margin') || 0); PLAN.charges = Math.max(0, _planNum('cap-charges') || 0); PLAN.ca = (PLAN.salary + PLAN.charges + PLAN.surplus) / PLAN.margin; PLAN.source = 'custom';
