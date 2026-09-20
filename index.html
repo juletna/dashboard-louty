@@ -2409,7 +2409,7 @@ function _planIsReference(value, reference) { return Math.abs((value || 0) - (re
 function _planOrigin(value, reference, ref, formatter, n1Reference) {
   var same = _planIsReference(value, reference);
   var sameN1 = !same && typeof n1Reference === 'number' && _planIsReference(value, n1Reference);
-  var label = same ? 'Base historique · ' + ref.label : (sameN1 ? 'Référence N-1 · ' + ref.n1.year : 'Personnalisé');
+  var label = same ? 'Base historique · ' + ref.label : (sameN1 ? 'Référence N-1 · ' + ref.n1.year : 'Personnalisé · ' + formatter(value));
   var title = same ? 'Valeur issue de tes données réelles ' + ref.label : (sameN1 ? 'Valeur identique à celle de N-1 (' + ref.n1.year + ')' : 'Valeur modifiée par rapport à tes références historiques');
   return '<span class="cap-origin' + (sameN1 ? ' n1' : (same ? '' : ' custom')) + '" title="' + title + '">' + label + '</span>' +
     (same || sameN1 ? '' : ' <span class="cap-reference-note">Réf. ' + ref.label + ' : ' + formatter(reference) + '</span>');
