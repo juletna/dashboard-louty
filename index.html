@@ -2285,7 +2285,9 @@ function renderAchatsCAChart(cy) {
 var SETTINGS_KEY = 'cabestan_dashboard_settings_v1';
 var PLAN_KEY = 'cabestan_dashboard_annual_plan_v1';
 // Coefficient personnel indicatif : net avant impôt estimé à partir du brut Louty.
-var NET_FROM_GROSS = 0.76;
+// Calibré sur octobre–décembre 2025 : 1 500 € nets pour 2 290,33 € Louty.
+var NET_FROM_GROSS = 0.654926;
+var LEGACY_NET_FROM_GROSS = 0.76;
 var UPLOAD_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
 var PLAN = null;
 // Seuil (part du CA) au-delà duquel un poste de charges de fonctionnement ressort
@@ -2391,17 +2393,23 @@ function loadPlan(data) {
   var ref = historicalPlanReference(data);
   var saved = null;
   try { saved = JSON.parse(localStorage.getItem(PLAN_KEY) || 'null'); } catch (e) {}
+  var savedCoefficient = saved && isFinite(saved.netCoefficient) ? saved.netCoefficient : LEGACY_NET_FROM_GROSS;
+  var savedSalary = saved && isFinite(saved.salary) ? saved.salary : null;
+  // Un objectif saisi est une intention en net : il reste inchangé lorsque le coefficient évolue.
+  // Une trajectoire historique, elle, repart toujours de la rémunération brute N-1 de Louty.
+  var salary = savedSalary === null || saved.source === 'historical' ? _planRoundedSalaryReference(ref) : savedSalary * savedCoefficient / NET_FROM_GROSS;
   PLAN = {
-    salary: saved && isFinite(saved.salary) ? saved.salary : _planRoundedSalaryReference(ref),
+    salary: salary,
     surplus: saved && isFinite(saved.surplus) ? saved.surplus : ref.surplus,
     margin: saved && isFinite(saved.margin) ? saved.margin : ref.margin,
     charges: saved && isFinite(saved.charges) ? saved.charges : ref.charges,
-    source: saved ? 'custom' : 'historical'
+    netCoefficient: NET_FROM_GROSS,
+    source: saved && saved.source ? saved.source : (saved ? 'custom' : 'historical')
   };
   PLAN.ca = (PLAN.salary + PLAN.charges + PLAN.surplus) / PLAN.margin;
   return ref;
 }
-function savePlan() { try { localStorage.setItem(PLAN_KEY, JSON.stringify(PLAN)); } catch (e) {} }
+function savePlan() { try { PLAN.netCoefficient = NET_FROM_GROSS; localStorage.setItem(PLAN_KEY, JSON.stringify(PLAN)); } catch (e) {} }
 function applyPlanToCharts() {
   if (!PLAN) return;
   C.MB_MIN = PLAN.salary / 12;
