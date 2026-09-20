@@ -259,7 +259,7 @@
   .chart-wrap.tall { height: 350px; }
   .chart-wrap.short { height: 200px; }
   .chart-reference-note { display:flex; align-items:center; gap:6px; margin:-4px 0 4px; color:var(--text-dim); font-size:11px; font-weight:700; }
-  .chart-reference-note::before { content:''; width:18px; border-top:2px dashed var(--violet); }
+  .chart-reference-note::before { content:''; width:18px; border-top:2px dashed var(--text-dim); }
   .chart-reference-note strong { color:var(--text); }
 
   /* Concentration de marge : deux lectures volontairement différentes du graphe annuel empilé */
@@ -764,6 +764,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .mbx-gauge-period { display:flex; flex-direction:column; color:var(--text-dim); line-height:1.18; }
 .mbx-gauge-period strong { color:var(--text); font-size:18px; font-weight:800; }
 .mbx-gauge-period span { margin-top:4px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.035em; }
+.mbx-gauge-plot { min-width:0; }
 .mbx-gauge-values { display:flex; justify-content:space-between; align-items:flex-end; gap:14px; margin-bottom:7px; }
 .mbx-gauge-value { display:flex; flex-direction:column; min-width:0; }
 .mbx-gauge-value.end { text-align:right; align-items:flex-end; }
@@ -2176,7 +2177,7 @@ function renderTauxAnnuel(cur, years) {
         var xScale = chart.scales.x, area = chart.chartArea, x = xScale.getPixelForValue(historicalMarginPct), styles = getComputedStyle(document.documentElement);
         var ctx = chart.ctx;
         ctx.save();
-        ctx.strokeStyle = styles.getPropertyValue('--violet').trim();
+        ctx.strokeStyle = styles.getPropertyValue('--text-dim').trim();
         ctx.lineWidth = 2;
         ctx.setLineDash([5, 4]);
         ctx.beginPath(); ctx.moveTo(x, area.top); ctx.lineTo(x, area.bottom); ctx.stroke();
@@ -2690,33 +2691,49 @@ function _miniBars(monthly, color, caption) {
 // ---- Carte statistique : deux jauges absolues, année en cours et N-1 ----
 function _statCardHTML(cfg) {
   var value = cfg.value || 0, goal = cfg.goal || 0, refSame = cfg.refSame, refFull = cfg.refFull, refYear = cfg.refYear;
+  var yearProgress = cfg.yearProgress;
+  var over = goal > 0 && value >= goal;
+  var attSelf = goal > 0 ? Math.round(value / goal * 100) : null;
   var delta = (refSame != null) ? value - refSame : null;
   var deltaPositive = delta != null && delta >= 0;
   var accent = cfg.barColor || '#7C5AD6';
   var scaleMax = Math.max(value, goal, refSame || 0, refFull || 0, 1);
   var width = function (amount) { return Math.max(0, Math.min(100, amount / scaleMax * 100)); };
+  var relativeWidth = function (amount, total) { return total > 0 ? Math.max(0, Math.min(100, amount / total * 100)) : 0; };
   var pillHtml = delta != null ? '<span class="mbx-pill ' + (deltaPositive ? 'pos' : 'neg') + '">' + (deltaPositive ? '▲' : '▼') + ' ' + fmtEUR(Math.abs(delta)) + '</span>' : '';
   var context = refSame != null ? '<div class="mbx-ctx">vs <b>' + fmtEUR(refSame) + '</b> sur la même période en ' + refYear + '</div>' : '';
-  var currentRest = Math.max(0, goal - value);
-  var currentGauge = '<div class="mbx-gauge"><div class="mbx-gauge-period"><strong>' + (cfg.currentYear || 'N') + '</strong><span>à date</span></div><div>' +
+  var badge = over ? '<span class="mbx-badge">✓ Objectif atteint</span>' : '';
+  var restLine = (!over && goal > 0) ? '<div class="mbx-att-rest"><b>' + fmtEUR(Math.max(0, goal - value)) + '</b> restant pour atteindre ton objectif</div>' : '';
+  var paceLine = '';
+  if (yearProgress != null && goal > 0) {
+    var paceGap = value - (goal * yearProgress);
+    var paceClass = paceGap >= 0 ? 'ahead' : 'behind';
+    var paceLabel = paceGap >= 0 ? 'd’avance sur le rythme' : 'de retard sur le rythme';
+    paceLine = '<div class="mbx-pace">Avancement de l’année : <strong>' + fmtPct(yearProgress, 1) + '</strong><span class="' + paceClass + '">· ' + fmtEUR(Math.abs(paceGap)) + ' ' + paceLabel + '</span></div>';
+  }
+  var attHtml = attSelf != null ? '<div class="mbx-att"><div><b style="color:' + accent + '">' + attSelf + '%</b> de l\'objectif atteint</div>' + restLine + paceLine + '</div>' : '<div>' + restLine + paceLine + '</div>';
+  var objHead = '<div class="mbx-cell right"><div class="mbx-cell-lbl">Objectif annuel</div><div class="mbx-cell-val">' + fmtEUR(goal) + '</div></div>';
+  var currentTotal = Math.max(value, goal);
+  var currentRest = Math.max(0, currentTotal - value);
+  var currentGauge = '<div class="mbx-gauge"><div class="mbx-gauge-period"><strong>' + (cfg.currentYear || 'N') + '</strong><span>à date</span></div><div class="mbx-gauge-plot" style="width:' + width(currentTotal) + '%">' +
     '<div class="mbx-gauge-values"><div class="mbx-gauge-value current"><strong style="color:' + accent + '">' + fmtEUR(value) + '</strong><span>Réalisé</span></div><div class="mbx-gauge-value end"><strong>' + fmtEUR(goal) + '</strong><span>Objectif annuel</span></div></div>' +
-    '<div class="mbx-gauge-track" style="--gauge-accent:' + accent + '"><div class="mbx-gauge-fill current" style="width:' + width(value) + '%"></div>' +
-    (currentRest ? '<div class="mbx-gauge-rest current" style="left:' + width(value) + '%; width:' + width(currentRest) + '%"></div>' : '') +
-    '<div class="mbx-gauge-marker" style="left:' + width(value) + '%"></div></div></div></div>';
+    '<div class="mbx-gauge-track" style="--gauge-accent:' + accent + '"><div class="mbx-gauge-fill current" style="width:' + relativeWidth(value, currentTotal) + '%"></div>' +
+    (currentRest ? '<div class="mbx-gauge-rest current" style="left:' + relativeWidth(value, currentTotal) + '%; width:' + relativeWidth(currentRest, currentTotal) + '%"></div>' : '') +
+    '<div class="mbx-gauge-marker" style="left:' + relativeWidth(value, currentTotal) + '%"></div></div></div></div>';
   var priorGauge = '';
   if (refSame != null) {
     var priorTotal = Math.max(refSame, refFull || 0);
     var priorRest = Math.max(0, priorTotal - refSame);
-    priorGauge = '<div class="mbx-gauge"><div class="mbx-gauge-period"><strong>' + (refYear || 'N-1') + '</strong><span>Même période</span></div><div>' +
+    priorGauge = '<div class="mbx-gauge"><div class="mbx-gauge-period"><strong>' + (refYear || 'N-1') + '</strong><span>Même période</span></div><div class="mbx-gauge-plot" style="width:' + width(priorTotal) + '%">' +
       '<div class="mbx-gauge-values"><div class="mbx-gauge-value prior"><strong>' + fmtEUR(refSame) + '</strong><span>Réalisé</span></div><div class="mbx-gauge-value end"><strong>' + fmtEUR(priorTotal) + '</strong><span>Total ' + (cfg.shortLabel || '') + ' ' + (refYear || '') + '</span></div></div>' +
-      '<div class="mbx-gauge-track"><div class="mbx-gauge-fill prior" style="width:' + width(refSame) + '%"></div>' +
-      (priorRest ? '<div class="mbx-gauge-rest prior" style="left:' + width(refSame) + '%; width:' + width(priorRest) + '%"></div>' : '') +
-      '<div class="mbx-gauge-marker" style="left:' + width(refSame) + '%"></div></div></div></div>';
+      '<div class="mbx-gauge-track"><div class="mbx-gauge-fill prior" style="width:' + relativeWidth(refSame, priorTotal) + '%"></div>' +
+      (priorRest ? '<div class="mbx-gauge-rest prior" style="left:' + relativeWidth(refSame, priorTotal) + '%; width:' + relativeWidth(priorRest, priorTotal) + '%"></div>' : '') +
+      '<div class="mbx-gauge-marker" style="left:' + relativeWidth(refSame, priorTotal) + '%"></div></div></div></div>';
   }
   return '<div class="card statx-card">' +
-    '<div class="mbx-head"><div class="mbx-title">' + cfg.title + '</div></div>' +
+    '<div class="mbx-head"><div class="mbx-title">' + cfg.title + '</div>' + badge + '</div>' +
     '<div class="mbx-heroline"><div class="mbx-hero">' + fmtEUR(value) + '</div>' + pillHtml + '</div>' + context +
-    '<div class="mbx-div"></div><div class="mbx-compare">' + currentGauge + priorGauge + '</div></div>';
+    '<div class="mbx-div"></div><div class="mbx-prog-head">' + attHtml + objHead + '</div><div class="mbx-compare">' + currentGauge + priorGauge + '</div></div>';
 }
 
 // ---- Ligne 1 : cartes "Marge brute réalisée" + "Chiffre d'affaires cumulé" ----
