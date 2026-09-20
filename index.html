@@ -955,7 +955,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
       <div class="chart-wrap tall"><canvas id="chart-ca-mb"></canvas></div>
     </div>
     <div class="card">
-      <h3>Part de la marge brute dans le CA<span class="sp-help" data-tip="Ta marge brute rapportée au CA (marge brute ÷ CA), par année, à la même période (jan → dernier mois renseigné). Le repère pointillé reprend la moyenne lissée de tes exercices historiques. Plus la barre est longue, plus tu gardes de marge sur ce que tu factures.">?</span></h3>
+      <h3>Part de la marge brute dans le CA<span class="sp-help" data-tip="Ta marge brute rapportée au CA (marge brute ÷ CA). L’année en cours est affichée à date ; les années précédentes correspondent à leur exercice complet. Le repère pointillé reprend la moyenne lissée de ces exercices historiques. Plus la barre est longue, plus tu gardes de marge sur ce que tu factures.">?</span></h3>
       <div id="taux-annuel-reference" class="chart-reference-note"></div>
       <div class="chart-wrap tall"><canvas id="chart-taux-annuel"></canvas></div>
     </div>
@@ -2086,16 +2086,20 @@ function renderCAMB(cy, curYear, years) {
     }
   });
 }
-// Comparatif annuel horizontal : part de la marge brute dans le CA (taux MB), à même période
+// Comparatif annuel horizontal : année en cours à date, exercices historiques complets.
 function renderTauxAnnuel(cur, years) {
   var canvas = document.getElementById('chart-taux-annuel');
   if (!canvas) return;
   var n = cur.mois_renseignes;
-  var moisLbl = (MONTH_NAMES[n - 1] || '').toLowerCase();
   var order = Object.keys(years).sort().reverse();
-  function same(yObj, k) { return yObj.monthly[k].slice(0, n).reduce(function (a, v) { return a + (v || 0); }, 0); }
-  var labels = order.map(function (yk) { return yk === cur.year ? yk + ' (à date)' : yk + ' (jan-' + moisLbl + ')'; });
-  var mbPct = order.map(function (yk) { var ca = same(years[yk], 'ca'); var mb = same(years[yk], 'marge_brute'); return ca > 0 ? mb / ca * 100 : 0; });
+  function totalForPeriod(yObj, k, currentYear) { return yObj.monthly[k].slice(0, currentYear ? n : 12).reduce(function (a, v) { return a + (v || 0); }, 0); }
+  var labels = order.map(function (yk) { return String(yk) === String(cur.year) ? yk + ' (à date)' : yk; });
+  var mbPct = order.map(function (yk) {
+    var currentYear = String(yk) === String(cur.year);
+    var ca = totalForPeriod(years[yk], 'ca', currentYear);
+    var mb = totalForPeriod(years[yk], 'marge_brute', currentYear);
+    return ca > 0 ? mb / ca * 100 : 0;
+  });
   var restePct = mbPct.map(function (v) { return Math.max(0, 100 - v); });
   var historicalReference = historicalPlanReference({ years:years });
   var historicalMarginPct = historicalReference.margin * 100;
