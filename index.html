@@ -2699,7 +2699,7 @@ function _statCardHTML(cfg) {
   var context = refSame != null ? '<div class="mbx-ctx">vs <b>' + fmtEUR(refSame) + '</b> sur la même période en ' + refYear + '</div>' : '';
   var currentRest = Math.max(0, goal - value);
   var currentGauge = '<div class="mbx-gauge"><div class="mbx-gauge-period"><strong>' + (cfg.currentYear || 'N') + '</strong><span>à date</span></div><div>' +
-    '<div class="mbx-gauge-values"><div class="mbx-gauge-value current"><strong>' + fmtEUR(value) + '</strong><span>Réalisé</span></div><div class="mbx-gauge-value end"><strong>' + fmtEUR(goal) + '</strong><span>Objectif annuel</span></div></div>' +
+    '<div class="mbx-gauge-values"><div class="mbx-gauge-value current"><strong style="color:' + accent + '">' + fmtEUR(value) + '</strong><span>Réalisé</span></div><div class="mbx-gauge-value end"><strong>' + fmtEUR(goal) + '</strong><span>Objectif annuel</span></div></div>' +
     '<div class="mbx-gauge-track" style="--gauge-accent:' + accent + '"><div class="mbx-gauge-fill current" style="width:' + width(value) + '%"></div>' +
     (currentRest ? '<div class="mbx-gauge-rest current" style="left:' + width(value) + '%; width:' + width(currentRest) + '%"></div>' : '') +
     '<div class="mbx-gauge-marker" style="left:' + width(value) + '%"></div></div></div></div>';
