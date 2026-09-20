@@ -759,19 +759,19 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .mbx-cell-val { font-size:22px; font-weight:800; color:var(--text); letter-spacing:-0.01em; margin-top:4px; font-variant-numeric:tabular-nums; }
 .mbx-cell.right { text-align:right; }
 .mbx-cell.over .mbx-cell-val { color:var(--green); }
-.mbx-compare { display:grid; gap:28px; }
+.mbx-compare { display:grid; gap:12px; }
 .mbx-gauge { display:grid; grid-template-columns:92px minmax(0,1fr); gap:14px; align-items:start; }
 .mbx-gauge-period { display:flex; flex-direction:column; color:var(--text-dim); line-height:1.18; }
 .mbx-gauge-period { padding-top:47px; }
 .mbx-gauge-period strong { color:var(--text); font-size:18px; font-weight:800; }
 .mbx-gauge-period span { margin-top:4px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.035em; }
-.mbx-gauge-plot { position:relative; min-width:0; margin:48px 0 62px; overflow:visible; }
-.mbx-gauge-track { position:relative; height:34px; overflow:hidden; border-radius:999px; background:var(--bg-soft); }
+.mbx-gauge-plot { position:relative; min-width:0; margin:48px 0 46px; overflow:visible; }
+.mbx-gauge-track { position:relative; height:34px; overflow:visible; border-radius:999px; background:var(--bg-soft); }
 .mbx-gauge-fill,.mbx-gauge-rest { position:absolute; top:0; bottom:0; }
 .mbx-gauge-fill.current { background:var(--gauge-accent); border-radius:999px 0 0 999px; }
-.mbx-gauge-rest.current { background:#ff934b; }
+.mbx-gauge-rest.current { background:#ff934b; border-radius:0 999px 999px 0; }
 .mbx-gauge-fill.prior { background:var(--gray); border-radius:999px 0 0 999px; }
-.mbx-gauge-rest.prior { background:rgba(167,161,180,.28); }
+.mbx-gauge-rest.prior { background:rgba(167,161,180,.28); border-radius:0 999px 999px 0; }
 .mbx-gauge-marker { position:absolute; top:-12px; bottom:-12px; width:6px; transform:translateX(-50%); border-radius:3px; background:var(--text); z-index:2; }
 .mbx-gauge-callout { position:absolute; left:var(--marker-left); transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; text-align:center; white-space:nowrap; }
 .mbx-gauge-callout.realized { bottom:calc(100% + 17px); }
