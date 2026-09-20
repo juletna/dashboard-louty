@@ -2770,7 +2770,7 @@ function _statCardHTML(cfg) {
     var paceLabel = paceGap >= 0 ? 'd’avance sur le rythme' : 'de retard sur le rythme';
     paceLine = '<div class="mbx-pace">Avancement de l’année : <strong>' + fmtPct(yearProgress, 1) + '</strong><span class="' + paceClass + '">· ' + fmtEUR(Math.abs(paceGap)) + ' ' + paceLabel + '</span></div>';
   }
-  var attHtml = attSelf != null ? '<div class="mbx-att"><div><b style="color:' + accent + '">' + attSelf + '%</b> de l\'objectif atteint</div>' + paceLine + '</div>' : '<div>' + paceLine + '</div>';
+  var attHtml = paceLine;
   var currentTotal = Math.max(value, goal);
   var currentRest = Math.max(0, currentTotal - value);
   var currentPct = Math.round(relativeWidth(value, currentTotal));
