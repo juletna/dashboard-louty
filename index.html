@@ -717,6 +717,10 @@ table.cmp tbody td:nth-child(2) { font-weight:800; color:var(--text); }
 table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 
 /* === Carte "Marge brute réalisée" — refonte héros + jauge à repères === */
+.pilotage-mode { display:flex; justify-content:flex-end; margin:0 0 8px; }
+.pilotage-switch { display:inline-flex; gap:3px; padding:3px; border:1px solid var(--border-strong); border-radius:999px; background:var(--bg-card); }
+.pilotage-switch button { appearance:none; border:0; border-radius:999px; padding:6px 11px; background:transparent; color:var(--text-dim); font:inherit; font-size:12px; font-weight:800; cursor:pointer; }
+.pilotage-switch button[aria-pressed="true"] { background:var(--violet-bg); color:var(--violet); }
 .mbx-head { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
 .mbx-title { font-size:17px; font-weight:800; color:var(--text); letter-spacing:-0.015em; }
 .mbx-badge { display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.03em; color:var(--green); background:var(--green-bg); padding:4px 11px; border-radius:999px; }
@@ -937,9 +941,13 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 
 <div id="tab-general" class="tab-panel active" style="display:none">
   <section id="annual-cap" class="card annual-cap" aria-labelledby="annual-cap-title"></section>
+  <div class="pilotage-mode" aria-label="Vue de pilotage cumulée"><div class="pilotage-switch" role="group" aria-label="Indicateur affiché"><button type="button" data-pilotage-metric="mb" aria-pressed="true">Marge brute</button><button type="button" data-pilotage-metric="ca" aria-pressed="false">CA</button></div></div>
   <div class="grid grid-2 row1">
-    <div id="bloc1"></div>
-    <div id="bloc-ca"></div>
+    <div id="bloc-pilotage"></div>
+    <div class="card">
+      <h3 id="cumul-chart-title">Marge brute cumulée</h3>
+      <div class="chart-wrap tall"><canvas id="chart-cumul"></canvas></div>
+    </div>
   </div>
   <div class="grid" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr); margin-top:16px">
     <div class="card">
@@ -955,15 +963,9 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
   <div class="sante-row" style="margin-top:16px">
     <div id="bloc-sante"></div>
   </div>
-  <div class="grid grid-2" style="margin-top:16px">
-    <div class="card">
-      <h3>Marge brute mensuelle<span class="sp-help" data-tip="Ta marge brute mois par mois (barres) : rouge = mois négatif, orange = sous ton seuil de salaire, vert = au-dessus. La ligne orange est ton seuil salaire brut ; la courbe grise, la moyenne des années précédentes.">?</span></h3>
-      <div class="chart-wrap tall"><canvas id="chart-mb"></canvas></div>
-    </div>
-    <div class="card">
-      <h3>Marge brute cumulée — 2026 vs moyenne 2024–2025<span class="sp-help" data-tip="Chaque courbe est le cumul de marge brute mois après mois. Comparer 2026 à la moyenne des années précédentes au même moment de l'année = vrai signal, sans biais de saisonnalité. La droite pointillée est le rythme à tenir pour l'objectif annuel.">?</span></h3>
-      <div class="chart-wrap tall"><canvas id="chart-cumul"></canvas></div>
-    </div>
+  <div class="card" style="margin-top:16px">
+    <h3>Marge brute mensuelle<span class="sp-help" data-tip="Ta marge brute mois par mois (barres) : rouge = mois négatif, orange = sous ton seuil de salaire, vert = au-dessus. La ligne orange est ton seuil salaire brut ; la courbe grise, la moyenne des années précédentes.">?</span></h3>
+    <div class="chart-wrap tall"><canvas id="chart-mb"></canvas></div>
   </div>
   <div class="grid grid-2" style="margin-top:16px; align-items:stretch">
     <div class="card repart-card">
@@ -1708,6 +1710,7 @@ function computeSnapshot(data) {
 let DATA = null;
 let charts = {};
 let distributionYear = null;
+let pilotageMetric = 'mb';
 
 function render(data) {
   DATA = data;
@@ -1732,7 +1735,16 @@ function render(data) {
   renderCAMB(cy, currentYear, years);
   renderTauxAnnuel(cur, years);
   renderMonthlyChart(cy, years, currentYear);
-  renderCumulChart(years, currentYear);
+  renderCumulChart(years, currentYear, pilotageMetric);
+  document.querySelectorAll('[data-pilotage-metric]').forEach(function (button) {
+    button.setAttribute('aria-pressed', button.dataset.pilotageMetric === pilotageMetric ? 'true' : 'false');
+    button.onclick = function () {
+      pilotageMetric = this.dataset.pilotageMetric;
+      document.querySelectorAll('[data-pilotage-metric]').forEach(function (item) { item.setAttribute('aria-pressed', item.dataset.pilotageMetric === pilotageMetric ? 'true' : 'false'); });
+      renderBanner(data, cur, prev);
+      renderCumulChart(years, currentYear, pilotageMetric);
+    };
+  });
   renderWaterfall(cur, cy);
   renderMarginDistributions(data);
 
@@ -2142,10 +2154,16 @@ function renderTauxAnnuel(cur, years) {
     }]
   });
 }
-function renderCumulChart(years, currentYear) {
+function renderCumulChart(years, currentYear, metric) {
+  var isCA = metric === 'ca';
+  var metricKey = isCA ? 'ca' : 'marge_brute';
+  var metricName = isCA ? "Chiffre d'affaires" : 'Marge brute';
+  var metricShort = isCA ? 'CA' : 'MB';
+  var target = isCA ? C.CA_OBJ : C.MB_AN_OBJ;
+  var currentColor = isCA ? COLORS.blue : '#7C5AD6';
   const yearKeys = Object.keys(years).sort();
   const prevYears = yearKeys.filter(y => y !== currentYear);
-  const cumOf = yk => { let c = 0; return years[yk].monthly.marge_brute.map(v => v === null ? null : (c += v, c)); };
+  const cumOf = yk => { let c = 0; return years[yk].monthly[metricKey].map(v => v === null ? null : (c += v, c)); };
   const curCum = cumOf(currentYear);
   const prevCums = prevYears.map(cumOf);
   const avgCum = [];
@@ -2154,8 +2172,10 @@ function renderCumulChart(years, currentYear) {
     avgCum.push(vals.length ? vals.reduce((a, v) => a + v, 0) / vals.length : null);
   }
   const avgLabel = prevYears.length > 1 ? 'Moyenne ' + prevYears[0] + '–' + prevYears[prevYears.length - 1] : (prevYears[0] || '');
+  var title = document.getElementById('cumul-chart-title');
+  if (title) title.textContent = metricName + ' cumulé — ' + currentYear + ' vs ' + (avgLabel ? avgLabel.charAt(0).toLowerCase() + avgLabel.slice(1) : 'historique');
   const datasets = [
-    { label: currentYear + ' (en cours)', data: curCum, borderColor: '#7C5AD6', backgroundColor: 'transparent', borderWidth: 3, pointRadius: 0, pointHoverRadius: 6, tension: 0.4, spanGaps: false },
+    { label: currentYear + ' (en cours)', data: curCum, borderColor: currentColor, backgroundColor: 'transparent', borderWidth: 3, pointRadius: 0, pointHoverRadius: 6, tension: 0.4, spanGaps: false },
   ];
   if (prevYears.length) {
     datasets.push({ label: avgLabel, data: avgCum, borderColor: COLORS.gray, backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, pointHoverRadius: 6, tension: 0.4, spanGaps: true });
@@ -2169,7 +2189,7 @@ function renderCumulChart(years, currentYear) {
         y: {
           beginAtZero: true,
           ticks: { callback: v => fmtEUR(v) },
-          title: { display: true, text: 'MB cumulée (€)', font: { size: 11 } },
+          title: { display: true, text: metricShort + ' cumulé (€)', font: { size: 11 } },
         },
       },
       interaction: { mode: 'index', intersect: false },
@@ -2182,18 +2202,16 @@ function renderCumulChart(years, currentYear) {
       id: 'objectifLineaire',
       afterDatasetsDraw(chart) {
         const { ctx, chartArea: { left, right }, scales: { y } } = chart;
-        // Ligne d'objectif linéaire (cumul progressif vers 55k€ sur 12 mois)
         ctx.save();
         ctx.strokeStyle = '#3b82f6'; ctx.setLineDash([6, 4]); ctx.lineWidth = 1.5;
-        // Trace une ligne de (mois 1, 4583€) à (mois 12, 55000€)
         const x0 = chart.scales.x.getPixelForValue(0);
         const x12 = chart.scales.x.getPixelForValue(11);
-        const y0 = y.getPixelForValue(C.MB_AN_OBJ / 12);
-        const y12 = y.getPixelForValue(C.MB_AN_OBJ);
+        const y0 = y.getPixelForValue(target / 12);
+        const y12 = y.getPixelForValue(target);
         ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x12, y12); ctx.stroke();
         ctx.fillStyle = '#3b82f6'; ctx.font = '700 11px ' + CHART_FONT;
         ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-        ctx.fillText("Objectif " + fmtEUR(C.MB_AN_OBJ) + "/an · " + fmtEUR(C.MB_AN_OBJ / 12) + "/mois", chart.chartArea.left + 6, chart.chartArea.top + 4);
+        ctx.fillText("Objectif " + fmtEUR(target) + "/an · " + fmtEUR(target / 12) + "/mois", chart.chartArea.left + 6, chart.chartArea.top + 4);
         ctx.restore();
       }
     }],
@@ -2698,17 +2716,17 @@ function renderBanner(data, cur, prev) {
       var daysInYear = (Date.UTC(year + 1, 0, 0) - startOfYear) / 86400000;
       yearProgress = (asOfDay - startOfYear) / 86400000 / daysInYear;
     }
-    var b1 = document.getElementById('bloc1');
-    if (b1) b1.innerHTML = _statCardHTML({
-      title: 'Marge brute réalisée', value: cur.ytd_mb, goal: C.MB_AN_OBJ,
-      refSame: sp ? sp.mb_ytd : null, refFull: sp ? sp.mb_full : null, refYear: refYear, shortLabel: 'MB',
-      monthly: cy.monthly.marge_brute, caption: 'Marge brute mensuelle', barColor: '#7C5AD6', yearProgress: yearProgress
-    });
-    var bca = document.getElementById('bloc-ca');
-    if (bca) bca.innerHTML = _statCardHTML({
+    var pilotageCard = document.getElementById('bloc-pilotage');
+    if (!pilotageCard) return;
+    var isCA = pilotageMetric === 'ca';
+    pilotageCard.innerHTML = _statCardHTML(isCA ? {
       title: "Chiffre d'affaires cumulé", value: cur.ytd_ca, goal: C.CA_OBJ,
       refSame: sp ? sp.ca_ytd : null, refFull: sp ? sp.ca_full : null, refYear: refYear, shortLabel: 'CA',
       monthly: cy.monthly.ca, caption: 'CA mensuel', barColor: COLORS.blue, yearProgress: yearProgress
+    } : {
+      title: 'Marge brute réalisée', value: cur.ytd_mb, goal: C.MB_AN_OBJ,
+      refSame: sp ? sp.mb_ytd : null, refFull: sp ? sp.mb_full : null, refYear: refYear, shortLabel: 'MB',
+      monthly: cy.monthly.marge_brute, caption: 'Marge brute mensuelle', barColor: '#7C5AD6', yearProgress: yearProgress
     });
   } catch (e) { /* rendu optionnel */ }
 };
