@@ -1045,6 +1045,13 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .actual-performance-card--ca { --actual-accent:var(--ca-blue); --actual-rest:#dceeff; --actual-rest-text:var(--ca-blue); }
 .actual-performance-main { min-width:0; }
 .actual-performance-gauge { min-width:0; }
+.actual-gauge-summary { display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding-top:20px; }
+.actual-gauge-summary > div { display:flex; flex-direction:column; gap:2px; }
+.actual-gauge-summary strong { color:var(--actual-accent); font-size:15px; font-weight:800; font-variant-numeric:tabular-nums; }
+.actual-gauge-summary .actual-gauge-realized strong { font-size:36px; line-height:1.1; letter-spacing:-.03em; }
+.actual-gauge-summary span { color:var(--text-dim); font-size:12.5px; }
+.actual-gauge-remaining { text-align:right; }
+.actual-gauge-chart { position:relative; height:36px; margin-top:4px; }
 .actual-performance-footer { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); align-items:start; gap:24px; margin-top:28px; }
 .actual-performance-comparison { display:grid; align-items:start; gap:4px; text-align:left; }
 #cap-actual .actual-performance-comparison .mbx-pill { align-self:flex-start; justify-self:start; width:max-content; }
@@ -2942,25 +2949,75 @@ function _actualPerformanceCardHTML(cfg) {
   var paceGap = value - (goal * yearProgress);
   var paceClass = paceGap > 0 ? 'ahead' : (paceGap < 0 ? 'behind' : 'on-track');
   var paceIcon = paceGap > 0 ? '▲' : (paceGap < 0 ? '▼' : '•');
-  var paceTarget = Math.max(0, Math.min(currentTotal, goal * yearProgress));
-  var gaugeBase = Math.min(value, paceTarget);
-  var gaugePaceGap = Math.abs(value - paceTarget);
-  var gaugeEnd = Math.max(value, paceTarget);
-  var gaugeRest = Math.max(0, currentTotal - gaugeEnd);
+  var chartId = 'chart-actual-' + cfg.shortLabel.toLowerCase();
+  var chartData = { value:value, goal:goal, yearProgress:yearProgress };
+  var chartLabel = cfg.title + ' : ' + fmtEUR(value) + ' réalisé, objectif annuel ' + fmtEUR(goal) + ', ' + fmtEUR(Math.abs(paceGap)) + (paceGap >= 0 ? ' d’avance' : ' de retard');
   return '<section class="actual-performance-card actual-performance-card--' + (cfg.shortLabel === 'CA' ? 'ca' : 'mb') + '">' +
     '<div class="actual-performance-main"><div class="mbx-head"><div class="mbx-title">' + cfg.title + '</div></div></div>' +
-    '<div class="actual-performance-gauge"><div class="mbx-gauge"><div class="mbx-gauge-plot"><div class="mbx-gauge-track" style="--gauge-accent:var(--actual-accent);--gauge-rest:var(--actual-rest);--gauge-rest-text:var(--actual-rest-text)"><div class="mbx-gauge-fill current" style="width:' + ratio(gaugeBase) + '%"></div>' +
-      (gaugePaceGap ? '<div class="mbx-gauge-pace-gap ' + paceClass + '" style="left:' + ratio(gaugeBase) + '%; width:' + ratio(gaugePaceGap) + '%"></div>' : '') +
-      (gaugeRest ? '<div class="mbx-gauge-rest current" style="left:' + ratio(gaugeEnd) + '%; width:' + ratio(gaugeRest) + '%"></div>' : '') +
-      '<div class="mbx-gauge-marker ' + paceClass + '" style="left:' + ratio(value) + '%"></div>' +
-      '<div class="mbx-gauge-callout realized current"><strong>' + fmtEUR(value) + '</strong><span>' + realizedPct + '% Réalisé</span></div>' +
-      (currentRest ? '<div class="mbx-gauge-callout remaining"><strong>' + fmtEUR(currentRest) + '</strong><span>' + remainingPct + '% Restant</span></div>' : '') +
-    '</div></div></div></div>' +
+    '<div class="actual-performance-gauge"><div class="actual-gauge-summary">' +
+      '<div class="actual-gauge-realized"><strong>' + fmtEUR(value) + '</strong><span>' + realizedPct + '% Réalisé</span></div>' +
+      (currentRest ? '<div class="actual-gauge-remaining"><strong>' + fmtEUR(currentRest) + '</strong><span>' + remainingPct + '% Restant</span></div>' : '') +
+    '</div><div class="actual-gauge-chart"><canvas id="' + chartId + '" role="img" aria-label="' + esc(chartLabel) + '" data-gauge="' + esc(JSON.stringify(chartData)) + '">' + esc(chartLabel) + '</canvas></div></div>' +
     '<div class="actual-performance-footer"><div class="actual-progress-grid">' +
       '<div class="actual-progress-item"><strong>' + fmtPct(yearProgress, 1) + '</strong><span>de l’année écoulée</span></div>' +
       '<div class="actual-progress-item"><strong class="' + paceClass + '">' + attainment + ' %</strong><span>de l’objectif atteint</span></div>' +
       '<div class="actual-progress-item"><strong class="actual-status ' + paceClass + '"><span>' + paceIcon + '</span>' + fmtEUR(Math.abs(paceGap)) + '</strong><span>' + (paceGap >= 0 ? 'd’avance sur le rythme' : 'de retard sur le rythme') + '</span></div>' +
     '</div><div class="actual-performance-comparison">' + pillHtml + comparison + '</div></div></section>';
+}
+
+function _renderActualPerformanceCharts() {
+  ['mb', 'ca'].forEach(function (metric) {
+    var id = 'chart-actual-' + metric;
+    var canvas = document.getElementById(id);
+    if (!canvas) return;
+    var data = JSON.parse(canvas.dataset.gauge);
+    var style = getComputedStyle(canvas.closest('.actual-performance-card'));
+    var color = function (name) { return style.getPropertyValue(name).trim(); };
+    var total = Math.max(0, data.value, data.goal);
+    var target = Math.max(0, Math.min(total, data.goal * data.yearProgress));
+    var end = Math.max(data.value, target);
+    var ahead = data.value >= target;
+    // Floating bars share one numeric scale; the middle interval shows the
+    // distance between the realized amount and the expected pace.
+    var ranges = [
+      [0, Math.min(data.value, target)],
+      [Math.max(0, Math.min(data.value, target)), end],
+      [end, total]
+    ];
+    var names = ['Réalisé au rythme attendu', ahead ? 'Avance sur le rythme' : 'Retard sur le rythme', 'Reste après le rythme attendu'];
+    var colors = [color('--actual-accent'), color(ahead ? '--green' : '--orange'), color('--actual-rest')];
+    makeChart(id, {
+      type:'bar',
+      data:{ labels:['Avancement'], datasets:ranges.map(function (range, i) {
+        return { label:names[i], data:[range], backgroundColor:colors[i], grouped:false,
+          barThickness:12, borderSkipped:false,
+          borderRadius:{ topLeft:range[0] === 0 ? 6 : 0, bottomLeft:range[0] === 0 ? 6 : 0,
+            topRight:range[1] === total ? 6 : 0, bottomRight:range[1] === total ? 6 : 0 } };
+      }) },
+      plugins:[{
+        id:'actualRealizedMarker',
+        afterDatasetsDraw:function (chart) {
+          var x = chart.scales.x.getPixelForValue(data.value), y = chart.scales.y.getPixelForValue(0);
+          var ctx = chart.ctx;
+          ctx.save(); ctx.strokeStyle = color('--text'); ctx.lineWidth = 5; ctx.lineCap = 'round';
+          ctx.beginPath(); ctx.moveTo(x, y - 10); ctx.lineTo(x, y + 10); ctx.stroke(); ctx.restore();
+        }
+      }],
+      options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, animation:false,
+        layout:{ padding:{ left:3, right:3 } },
+        interaction:{ mode:'index', intersect:false },
+        plugins:{ legend:{ display:false }, tooltip:{ displayColors:false, callbacks:{
+          title:function () { return metric === 'ca' ? 'Chiffre d’affaires' : 'Marge brute'; },
+          label:function (context) { return context.datasetIndex === 0 ? [
+            'Réalisé : ' + fmtEUR(data.value), 'Objectif annuel : ' + fmtEUR(data.goal),
+            'Attendu à date : ' + fmtEUR(target),
+            (ahead ? 'Avance : ' : 'Retard : ') + fmtEUR(Math.abs(data.value - target))
+          ] : null; }
+        } } },
+        scales:{ x:{ display:false, min:Math.min(0, data.value), max:total || 1 }, y:{ display:false, offset:true } }
+      }
+    });
+  });
 }
 
 function _annualProgressCardHTML(cfg) {
@@ -3153,6 +3210,7 @@ function renderBanner(data, cur, prev) {
       refSame: sp ? sp.ca_ytd : null, refFull: sp ? sp.ca_full : null, refYear: refYear,
       currentYear: cur.year, shortLabel: 'CA', yearProgress: yearProgress
     });
+    _renderActualPerformanceCharts();
     var monthLabels = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
     var metricKey = isCA ? 'ca' : 'mb';
     var period = {};
