@@ -317,6 +317,8 @@
   h2 { font-size: 17px; font-weight: 800; }
   .grid.l1 { grid-template-columns: minmax(0,2fr) minmax(0,3fr); align-items: stretch; }
   @media (max-width: 900px) { .grid.l1 { grid-template-columns: 1fr; } }
+  .row1 .cumul-card { display:flex; flex-direction:column; min-height:0; }
+  .row1 .cumul-card .chart-wrap { flex:1; height:auto; min-height:350px; }
 
   .card.synth { display: flex; flex-direction: column; gap: 16px; height: 100%; }
   .card.synth.green  { background: linear-gradient(160deg, var(--green-bg),  var(--bg-card) 60%); border-color: var(--green-line); }
@@ -1056,7 +1058,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
   <div class="pilotage-mode" aria-label="Vue de pilotage cumulée"><div class="pilotage-switch" role="group" aria-label="Indicateur affiché"><button type="button" data-pilotage-metric="mb" aria-pressed="true">Marge brute</button><button type="button" data-pilotage-metric="ca" aria-pressed="false">CA</button></div></div>
   <div class="grid grid-2 row1">
     <div id="bloc-pilotage"></div>
-    <div class="card">
+    <div class="card cumul-card">
       <h3 id="cumul-chart-title">Marge brute cumulée</h3>
       <div class="chart-wrap tall"><canvas id="chart-cumul"></canvas></div>
     </div>
