@@ -1029,6 +1029,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .cap-stat,.cap-need.cap-margin,.cap-need.cap-revenue { border-color:transparent; }
 .cap-label,.cap-metric-title,.cap-secondary-metric,#cap-actual .mbx-head { padding-right:0; }
 .cap-salary .cap-value,.cap-need > strong,#cap-actual .mbx-hero { font-size:36px; font-weight:800; line-height:1.15; letter-spacing:-.03em; margin:8px 0 12px; }
+.cap-need > strong .cap-ca { display:inline; margin:0; font:inherit; }
 .cap-salary .cap-value { margin-bottom:0; }
 .cap-need-detail { margin:0; }
 .cap-need-detail.cap-secondary-metric { padding-top:0; border:0; }
@@ -2738,7 +2739,7 @@ function renderAnnualCap(data) {
         '<div class="cap-stat"><span class="cap-stat-copy"><span class="cap-label">Mon résultat net annuel</span><span class="cap-value">' + fmtEUR(PLAN.surplus) + ' <span class="cap-unit">/ an</span></span><span class="cap-note">En ' + ref.n1.year + ' : <b>' + fmtEUR(ref.n1.netResult) + '</b></span></span></div>' +
       '</div></div>' +
       '<div class="cap-need-wrap"><span class="cap-need-kicker">' + capSectionIcon('trend') + 'Où j’en suis</span><div id="cap-actual" class="cap-actual"></div></div>' +
-      '<div class="cap-need-wrap"><span class="cap-need-kicker">' + capSectionIcon('compass') + 'Le cap pour y arriver</span><div class="cap-need cap-margin"><span class="cap-metric-title">Marge brute à réaliser</span><strong><span class="cap-mb">' + fmtEUR(neededMB) + '</span></strong><span class="cap-need-detail">Soit environ <b>' + fmtEUR(neededMB / 12) + ' / mois</b></span></div><div class="cap-need cap-revenue"><span class="cap-need-detail cap-secondary-metric">Chiffre d’affaires à réaliser <b class="cap-ca">' + fmtEUR(requiredCA) + '</b></span><span class="cap-need-detail">Soit environ <b>' + fmtEUR(requiredCA / 12) + ' / mois</b></span></div></div>' +
+      '<div class="cap-need-wrap"><span class="cap-need-kicker">' + capSectionIcon('compass') + 'Le cap pour y arriver</span><div class="cap-need cap-margin"><span class="cap-metric-title">Marge brute à réaliser</span><strong><span class="cap-mb">' + fmtEUR(neededMB) + '</span></strong><span class="cap-need-detail">Soit environ <b>' + fmtEUR(neededMB / 12) + ' / mois</b></span></div><div class="cap-need cap-revenue"><span class="cap-metric-title">Chiffre d’affaires à réaliser</span><strong><span class="cap-ca">' + fmtEUR(requiredCA) + '</span></strong><span class="cap-need-detail">Soit environ <b>' + fmtEUR(requiredCA / 12) + ' / mois</b></span></div></div>' +
     '</div>' +
     '<div class="cap-sim" id="cap-sim" hidden>' +
       '<div class="cap-sim-head"><div><h3>Modifier mon cap et mes hypothèses</h3><p><span class="cap-origin">Référence</span> vient de tes données réelles ; <span class="cap-origin custom">Personnalisé</span> signale une valeur modifiée.</p></div><button type="button" class="btn ghost" id="cap-close">Fermer</button></div>' +
