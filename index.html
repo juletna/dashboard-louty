@@ -1030,7 +1030,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 #cap-actual .mbx-gauge { margin-top:24px; }
 #cap-actual .mbx-gauge-plot { padding:52px 0 12px; }
 #cap-actual .mbx-gauge-track { height:12px; }
-.actual-performance-card { --actual-accent:var(--violet); --actual-rest:#ebe2ff; --actual-rest-text:var(--violet); min-width:0; padding:28px 44px 34px; background:light-dark(#fff,#202020); border:2px solid var(--actual-accent); border-radius:48px; overflow:hidden; }
+.actual-performance-card { --actual-accent:var(--violet); --actual-rest:#ebe2ff; --actual-rest-text:var(--violet); min-width:0; padding:20px; background:var(--bg-card); border:1px solid var(--actual-accent); border-radius:var(--radius); box-shadow:var(--shadow-sm); overflow:hidden; }
 .actual-performance-card--ca { --actual-accent:var(--ca-blue); --actual-rest:#dceeff; --actual-rest-text:var(--ca-blue); }
 .actual-performance-main { min-width:0; }
 .actual-performance-gauge { min-width:0; }
@@ -1047,8 +1047,8 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .actual-progress-item strong { color:var(--text); font-size:24px; font-weight:900; letter-spacing:-.035em; line-height:1.1; font-variant-numeric:tabular-nums; }
 .actual-progress-item .ahead { color:var(--green); }
 .actual-progress-item .behind { color:var(--amber); }
-@media(max-width:1150px) { .actual-performance-card { padding:26px 30px 30px; } .actual-performance-footer { align-items:flex-start; flex-direction:column; } .actual-performance-comparison { align-items:flex-start; text-align:left; } }
-@media(max-width:700px) { .actual-performance-card { border-radius:28px; padding:22px; } .actual-progress-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; } }
+@media(max-width:1150px) { .actual-performance-footer { align-items:flex-start; flex-direction:column; } .actual-performance-comparison { align-items:flex-start; text-align:left; } }
+@media(max-width:700px) { .actual-performance-card { padding:18px; } .actual-progress-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; } }
 @media(max-width:420px) { .actual-progress-grid { grid-template-columns:1fr; gap:14px; } }
 .cap-stat,.cap-need.cap-margin,.cap-need.cap-revenue { border-color:transparent; }
 .cap-label,.cap-metric-title,.cap-secondary-metric,#cap-actual .mbx-head { padding-right:0; }
