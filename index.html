@@ -2478,6 +2478,8 @@ function renderCumulChart(years, currentYear, metric) {
   var target = isCA ? C.CA_OBJ : C.MB_AN_OBJ;
   var currentColor = isCA ? COLORS.blue : '#7C5AD6';
   const yearKeys = Object.keys(years).sort();
+  const previousYear = String(Number(currentYear) - 1);
+  const hasPreviousYear = !!years[previousYear];
   // Le premier exercice est partiel : on l'exclut de la moyenne historique.
   const prevYears = yearKeys.slice(1).filter(y => Number(y) < Number(currentYear));
   const cumOf = yk => { let c = 0; return years[yk].monthly[metricKey].map(v => v === null ? null : (c += v, c)); };
@@ -2490,10 +2492,16 @@ function renderCumulChart(years, currentYear, metric) {
   }
   const avgLabel = prevYears.length ? 'Moyenne ' + prevYears[0] + (prevYears.length > 1 ? '–' + prevYears[prevYears.length - 1] : '') : '';
   var title = document.getElementById('cumul-chart-title');
-  if (title) title.textContent = metricName + ' cumulé — ' + currentYear + (avgLabel ? ' vs ' + avgLabel.charAt(0).toLowerCase() + avgLabel.slice(1) : '');
+  const comparisonLabels = [];
+  if (hasPreviousYear) comparisonLabels.push(previousYear + ' (N−1)');
+  if (avgLabel) comparisonLabels.push(avgLabel.charAt(0).toLowerCase() + avgLabel.slice(1));
+  if (title) title.textContent = metricName + ' cumulé — ' + currentYear + (comparisonLabels.length ? ' vs ' + comparisonLabels.join(' et ') : '');
   const datasets = [
     { label: currentYear + ' (en cours)', data: curCum, borderColor: currentColor, backgroundColor: 'transparent', borderWidth: 3, pointRadius: 0, pointHoverRadius: 6, tension: 0.4, spanGaps: false },
   ];
+  if (hasPreviousYear) {
+    datasets.push({ label: previousYear + ' (N−1)', data: cumOf(previousYear), borderColor: COLORS.gray, backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, pointHoverRadius: 6, tension: 0.4, spanGaps: false });
+  }
   if (prevYears.length) {
     datasets.push({ label: avgLabel, data: avgCum, borderColor: COLORS.gray, backgroundColor: 'transparent', borderDash: [5, 4], borderWidth: 2, pointRadius: 0, pointHoverRadius: 6, tension: 0.4, spanGaps: true });
   }
