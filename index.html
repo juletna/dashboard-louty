@@ -2478,7 +2478,8 @@ function renderCumulChart(years, currentYear, metric) {
   var target = isCA ? C.CA_OBJ : C.MB_AN_OBJ;
   var currentColor = isCA ? COLORS.blue : '#7C5AD6';
   const yearKeys = Object.keys(years).sort();
-  const prevYears = yearKeys.filter(y => y !== currentYear);
+  // Le premier exercice est partiel : on l'exclut de la moyenne historique.
+  const prevYears = yearKeys.slice(1).filter(y => Number(y) < Number(currentYear));
   const cumOf = yk => { let c = 0; return years[yk].monthly[metricKey].map(v => v === null ? null : (c += v, c)); };
   const curCum = cumOf(currentYear);
   const prevCums = prevYears.map(cumOf);
@@ -2487,14 +2488,14 @@ function renderCumulChart(years, currentYear, metric) {
     const vals = prevCums.map(a => a[m]).filter(v => v !== null && v !== undefined);
     avgCum.push(vals.length ? vals.reduce((a, v) => a + v, 0) / vals.length : null);
   }
-  const avgLabel = prevYears.length > 1 ? 'Moyenne ' + prevYears[0] + '–' + prevYears[prevYears.length - 1] : (prevYears[0] || '');
+  const avgLabel = prevYears.length ? 'Moyenne ' + prevYears[0] + (prevYears.length > 1 ? '–' + prevYears[prevYears.length - 1] : '') : '';
   var title = document.getElementById('cumul-chart-title');
-  if (title) title.textContent = metricName + ' cumulé — ' + currentYear + ' vs ' + (avgLabel ? avgLabel.charAt(0).toLowerCase() + avgLabel.slice(1) : 'historique');
+  if (title) title.textContent = metricName + ' cumulé — ' + currentYear + (avgLabel ? ' vs ' + avgLabel.charAt(0).toLowerCase() + avgLabel.slice(1) : '');
   const datasets = [
     { label: currentYear + ' (en cours)', data: curCum, borderColor: currentColor, backgroundColor: 'transparent', borderWidth: 3, pointRadius: 0, pointHoverRadius: 6, tension: 0.4, spanGaps: false },
   ];
   if (prevYears.length) {
-    datasets.push({ label: avgLabel, data: avgCum, borderColor: COLORS.gray, backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, pointHoverRadius: 6, tension: 0.4, spanGaps: true });
+    datasets.push({ label: avgLabel, data: avgCum, borderColor: COLORS.gray, backgroundColor: 'transparent', borderDash: [5, 4], borderWidth: 2, pointRadius: 0, pointHoverRadius: 6, tension: 0.4, spanGaps: true });
   }
   makeChart('chart-cumul', {
     type: 'line',
