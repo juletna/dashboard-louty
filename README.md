@@ -27,9 +27,9 @@ Le simulateur de trajectoire (taux de marge et charges) est initialisé à parti
 
 ## Bibliothèques graphiques
 
-Les jauges « Ratio achats / CA » et « Taux de marge brute » utilisent les composants natifs Apache ECharts 6.1.0, avec rendu SVG et animations respectant la préférence de réduction des mouvements. Les autres graphiques utilisent Chart.js.
+Les jauges « Ratio achats / CA » et « Taux de marge brute » utilisent les composants natifs Apache ECharts 6.1.0, avec rendu SVG et animations respectant la préférence de réduction des mouvements. Les blocs « Où j’en suis » et « Comparatif d’avancement annuel » utilisent également ECharts, avec des barres horizontales et le même cycle d’animation. Les autres graphiques utilisent encore Chart.js, en attendant leur migration.
 
-Le fichier HTML embarque uniquement les modules ECharts nécessaires (GaugeChart, TooltipComponent et SVGRenderer), avec leurs licences. Pour reconstruire ce bundle après une modification du script, utiliser Node.js et npm :
+Le fichier HTML embarque uniquement les modules ECharts nécessaires (GaugeChart, BarChart, GridComponent, MarkLineComponent, TooltipComponent et SVGRenderer), avec leurs licences. Pour reconstruire ce bundle après une modification du script, utiliser Node.js et npm :
 
 ```sh
 node scripts/build-echarts-gauges.mjs
