@@ -1034,11 +1034,12 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .actual-performance-card--ca { --actual-accent:var(--ca-blue); --actual-rest:#dceeff; --actual-rest-text:var(--ca-blue); }
 .actual-performance-main,.actual-performance-progress { min-width:0; padding:24px 26px; }
 .actual-performance-progress { border-left:1px solid color-mix(in srgb, var(--actual-accent) 35%, var(--border)); }
+.actual-performance-gauge { grid-column:1 / -1; min-width:0; padding:0 26px 24px; }
 .actual-performance-card .mbx-head { margin:0; }
 .actual-performance-card .mbx-heroline { margin-top:8px; }
 .actual-performance-card .mbx-hero { margin:0; }
-.actual-performance-card .mbx-gauge { margin-top:24px; }
-.actual-performance-card .mbx-gauge-plot { padding:52px 0 12px; }
+#cap-actual .actual-performance-card .mbx-gauge { margin-top:0; }
+#cap-actual .actual-performance-card .mbx-gauge-plot { padding:42px 0 12px; }
 .actual-performance-card .mbx-gauge-track { height:12px; }
 .actual-progress-title { margin:0 0 18px; color:var(--text); font-size:15px; font-weight:800; letter-spacing:-.01em; }
 .actual-progress-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px 16px; }
@@ -1047,7 +1048,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .actual-progress-item .ahead { color:var(--green); }
 .actual-progress-item .behind { color:var(--amber); }
 @media(max-width:1150px) { .actual-performance-card { grid-template-columns:1fr; } .actual-performance-progress { border-top:1px solid color-mix(in srgb, var(--actual-accent) 35%, var(--border)); border-left:0; } }
-@media(max-width:420px) { .actual-performance-main,.actual-performance-progress { padding:18px; } .actual-progress-grid { grid-template-columns:1fr; gap:14px; } }
+@media(max-width:420px) { .actual-performance-main,.actual-performance-progress,.actual-performance-gauge { padding-left:18px; padding-right:18px; } .actual-performance-main,.actual-performance-progress { padding-top:18px; padding-bottom:18px; } .actual-performance-gauge { padding-bottom:18px; } .actual-progress-grid { grid-template-columns:1fr; gap:14px; } }
 .cap-stat,.cap-need.cap-margin,.cap-need.cap-revenue { border-color:transparent; }
 .cap-label,.cap-metric-title,.cap-secondary-metric,#cap-actual .mbx-head { padding-right:0; }
 .cap-salary .cap-value,.cap-need > strong,#cap-actual .mbx-hero { font-size:36px; font-weight:800; line-height:1.15; letter-spacing:-.03em; margin:8px 0 12px; }
@@ -2918,18 +2919,19 @@ function _actualPerformanceCardHTML(cfg) {
   return '<section class="actual-performance-card actual-performance-card--' + (cfg.shortLabel === 'CA' ? 'ca' : 'mb') + '">' +
     '<div class="actual-performance-main"><div class="mbx-head"><div class="mbx-title">' + cfg.title + '</div></div>' +
       '<div class="mbx-heroline"><div class="mbx-hero">' + fmtEUR(value) + '</div>' + pillHtml + '</div>' + comparison +
-      '<div class="mbx-gauge"><div class="mbx-gauge-plot"><div class="mbx-gauge-track" style="--gauge-accent:var(--actual-accent);--gauge-rest:var(--actual-rest);--gauge-rest-text:var(--actual-rest-text)"><div class="mbx-gauge-fill current" style="width:' + ratio(value) + '%"></div>' +
-        (currentRest ? '<div class="mbx-gauge-rest current" style="left:' + ratio(value) + '%; width:' + ratio(currentRest) + '%"></div>' : '') +
-        '<div class="mbx-gauge-marker" style="left:' + ratio(value) + '%"></div>' +
-        '<div class="mbx-gauge-callout realized current"><strong>' + fmtEUR(value) + '</strong><span>' + realizedPct + '% Réalisé</span></div>' +
-        (currentRest ? '<div class="mbx-gauge-callout remaining"><strong>' + fmtEUR(currentRest) + '</strong><span>' + remainingPct + '% Restant</span></div>' : '') +
-      '</div></div></div></div>' +
+    '</div>' +
     '<div class="actual-performance-progress"><h3 class="actual-progress-title">Avancement sur l’année</h3><div class="actual-progress-grid">' +
       '<div class="actual-progress-item"><strong>' + fmtPct(yearProgress, 1) + '</strong><span>de l’année écoulée</span></div>' +
       '<div class="actual-progress-item"><strong>' + attainment + ' %</strong><span>de l’objectif atteint</span></div>' +
       '<div class="actual-progress-item"><strong class="' + paceClass + '">' + paceSign + fmtEUR(Math.abs(paceGap)) + '</strong><span>' + (paceGap >= 0 ? 'd’avance sur le rythme' : 'de retard sur le rythme') + '</span></div>' +
       '<div class="actual-progress-item"><strong>' + (goal > 0 && value >= goal ? '+ ' : '') + fmtEUR(Math.abs(goal - value)) + '</strong><span>' + (goal > 0 && value >= goal ? 'de dépassement de l’objectif' : remainingLabel) + '</span></div>' +
-    '</div></div></section>';
+    '</div></div>' +
+    '<div class="actual-performance-gauge"><div class="mbx-gauge"><div class="mbx-gauge-plot"><div class="mbx-gauge-track" style="--gauge-accent:var(--actual-accent);--gauge-rest:var(--actual-rest);--gauge-rest-text:var(--actual-rest-text)"><div class="mbx-gauge-fill current" style="width:' + ratio(value) + '%"></div>' +
+      (currentRest ? '<div class="mbx-gauge-rest current" style="left:' + ratio(value) + '%; width:' + ratio(currentRest) + '%"></div>' : '') +
+      '<div class="mbx-gauge-marker" style="left:' + ratio(value) + '%"></div>' +
+      '<div class="mbx-gauge-callout realized current"><strong>' + fmtEUR(value) + '</strong><span>' + realizedPct + '% Réalisé</span></div>' +
+      (currentRest ? '<div class="mbx-gauge-callout remaining"><strong>' + fmtEUR(currentRest) + '</strong><span>' + remainingPct + '% Restant</span></div>' : '') +
+    '</div></div></div></div></section>';
 }
 
 function _statCardHTML(cfg) {
