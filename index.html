@@ -1030,6 +1030,24 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 #cap-actual .mbx-gauge { margin-top:24px; }
 #cap-actual .mbx-gauge-plot { padding:52px 0 12px; }
 #cap-actual .mbx-gauge-track { height:12px; }
+.actual-performance-card { --actual-accent:var(--violet); --actual-rest:#ebe2ff; --actual-rest-text:var(--violet); display:grid; grid-template-columns:minmax(0,1.15fr) minmax(300px,.85fr); min-width:0; background:light-dark(#fff,#202020); border:2px solid var(--actual-accent); border-radius:18px; overflow:hidden; }
+.actual-performance-card--ca { --actual-accent:var(--ca-blue); --actual-rest:#dceeff; --actual-rest-text:var(--ca-blue); }
+.actual-performance-main,.actual-performance-progress { min-width:0; padding:24px 26px; }
+.actual-performance-progress { border-left:1px solid color-mix(in srgb, var(--actual-accent) 35%, var(--border)); }
+.actual-performance-card .mbx-head { margin:0; }
+.actual-performance-card .mbx-heroline { margin-top:8px; }
+.actual-performance-card .mbx-hero { margin:0; }
+.actual-performance-card .mbx-gauge { margin-top:24px; }
+.actual-performance-card .mbx-gauge-plot { padding:52px 0 12px; }
+.actual-performance-card .mbx-gauge-track { height:12px; }
+.actual-progress-title { margin:0 0 18px; color:var(--text); font-size:15px; font-weight:800; letter-spacing:-.01em; }
+.actual-progress-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px 16px; }
+.actual-progress-item { display:grid; gap:4px; color:var(--text-dim); font-size:12.5px; line-height:1.35; }
+.actual-progress-item strong { color:var(--text); font-size:24px; font-weight:900; letter-spacing:-.035em; line-height:1.1; font-variant-numeric:tabular-nums; }
+.actual-progress-item .ahead { color:var(--green); }
+.actual-progress-item .behind { color:var(--amber); }
+@media(max-width:1150px) { .actual-performance-card { grid-template-columns:1fr; } .actual-performance-progress { border-top:1px solid color-mix(in srgb, var(--actual-accent) 35%, var(--border)); border-left:0; } }
+@media(max-width:420px) { .actual-performance-main,.actual-performance-progress { padding:18px; } .actual-progress-grid { grid-template-columns:1fr; gap:14px; } }
 .cap-stat,.cap-need.cap-margin,.cap-need.cap-revenue { border-color:transparent; }
 .cap-label,.cap-metric-title,.cap-secondary-metric,#cap-actual .mbx-head { padding-right:0; }
 .cap-salary .cap-value,.cap-need > strong,#cap-actual .mbx-hero { font-size:36px; font-weight:800; line-height:1.15; letter-spacing:-.03em; margin:8px 0 12px; }
@@ -2880,6 +2898,40 @@ function _miniBars(monthly, color, caption) {
 }
 
 // ---- Carte statistique : deux jauges absolues, année en cours et N-1 ----
+function _actualPerformanceCardHTML(cfg) {
+  var value = cfg.value || 0, goal = cfg.goal || 0, refSame = cfg.refSame;
+  var currentTotal = Math.max(value, goal);
+  var currentRest = Math.max(0, currentTotal - value);
+  var ratio = currentTotal > 0 ? function (amount) { return Math.max(0, Math.min(100, amount / currentTotal * 100)); } : function () { return 0; };
+  var realizedPct = Math.round(ratio(value));
+  var remainingPct = Math.round(ratio(currentRest));
+  var delta = refSame != null ? value - refSame : null;
+  var deltaPositive = delta != null && delta >= 0;
+  var pillHtml = delta != null ? '<span class="mbx-pill ' + (deltaPositive ? 'pos' : 'neg') + '">' + (deltaPositive ? '▲' : '▼') + ' ' + fmtEUR(Math.abs(delta)) + '</span>' : '';
+  var comparison = refSame != null ? '<div class="cap-comparison">vs même période en ' + (cfg.refYear || 'N−1') + (cfg.refYear ? ' (N−1)' : '') + '</div>' : '';
+  var yearProgress = cfg.yearProgress || 0;
+  var attainment = goal > 0 ? Math.round(value / goal * 100) : 0;
+  var paceGap = value - (goal * yearProgress);
+  var paceClass = paceGap >= 0 ? 'ahead' : 'behind';
+  var paceSign = paceGap >= 0 ? '+ ' : '− ';
+  var remainingLabel = cfg.shortLabel === 'CA' ? 'de chiffre d’affaires restant à réaliser' : 'de marge brute restant à réaliser';
+  return '<section class="actual-performance-card actual-performance-card--' + (cfg.shortLabel === 'CA' ? 'ca' : 'mb') + '">' +
+    '<div class="actual-performance-main"><div class="mbx-head"><div class="mbx-title">' + cfg.title + '</div></div>' +
+      '<div class="mbx-heroline"><div class="mbx-hero">' + fmtEUR(value) + '</div>' + pillHtml + '</div>' + comparison +
+      '<div class="mbx-gauge"><div class="mbx-gauge-plot"><div class="mbx-gauge-track" style="--gauge-accent:var(--actual-accent);--gauge-rest:var(--actual-rest);--gauge-rest-text:var(--actual-rest-text)"><div class="mbx-gauge-fill current" style="width:' + ratio(value) + '%"></div>' +
+        (currentRest ? '<div class="mbx-gauge-rest current" style="left:' + ratio(value) + '%; width:' + ratio(currentRest) + '%"></div>' : '') +
+        '<div class="mbx-gauge-marker" style="left:' + ratio(value) + '%"></div>' +
+        '<div class="mbx-gauge-callout realized current"><strong>' + fmtEUR(value) + '</strong><span>' + realizedPct + '% Réalisé</span></div>' +
+        (currentRest ? '<div class="mbx-gauge-callout remaining"><strong>' + fmtEUR(currentRest) + '</strong><span>' + remainingPct + '% Restant</span></div>' : '') +
+      '</div></div></div></div>' +
+    '<div class="actual-performance-progress"><h3 class="actual-progress-title">Avancement sur l’année</h3><div class="actual-progress-grid">' +
+      '<div class="actual-progress-item"><strong>' + fmtPct(yearProgress, 1) + '</strong><span>de l’année écoulée</span></div>' +
+      '<div class="actual-progress-item"><strong>' + attainment + ' %</strong><span>de l’objectif atteint</span></div>' +
+      '<div class="actual-progress-item"><strong class="' + paceClass + '">' + paceSign + fmtEUR(Math.abs(paceGap)) + '</strong><span>' + (paceGap >= 0 ? 'd’avance sur le rythme' : 'de retard sur le rythme') + '</span></div>' +
+      '<div class="actual-progress-item"><strong>' + (goal > 0 && value >= goal ? '+ ' : '') + fmtEUR(Math.abs(goal - value)) + '</strong><span>' + (goal > 0 && value >= goal ? 'de dépassement de l’objectif' : remainingLabel) + '</span></div>' +
+    '</div></div></section>';
+}
+
 function _statCardHTML(cfg) {
   var value = cfg.value || 0, goal = cfg.goal || 0, refSame = cfg.refSame, refFull = cfg.refFull, refYear = cfg.refYear;
   var yearProgress = cfg.yearProgress;
@@ -2969,10 +3021,14 @@ function renderBanner(data, cur, prev) {
     if (!pilotageCard) return;
     var isCA = pilotageMetric === 'ca';
     var capActual = document.getElementById('cap-actual');
-    if (capActual) capActual.innerHTML = _statCardHTML({
+    if (capActual) capActual.innerHTML = _actualPerformanceCardHTML({
       title: 'Marge brute réalisée', value: cur.ytd_mb, goal: C.MB_AN_OBJ,
       refSame: sp ? sp.mb_ytd : null, refFull: sp ? sp.mb_full : null, refYear: refYear,
-      currentYear: cur.year, shortLabel: 'MB', yearProgress: yearProgress, summaryOnly: true
+      currentYear: cur.year, shortLabel: 'MB', yearProgress: yearProgress
+    }) + _actualPerformanceCardHTML({
+      title: "Chiffre d'affaires réalisé", value: cur.ytd_ca, goal: C.CA_OBJ,
+      refSame: sp ? sp.ca_ytd : null, refFull: sp ? sp.ca_full : null, refYear: refYear,
+      currentYear: cur.year, shortLabel: 'CA', yearProgress: yearProgress
     });
     pilotageCard.innerHTML = _statCardHTML(isCA ? {
       title: "Chiffre d'affaires cumulé", value: cur.ytd_ca, goal: C.CA_OBJ,
