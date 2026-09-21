@@ -2901,7 +2901,7 @@ function _statCardHTML(cfg) {
       '<div class="mbx-progress-line"><strong>' + fmtPct(yearProgress, 1) + '</strong><span class="mbx-progress-caption">de l’année écoulée</span></div>' +
       attainmentLine +
       '<div class="mbx-progress-pace"><strong class="' + paceClass + '">' + paceSign + fmtEUR(Math.abs(paceGap)) + '</strong><span class="mbx-progress-caption">' + paceLabel + '</span></div>' +
-      (cfg.summaryOnly && cfg.shortLabel === 'MB' ? '<div class="mbx-progress-line"><strong>' + fmtEUR(Math.max(0, goal - value)) + '</strong><span class="mbx-progress-caption">de marge brute restant à réaliser</span></div>' : '') + '</div>';
+      (cfg.summaryOnly && cfg.shortLabel === 'MB' ? '<div class="mbx-progress-line"><strong>' + (over ? '+ ' : '') + fmtEUR(Math.abs(goal - value)) + '</strong><span class="mbx-progress-caption">' + (over ? 'de dépassement de l’objectif' : 'de marge brute restant à réaliser') + '</span></div>' : '') + '</div>';
   }
   var attHtml = progressHtml;
   var actualTone = (yearProgress != null && goal > 0 ? value >= goal * yearProgress : over) ? 'positive' : 'warning';
