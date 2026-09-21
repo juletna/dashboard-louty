@@ -758,8 +758,8 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .mbx-head { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
 .mbx-title { font-size:17px; font-weight:800; color:var(--text); letter-spacing:-0.015em; }
 .mbx-badge { display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.03em; color:var(--green); background:var(--green-bg); padding:4px 11px; border-radius:999px; }
-.mbx-summary { display:grid; grid-template-columns:minmax(0,1fr) minmax(300px,.8fr); gap:28px; align-items:center; }
-.mbx-objective { min-width:0; margin-left:auto; text-align:right; }
+.mbx-summary { display:grid; grid-template-columns:minmax(0,1fr) minmax(224px,.8fr); gap:28px; align-items:center; }
+.mbx-objective { min-width:0; margin-left:auto; padding:18px; border-radius:14px; background:var(--bg-inset); }
 .mbx-objective .mbx-prog-head { margin-bottom:0; }
 .mbx-heroline { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
 .mbx-hero { font-size:44px; font-weight:800; letter-spacing:-0.03em; line-height:1; color:var(--text); white-space:nowrap; }
@@ -779,7 +779,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .mbx-pace .ahead { color:var(--green); }
 .mbx-pace .behind { color:var(--red); }
 .mbx-progress-summary { display:grid; gap:4px; }
-.mbx-progress-title { color:var(--text-dim); font-size:12.5px; font-weight:500; line-height:1.35; text-transform:uppercase; }
+.mbx-progress-title { color:var(--text-dim); font-size:10px; font-weight:800; line-height:1.35; letter-spacing:.08em; text-transform:uppercase; }
 .mbx-progress-line { font-size:14px; color:var(--text); font-weight:500; line-height:1.35; }
 .mbx-progress-line strong { font-weight:800; }
 .mbx-progress-line .mbx-attainment { color:var(--green); }
@@ -808,10 +808,11 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .mbx-cell.over .mbx-cell-val { color:var(--green); }
 .mbx-compare { display:grid; gap:0; }
 .mbx-gauge-separator { height:1px; margin:32px 0; background:var(--border); }
-.mbx-gauge { display:grid; grid-template-columns:92px minmax(0,1fr) 118px; gap:14px; align-items:center; }
-.mbx-gauge-period { display:flex; flex-direction:column; color:var(--text-dim); line-height:1.18; }
+.mbx-gauge { display:block; }
+.mbx-gauge-head { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:20px; padding:14px 16px; border-radius:9px; background:var(--bg-inset); }
+.mbx-gauge-period { display:flex; align-items:baseline; gap:9px; color:var(--text-dim); line-height:1.18; }
 .mbx-gauge-period strong { color:var(--text); font-size:18px; font-weight:800; }
-.mbx-gauge-period span { margin-top:4px; font-size:12.5px; font-weight:700; text-transform:uppercase; letter-spacing:.035em; }
+.mbx-gauge-period span { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.045em; }
 .mbx-gauge-plot { position:relative; min-width:0; margin:42px 0 40px; overflow:visible; }
 .mbx-gauge-track { position:relative; height:16px; overflow:visible; border-radius:999px; background:var(--bg-soft); }
 .mbx-gauge-fill,.mbx-gauge-rest { position:absolute; top:0; bottom:0; }
@@ -829,9 +830,10 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .mbx-gauge-callout.remaining strong { color:#ff934b; }
 .mbx-gauge-callout.remaining.prior strong { color:#77727e; }
 .mbx-gauge-callout span,.mbx-gauge-total span { margin-top:2px; color:var(--text-dim); font-size:12.5px; font-weight:500; }
-.mbx-gauge-total { display:flex; flex-direction:column; min-width:0; white-space:nowrap; }
+.mbx-gauge-total { display:flex; align-items:baseline; justify-content:flex-end; gap:6px; min-width:0; white-space:nowrap; text-align:right; }
 .mbx-gauge-total strong { color:var(--text); font-size:15px; font-weight:800; font-variant-numeric:tabular-nums; }
-@media (max-width:700px) { .mbx-gauge { grid-template-columns:1fr; gap:0; } .mbx-gauge-period { flex-direction:row; align-items:baseline; gap:7px; } .mbx-gauge-period span { margin-top:0; } .mbx-gauge-total { text-align:right; align-items:flex-end; } .mbx-gauge-plot { margin-bottom:20px; } }
+.mbx-gauge-total span { margin:0; color:var(--text-dim); font-size:10px; font-weight:800; letter-spacing:.07em; text-transform:uppercase; }
+@media (max-width:700px) { .mbx-gauge-head { align-items:flex-start; } .mbx-gauge-period { flex-direction:column; gap:4px; } .mbx-gauge-total { flex-direction:column; align-items:flex-end; gap:3px; } .mbx-gauge-plot { margin-bottom:20px; } }
 @media (max-width:900px) { .mbx-summary { grid-template-columns:1fr; gap:16px; } }
 .statx-card { height:100%; }
 
@@ -2805,7 +2807,7 @@ function _statCardHTML(cfg) {
   var width = function (amount) { return Math.max(0, Math.min(100, amount / scaleMax * 100)); };
   var relativeWidth = function (amount, total) { return total > 0 ? Math.max(0, Math.min(100, amount / total * 100)) : 0; };
   var pillHtml = delta != null ? '<span class="mbx-pill ' + (deltaPositive ? 'pos' : 'neg') + '">' + (deltaPositive ? '▲' : '▼') + ' ' + fmtEUR(Math.abs(delta)) + '</span>' : '';
-  var context = refSame != null ? '<div class="mbx-ctx">vs <b>' + fmtEUR(refSame) + '</b> sur la même période en ' + refYear + '</div>' : '';
+  var context = cfg.showSamePeriodContext && refSame != null ? '<div class="mbx-ctx">vs <b>' + fmtEUR(refSame) + '</b> sur la même période en ' + refYear + '</div>' : '';
   var badge = over ? '<span class="mbx-badge">✓ Objectif atteint</span>' : '';
   var progressHtml = '';
   if (yearProgress != null && goal > 0) {
@@ -2824,26 +2826,26 @@ function _statCardHTML(cfg) {
   var currentRest = Math.max(0, currentTotal - value);
   var currentPct = Math.round(relativeWidth(value, currentTotal));
   var currentRestPct = Math.round(relativeWidth(currentRest, currentTotal));
-  var currentGauge = '<div class="mbx-gauge"><div class="mbx-gauge-period"><strong>' + (cfg.currentYear || 'N') + '</strong><span>à date</span></div><div class="mbx-gauge-plot" style="width:' + width(currentTotal) + '%">' +
+  var currentGauge = '<div class="mbx-gauge"><div class="mbx-gauge-head"><div class="mbx-gauge-period"><strong>' + (cfg.currentYear || 'N') + '</strong><span>à date</span></div><div class="mbx-gauge-total"><span>Objectif annuel&nbsp;:</span><strong>' + fmtEUR(currentTotal) + '</strong></div></div><div class="mbx-gauge-plot" style="width:' + width(currentTotal) + '%">' +
     '<div class="mbx-gauge-track" style="--gauge-accent:' + accent + ';--marker-left:' + relativeWidth(value, currentTotal) + '%"><div class="mbx-gauge-fill current" style="width:' + relativeWidth(value, currentTotal) + '%"></div>' +
     (currentRest ? '<div class="mbx-gauge-rest current" style="left:' + relativeWidth(value, currentTotal) + '%; width:' + relativeWidth(currentRest, currentTotal) + '%"></div>' : '') +
     '<div class="mbx-gauge-marker" style="left:' + relativeWidth(value, currentTotal) + '%"></div>' +
     '<div class="mbx-gauge-callout realized current"><strong>' + fmtEUR(value) + '</strong><span>' + currentPct + '% Réalisé</span></div>' +
     (currentRest ? '<div class="mbx-gauge-callout remaining"><strong>' + fmtEUR(currentRest) + '</strong><span>' + currentRestPct + '% Restant</span></div>' : '') +
-    '</div></div><div class="mbx-gauge-total"><strong>' + fmtEUR(currentTotal) + '</strong><span>Objectif annuel</span></div></div>';
+    '</div></div></div>';
   var priorGauge = '';
   if (refSame != null) {
     var priorTotal = Math.max(refSame, refFull || 0);
     var priorRest = Math.max(0, priorTotal - refSame);
     var priorPct = Math.round(relativeWidth(refSame, priorTotal));
     var priorRestPct = Math.round(relativeWidth(priorRest, priorTotal));
-    priorGauge = '<div class="mbx-gauge"><div class="mbx-gauge-period"><strong>' + (refYear || 'N-1') + '</strong><span>Même période</span></div><div class="mbx-gauge-plot" style="width:' + width(priorTotal) + '%">' +
+    priorGauge = '<div class="mbx-gauge"><div class="mbx-gauge-head"><div class="mbx-gauge-period"><strong>' + (refYear || 'N-1') + '</strong><span>Même période</span></div><div class="mbx-gauge-total"><span>Total ' + (cfg.shortLabel || '') + ' ' + (refYear || '') + '&nbsp;:</span><strong>' + fmtEUR(priorTotal) + '</strong></div></div><div class="mbx-gauge-plot" style="width:' + width(priorTotal) + '%">' +
       '<div class="mbx-gauge-track" style="--marker-left:' + relativeWidth(refSame, priorTotal) + '%"><div class="mbx-gauge-fill prior" style="width:' + relativeWidth(refSame, priorTotal) + '%"></div>' +
       (priorRest ? '<div class="mbx-gauge-rest prior" style="left:' + relativeWidth(refSame, priorTotal) + '%; width:' + relativeWidth(priorRest, priorTotal) + '%"></div>' : '') +
       '<div class="mbx-gauge-marker" style="left:' + relativeWidth(refSame, priorTotal) + '%"></div>' +
       '<div class="mbx-gauge-callout realized prior"><strong>' + fmtEUR(refSame) + '</strong><span>' + priorPct + '% Réalisé</span></div>' +
       (priorRest ? '<div class="mbx-gauge-callout remaining prior"><strong>' + fmtEUR(priorRest) + '</strong><span>' + priorRestPct + '% Restant</span></div>' : '') +
-      '</div></div><div class="mbx-gauge-total"><strong>' + fmtEUR(priorTotal) + '</strong><span>Total ' + (cfg.shortLabel || '') + ' ' + (refYear || '') + '</span></div></div>';
+      '</div></div></div>';
   }
   var gaugeSeparator = priorGauge ? '<div class="mbx-gauge-separator" aria-hidden="true"></div>' : '';
   return '<div class="card statx-card"><div class="mbx-summary">' +
@@ -2874,7 +2876,7 @@ function renderBanner(data, cur, prev) {
     pilotageCard.innerHTML = _statCardHTML(isCA ? {
       title: "Chiffre d'affaires cumulé", value: cur.ytd_ca, goal: C.CA_OBJ,
       refSame: sp ? sp.ca_ytd : null, refFull: sp ? sp.ca_full : null, refYear: refYear, currentYear: cur.year, shortLabel: 'CA',
-      monthly: cy.monthly.ca, caption: 'CA mensuel', barColor: COLORS.blue, yearProgress: yearProgress
+      monthly: cy.monthly.ca, caption: 'CA mensuel', barColor: COLORS.blue, yearProgress: yearProgress, showSamePeriodContext: true
     } : {
       title: 'Marge brute réalisée', value: cur.ytd_mb, goal: C.MB_AN_OBJ,
       refSame: sp ? sp.mb_ytd : null, refFull: sp ? sp.mb_full : null, refYear: refYear, currentYear: cur.year, shortLabel: 'MB',
