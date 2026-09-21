@@ -274,20 +274,7 @@
   .distribution-empty { min-height:238px; display:flex; align-items:center; justify-content:center; text-align:center; color:var(--text-faint); font-size:13px; line-height:1.5; padding:20px; background:var(--bg-inset); border-radius:var(--radius-sm); }
   .distribution-upload-card { width:100%; }
   .distribution-upload-card .se-drop { cursor:pointer; }
-  .pareto-list { display:flex; flex-direction:column; gap:13px; padding-top:3px; }
-  .pareto-row { display:grid; grid-template-columns:minmax(94px,0.7fr) minmax(130px,2fr) 50px 54px; align-items:center; gap:10px; }
-  .pareto-label { font-size:12.5px; font-weight:800; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .pareto-track { height:19px; overflow:hidden; border-radius:6px; background:var(--bg-inset); }
-  .pareto-fill { height:100%; border-radius:6px; background:var(--teal); opacity:var(--mb-fill,1); }
-  .pareto-share, .pareto-cumul { font-size:11.5px; font-weight:800; white-space:nowrap; font-variant-numeric:tabular-nums; text-align:right; }
-  .pareto-share { color:var(--text); }
-  .pareto-cumul { color:var(--text-dim); }
-  .pareto-head { display:grid; grid-template-columns:minmax(94px,0.7fr) minmax(130px,2fr) 50px 54px; gap:10px; margin-bottom:8px; color:var(--text-faint); font-size:10px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
-  .pareto-head span:nth-last-child(-n+2) { text-align:right; }
-  @media (max-width: 520px) {
-    .pareto-row, .pareto-head { grid-template-columns:minmax(76px,0.75fr) minmax(90px,1.55fr) 44px 50px; gap:7px; }
-    .pareto-label { font-size:11.5px; }
-  }
+  .client-distribution-chart { position:relative; min-width:0; }
 
   /* Alertes */
   .alert-item {
@@ -1982,6 +1969,9 @@ function _distributionEmpty(id) {
   if (id === 'quote-margin-distribution' && charts['chart-margin-by-quote']) {
     charts['chart-margin-by-quote'].destroy(); delete charts['chart-margin-by-quote'];
   }
+  if (id === 'client-margin-distribution' && charts['chart-margin-by-client']) {
+    charts['chart-margin-by-client'].destroy(); delete charts['chart-margin-by-client'];
+  }
   host.innerHTML = '<div class="distribution-empty">Ajoute l’export détaillé « Pièces » pour afficher cette répartition.</div>';
 }
 function _distributionPeriodLabel(year, currentYear) {
@@ -2095,28 +2085,81 @@ function renderClientMarginDistribution(rows) {
   var host = document.getElementById('client-margin-distribution');
   if (!host) return;
   if (!rows.length) { _distributionEmpty('client-margin-distribution'); return; }
-  rows.sort(function (a, b) { return b.amount - a.amount; });
+  rows = rows.slice().sort(function (a, b) { return b.amount - a.amount; });
   if (rows.length > 6) {
     var other = rows.slice(5).reduce(function (sum, row) { return sum + row.amount; }, 0);
     rows = rows.slice(0, 5);
     if (other > 0) rows.push({ label: 'Autres clients', amount: other, other: true });
   }
   var total = rows.reduce(function (sum, row) { return sum + row.amount; }, 0) || 1;
-  var max = rows.reduce(function (m, row) { return Math.max(m, row.amount); }, 0) || 1;
   var cumul = 0;
-  var head = '<div class="pareto-head"><span>Client</span><span></span><span>Part</span><span>Cumul</span></div>';
-  var list = rows.map(function (row, index) {
+  var shares = rows.map(function (row) {
     var share = row.amount / total;
     cumul += share;
-    var opacity = row.other ? 0.32 : Math.max(0.42, 1 - index * 0.12);
-    return '<div class="pareto-row" title="' + esc(row.label) + ' : ' + fmtEUR(row.amount) + '">' +
-      '<span class="pareto-label">' + esc(row.label) + '</span>' +
-      '<div class="pareto-track"><div class="pareto-fill" style="width:' + (row.amount / max * 100).toFixed(1) + '%;--mb-fill:' + opacity + '"></div></div>' +
-      '<span class="pareto-share">' + Math.round(share * 100) + ' %</span>' +
-      '<span class="pareto-cumul">' + Math.round(cumul * 100) + ' %</span>' +
-    '</div>';
-  }).join('');
-  host.innerHTML = '<div class="pareto-list">' + head + list + '</div>';
+    return { share:share, cumulative:cumul };
+  });
+  var accessible = rows.map(function (row, i) {
+    return row.label + ' : ' + fmtEUR(row.amount) + ', part ' + fmtPct(shares[i].share, 1) + ', cumul ' + fmtPct(shares[i].cumulative, 1);
+  }).join('. ');
+  host.innerHTML = '<div class="client-distribution-chart" style="height:' + (rows.length * 40 + 54) + 'px"><canvas id="chart-margin-by-client" role="img" aria-label="' + esc(accessible) + '">' + esc(accessible) + '</canvas></div>';
+  var style = getComputedStyle(host);
+  var color = function (name) { return style.getPropertyValue(name).trim(); };
+  var compact = false;
+  makeChart('chart-margin-by-client', {
+    type:'bar',
+    data:{ labels:rows.map(function (row) { return row.label; }), datasets:[{
+      label:'Montant', data:rows.map(function (row) { return row.amount; }),
+      backgroundColor:rows.map(function (row, i) { return _hexAlpha(color('--teal'), row.other ? 0.32 : Math.max(0.42, 1 - i * 0.12)); }),
+      barThickness:19, borderRadius:6, borderSkipped:false
+    }] },
+    plugins:[{
+      id:'clientDistributionLabels',
+      beforeLayout:function (chart) {
+        compact = chart.width < 450;
+        chart.options.layout.padding.left = compact ? 82 : Math.min(160, chart.width * 0.25);
+        chart.options.layout.padding.right = compact ? 88 : 116;
+      },
+      afterDatasetsDraw:function (chart) {
+        var ctx = chart.ctx;
+        ctx.save();
+        function text(value, x, y, fill, align, size) {
+          ctx.font = '700 ' + size + 'px ' + CHART_FONT;
+          ctx.fillStyle = fill; ctx.textAlign = align; ctx.fillText(value, x, y);
+        }
+        var partX = chart.width - (compact ? 47 : 61);
+        text('CLIENT', 0, 12, color('--text-faint'), 'left', 10);
+        text('PART', partX, 12, color('--text-faint'), 'right', 10);
+        text('CUMUL', chart.width, 12, color('--text-faint'), 'right', 10);
+        rows.forEach(function (row, i) {
+          var y = chart.scales.y.getPixelForValue(i) + 4;
+          var size = compact ? 11 : 12.5;
+          ctx.font = '700 ' + size + 'px ' + CHART_FONT;
+          var label = row.label, maxWidth = chart.chartArea.left - 10;
+          if (ctx.measureText(label).width > maxWidth) {
+            while (label.length && ctx.measureText(label + '…').width > maxWidth) label = label.slice(0, -1);
+            label += '…';
+          }
+          text(label, 0, y, color('--text'), 'left', size);
+          text(Math.round(shares[i].share * 100) + ' %', partX, y, color('--text'), 'right', 11);
+          text(Math.round(shares[i].cumulative * 100) + ' %', chart.width, y, color('--text-dim'), 'right', 11);
+        });
+        ctx.restore();
+      }
+    }],
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      layout:{ padding:{ top:24, left:100, right:116 } },
+      interaction:{ mode:'index', intersect:false },
+      plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label:function (context) {
+        var i = context.dataIndex;
+        return ['Montant : ' + fmtEUR(rows[i].amount), 'Part : ' + fmtPct(shares[i].share, 1), 'Cumul : ' + fmtPct(shares[i].cumulative, 1)];
+      } } } },
+      scales:{
+        x:{ beginAtZero:true, border:{ display:false }, grid:{ color:color('--border'), drawTicks:false },
+          ticks:{ maxTicksLimit:3, maxRotation:0, color:color('--text-faint'), font:{ size:10 }, callback:function (value) { return fmtEUR(value); } } },
+        y:{ display:false, offset:true }
+      }
+    }
+  });
 }
 
 function renderMonthlyChart(cy, years, curYear) {
