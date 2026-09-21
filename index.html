@@ -1049,6 +1049,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .actual-progress-item strong { color:var(--text); font-size:24px; font-weight:900; letter-spacing:-.035em; line-height:1.1; font-variant-numeric:tabular-nums; }
 .actual-progress-item .ahead { color:var(--green); }
 .actual-progress-item .behind { color:var(--amber); }
+.actual-progress-item .pace { color:var(--orange); }
 @media(max-width:1150px) { .actual-performance-footer { align-items:flex-start; flex-direction:column; } .actual-performance-comparison { align-items:flex-start; text-align:left; } }
 @media(max-width:700px) { .actual-performance-card { padding:18px; } .actual-progress-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; } }
 @media(max-width:420px) { .actual-progress-grid { grid-template-columns:1fr; gap:14px; } }
@@ -2933,8 +2934,8 @@ function _actualPerformanceCardHTML(cfg) {
       (currentRest ? '<div class="mbx-gauge-callout remaining"><strong>' + fmtEUR(currentRest) + '</strong><span>' + remainingPct + '% Restant</span></div>' : '') +
     '</div></div></div></div>' +
     '<div class="actual-performance-footer"><div class="actual-progress-grid">' +
-      '<div class="actual-progress-item"><strong>' + fmtPct(yearProgress, 1) + '</strong><span>de l’année écoulée</span></div>' +
       '<div class="actual-progress-item"><strong>' + attainment + ' %</strong><span>de l’objectif atteint</span></div>' +
+      '<div class="actual-progress-item"><strong class="pace">' + fmtPct(yearProgress, 1) + '</strong><span>de l’année écoulée</span></div>' +
       '<div class="actual-progress-item"><strong class="' + paceClass + '">' + paceSign + fmtEUR(Math.abs(paceGap)) + '</strong><span>' + (paceGap >= 0 ? 'd’avance sur le rythme' : 'de retard sur le rythme') + '</span></div>' +
     '</div><div class="actual-performance-comparison">' + pillHtml + comparison + '</div></div></section>';
 }
