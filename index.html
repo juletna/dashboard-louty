@@ -1025,6 +1025,10 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 #cap-actual .mbx-main,#cap-actual .mbx-objective { background:light-dark(#fff,#202020); border-color:light-dark(#dadce1,#454545); }
 .cap-stat-icon { position:absolute; top:16px; right:16px; width:42px; height:42px; border-radius:10px; background:light-dark(#eeeeef,#313134); color:var(--text-dim); }
 .cap-stat-icon svg { width:23px; height:23px; }
+.cap-need.cap-margin .cap-stat-icon { background:var(--violet-bg); color:var(--violet); }
+.cap-need.cap-revenue .cap-stat-icon { background:light-dark(#deedff,#293f59); color:var(--ca-blue); }
+#cap-actual .cap-stat-icon.positive { background:var(--green-bg); color:var(--green); }
+#cap-actual .cap-stat-icon.warning { background:var(--amber-bg); color:var(--amber); }
 .cap-label,.cap-metric-title,.cap-secondary-metric,#cap-actual .mbx-head { padding-right:48px; }
 .cap-salary .cap-value,.cap-need > strong,#cap-actual .mbx-hero { font-size:36px; font-weight:800; line-height:1.15; letter-spacing:-.03em; margin:8px 0 12px; }
 .cap-salary .cap-value { margin-bottom:0; }
@@ -2700,7 +2704,7 @@ function _planOrigin(value, reference, ref, formatter, n1Reference, hideReferenc
     (same || sameN1 || hideReferenceNote ? '' : ' <span class="cap-reference-note">Réf. ' + ref.label + ' : ' + formatter(reference) + '</span>');
 }
 
-function capIcon(kind) {
+function capIcon(kind, tone) {
   var paths = {
     wallet: '<path d="M20 8V5a2 2 0 0 0-2-2L5 5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h15V8H5a2 2 0 0 1 0-4"/><path d="M20 12h-5v5h5M16 14.5h.01"/>',
     chart: '<path d="M4 14h3v7H4zM10 9h3v12h-3zM16 3h3v18h-3z"/>',
@@ -2708,7 +2712,7 @@ function capIcon(kind) {
     trend: '<path d="m3 17 6-6 4 4 8-10M15 5h6v6"/>',
     calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 15l2.5 2.5L16 12"/>'
   };
-  return '<span class="cap-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + paths[kind] + '</svg></span>';
+  return '<span class="cap-stat-icon' + (tone ? ' ' + tone : '') + '" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + paths[kind] + '</svg></span>';
 }
 
 function renderAnnualCap(data) {
@@ -2898,6 +2902,7 @@ function _statCardHTML(cfg) {
       '<div class="mbx-progress-pace"><strong class="' + paceClass + '">' + paceSign + fmtEUR(Math.abs(paceGap)) + '</strong><span class="mbx-progress-caption">' + paceLabel + '</span></div></div>';
   }
   var attHtml = progressHtml;
+  var actualTone = (yearProgress != null && goal > 0 ? value >= goal * yearProgress : over) ? 'positive' : 'warning';
   var currentTotal = Math.max(value, goal);
   var currentRest = Math.max(0, currentTotal - value);
   var restAccent = cfg.shortLabel === 'CA' ? '#dceeff' : '#ebe2ff';
@@ -2927,9 +2932,9 @@ function _statCardHTML(cfg) {
   }
   var comparison = refSame != null ? '<div class="cap-comparison">vs même période en ' + (refYear || 'N−1') + (refYear ? ' (N−1)' : '') + '</div>' : '';
   var summary = '<div class="mbx-summary">' +
-    '<div class="mbx-main">' + (cfg.summaryOnly ? capIcon('trend') : '') + '<div class="mbx-head"><div class="mbx-title">' + cfg.title + '</div>' + badge + '</div>' +
+    '<div class="mbx-main">' + (cfg.summaryOnly ? capIcon('trend', actualTone) : '') + '<div class="mbx-head"><div class="mbx-title">' + cfg.title + '</div>' + badge + '</div>' +
     '<div class="mbx-heroline"><div class="mbx-hero">' + fmtEUR(value) + '</div>' + pillHtml + '</div>' + comparison + '</div>' +
-    (attHtml ? '<div class="mbx-objective">' + (cfg.summaryOnly ? capIcon('calendar') : '') + '<div class="mbx-prog-head">' + attHtml + '</div></div>' : '') + '</div>';
+    (attHtml ? '<div class="mbx-objective">' + (cfg.summaryOnly ? capIcon('calendar', actualTone) : '') + '<div class="mbx-prog-head">' + attHtml + '</div></div>' : '') + '</div>';
   if (cfg.summaryOnly) return summary;
   return '<div class="card statx-card"><h2 class="mbx-gauges-title">' + (cfg.shortLabel === 'CA' ? 'Avancement du chiffre d’affaires' : 'Avancement de la marge brute') + '</h2>' +
     '<div class="mbx-compare">' + currentGauge + priorGauge + '</div></div>';
