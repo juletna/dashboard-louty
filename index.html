@@ -989,7 +989,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .cap-need-detail + .cap-need-detail { padding-top:14px; border-top:1px solid var(--cap-divider); }
 .cap-ca { display:block; margin-top:4px; }
 .cap-value,.cap-ca,#cap-actual .mbx-progress-line strong,#cap-actual .mbx-progress-pace strong { font-family:inherit; font-size:23px; font-weight:900; letter-spacing:-.035em; font-variant-numeric:tabular-nums; line-height:1.2; }
-.cap-hypotheses { border-color:var(--cap-divider); }
+.cap-hypotheses { border-top:0; border-color:var(--cap-divider); }
 #cap-actual .mbx-summary { display:block; }
 #cap-actual .mbx-head { margin:0; }
 #cap-actual .mbx-heroline { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
@@ -1000,6 +1000,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 #cap-actual .mbx-objective { margin:16px 0 0; padding:14px 0 0; border-radius:0; border-top:1px solid var(--cap-divider); background:transparent; }
 #cap-actual .mbx-progress-title { margin-bottom:5px; }
 #cap-actual .mbx-progress-line,#cap-actual .mbx-progress-pace { font-size:13px; }
+#cap-actual .mbx-progress-line .mbx-attainment { color:var(--text); }
 .mbx-gauges-title { margin-bottom:18px; }
 .mbx-gauge-head { background:light-dark(#f5f5f5,#242424); }
 @media(max-width:1050px) { .cap-summary { gap:14px; padding-left:18px; padding-right:18px; } .cap-need,.cap-actual { padding:16px; } .cap-need > strong,#cap-actual .mbx-hero { font-size:30px; } }
