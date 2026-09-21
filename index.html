@@ -2941,7 +2941,7 @@ function _actualPerformanceCardHTML(cfg) {
     '</div></div></div></div>' +
     '<div class="actual-performance-footer"><div class="actual-progress-grid">' +
       '<div class="actual-progress-item"><strong>' + fmtPct(yearProgress, 1) + '</strong><span>de l’année écoulée</span></div>' +
-      '<div class="actual-progress-item"><strong class="actual-status ' + paceClass + '"><span>' + paceIcon + '</span>' + attainment + ' %</strong><span>de l’objectif atteint</span></div>' +
+      '<div class="actual-progress-item"><strong class="' + paceClass + '">' + attainment + ' %</strong><span>de l’objectif atteint</span></div>' +
       '<div class="actual-progress-item"><strong class="actual-status ' + paceClass + '"><span>' + paceIcon + '</span>' + fmtEUR(Math.abs(paceGap)) + '</strong><span>' + (paceGap >= 0 ? 'd’avance sur le rythme' : 'de retard sur le rythme') + '</span></div>' +
     '</div><div class="actual-performance-comparison">' + pillHtml + comparison + '</div></div></section>';
 }
