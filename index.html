@@ -1000,8 +1000,10 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 #cap-actual .mbx-pill.neg { background:var(--red-bg); }
 .cap-comparison { color:var(--text-dim); font-family:inherit; font-size:13px; font-weight:400; line-height:1.35; margin-top:3px; }
 #cap-actual .mbx-objective { margin:16px 0 0; padding:14px 0 0; border-radius:0; border-top:1px solid var(--cap-divider); background:transparent; }
-#cap-actual .mbx-progress-title { margin-bottom:5px; }
-#cap-actual .mbx-progress-line,#cap-actual .mbx-progress-pace { font-size:13px; }
+#cap-actual .mbx-progress-summary { grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+#cap-actual .mbx-progress-title { grid-column:1 / -1; margin-bottom:0; }
+#cap-actual .mbx-progress-line,#cap-actual .mbx-progress-pace { display:flex; flex-direction:column; align-items:flex-start; gap:2px; font-size:13px; }
+#cap-actual .mbx-progress-caption { display:block; }
 #cap-actual .mbx-progress-line .mbx-attainment { color:var(--text); }
 .mbx-gauges-title { margin-bottom:18px; }
 .mbx-gauge-head { background:light-dark(#f5f5f5,#242424); }
@@ -2851,11 +2853,11 @@ function _statCardHTML(cfg) {
     var paceClass = paceGap >= 0 ? 'ahead' : 'behind';
     var paceLabel = paceGap >= 0 ? 'd’avance sur le rythme' : 'de retard sur le rythme';
     var paceSign = paceGap >= 0 ? '+ ' : '− ';
-    var attainmentLine = attSelf != null ? '<div class="mbx-progress-line"><strong class="mbx-attainment ' + paceClass + '">' + attSelf + ' %</strong> de l’objectif atteint</div>' : '';
+    var attainmentLine = attSelf != null ? '<div class="mbx-progress-line"><strong class="mbx-attainment ' + paceClass + '">' + attSelf + ' %</strong><span class="mbx-progress-caption">de l’objectif atteint</span></div>' : '';
     progressHtml = '<div class="mbx-progress-summary"><div class="mbx-progress-title">Avancement sur l’année</div>' +
-      '<div class="mbx-progress-line"><strong>' + fmtPct(yearProgress, 1) + '</strong> de l’année écoulée</div>' +
+      '<div class="mbx-progress-line"><strong>' + fmtPct(yearProgress, 1) + '</strong><span class="mbx-progress-caption">de l’année écoulée</span></div>' +
       attainmentLine +
-      '<div class="mbx-progress-pace"><strong class="' + paceClass + '">' + paceSign + fmtEUR(Math.abs(paceGap)) + '</strong> ' + paceLabel + '</div></div>';
+      '<div class="mbx-progress-pace"><strong class="' + paceClass + '">' + paceSign + fmtEUR(Math.abs(paceGap)) + '</strong><span class="mbx-progress-caption">' + paceLabel + '</span></div></div>';
   }
   var attHtml = progressHtml;
   var currentTotal = Math.max(value, goal);
