@@ -1034,7 +1034,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .actual-performance-card--ca { --actual-accent:var(--ca-blue); --actual-rest:#dceeff; --actual-rest-text:var(--ca-blue); }
 .actual-performance-main { min-width:0; }
 .actual-performance-gauge { min-width:0; }
-.actual-performance-footer { display:flex; align-items:flex-end; justify-content:space-between; gap:28px; margin-top:28px; }
+.actual-performance-footer { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); align-items:start; gap:24px; margin-top:28px; }
 .actual-performance-comparison { display:grid; align-items:start; gap:4px; text-align:left; }
 #cap-actual .actual-performance-comparison .mbx-pill { align-self:flex-start; justify-self:start; width:max-content; }
 .actual-performance-comparison .cap-comparison { margin-top:0; }
@@ -1048,7 +1048,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .mbx-gauge-pace-gap.ahead { background:var(--green); }
 .actual-performance-card .mbx-gauge-marker.behind { background:var(--orange); }
 .actual-performance-card .mbx-gauge-marker.ahead { background:var(--green); }
-.actual-progress-grid { display:grid; grid-template-columns:repeat(3,minmax(0,max-content)); gap:32px 64px; }
+.actual-progress-grid { display:contents; }
 .actual-progress-item { display:grid; gap:4px; color:var(--text-dim); font-size:12.5px; line-height:1.35; }
 .actual-progress-item strong { color:var(--text); font-size:24px; font-weight:900; letter-spacing:-.035em; line-height:1.1; font-variant-numeric:tabular-nums; }
 .actual-progress-item .ahead { color:var(--green); }
@@ -1057,9 +1057,9 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .actual-progress-item strong.actual-status.ahead { background:var(--green-bg); }
 .actual-progress-item strong.actual-status.behind { background:var(--amber-bg); }
 .actual-progress-item .pace { color:var(--orange); }
-@media(max-width:1150px) { .actual-performance-footer { align-items:flex-start; flex-direction:column; } .actual-performance-comparison { align-items:flex-start; text-align:left; } }
-@media(max-width:700px) { .actual-performance-card { padding:18px; } .actual-progress-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; } }
-@media(max-width:420px) { .actual-progress-grid { grid-template-columns:1fr; gap:14px; } }
+@media(max-width:1150px) { .actual-performance-footer { grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px 24px; } }
+@media(max-width:700px) { .actual-performance-card { padding:18px; } .actual-performance-footer { gap:18px; } }
+@media(max-width:420px) { .actual-performance-footer { grid-template-columns:1fr; gap:14px; } }
 .cap-stat,.cap-need.cap-margin,.cap-need.cap-revenue { border-color:transparent; }
 .cap-label,.cap-metric-title,.cap-secondary-metric,#cap-actual .mbx-head { padding-right:0; }
 .cap-salary .cap-value,.cap-need > strong,#cap-actual .mbx-hero { font-size:36px; font-weight:800; line-height:1.15; letter-spacing:-.03em; margin:8px 0 12px; }
