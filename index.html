@@ -811,13 +811,13 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .mbx-cell.right { text-align:right; }
 .mbx-cell.over .mbx-cell-val { color:var(--green); }
 .mbx-compare { display:grid; gap:0; }
-.mbx-gauge { display:grid; grid-template-columns:156px minmax(0,1fr); gap:18px; align-items:center; }
-.mbx-gauge-head { display:grid; gap:8px; margin:0; padding:0; background:transparent; }
+.mbx-gauge { display:block; }
+.mbx-gauge-head { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:20px; padding:14px 16px; border-radius:9px; background:var(--bg-inset); }
 .mbx-gauge-period { display:flex; align-items:baseline; gap:9px; color:var(--text-dim); line-height:1.18; }
 .mbx-gauge-period strong { color:var(--text); font-size:18px; font-weight:800; }
 .mbx-gauge-period span { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.045em; }
 /* Reserve space inside the plot for both two-line callouts, without collapsing margins. */
-.mbx-gauge-plot { position:relative; min-width:0; width:auto !important; margin:0; padding:42px 0; overflow:visible; }
+.mbx-gauge-plot { position:relative; min-width:0; margin:0; padding:60px 0; overflow:visible; }
 .mbx-gauge-track { position:relative; height:16px; overflow:visible; border-radius:999px; background:var(--bg-soft); }
 .mbx-gauge-fill,.mbx-gauge-rest { position:absolute; top:0; bottom:0; }
 .mbx-gauge-fill.current { background:var(--gauge-accent); border-radius:999px 0 0 999px; }
@@ -834,10 +834,10 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .mbx-gauge-callout.remaining strong { color:var(--gauge-rest-text); }
 .mbx-gauge-callout.remaining.prior strong { color:#77727e; }
 .mbx-gauge-callout span,.mbx-gauge-total span { margin-top:0; color:var(--text-dim); font-size:12.5px; font-weight:500; }
-.mbx-gauge-total { display:flex; flex-direction:column; align-items:flex-start; gap:2px; min-width:0; white-space:nowrap; text-align:left; }
+.mbx-gauge-total { display:flex; align-items:baseline; justify-content:flex-end; gap:6px; min-width:0; white-space:nowrap; text-align:right; }
 .mbx-gauge-total strong { color:var(--text); font-size:15px; font-weight:800; font-variant-numeric:tabular-nums; }
 .mbx-gauge-total span { margin:0; color:var(--text-dim); font-size:10px; font-weight:800; letter-spacing:.07em; text-transform:uppercase; }
-@media (max-width:700px) { .mbx-gauge { grid-template-columns:1fr; gap:6px; align-items:stretch; } .mbx-gauge-head { display:flex; justify-content:space-between; align-items:flex-start; } .mbx-gauge-period { flex-direction:row; gap:6px; } .mbx-gauge-total { align-items:flex-end; gap:3px; text-align:right; } .mbx-gauge-total span { font-size:9px; } .mbx-gauge-total strong { font-size:13px; } .mbx-gauge-plot { padding:42px 0; } .mbx-gauge-callout { gap:3px; font-size:11px; } .mbx-gauge-callout strong { font-size:13px; } .mbx-gauge-callout.remaining { transform:translateX(-100%); } }
+@media (max-width:700px) { .mbx-gauge-head { align-items:flex-start; } .mbx-gauge-period { flex-direction:column; gap:4px; } .mbx-gauge-total { flex-direction:column; align-items:flex-end; gap:3px; } }
 @media (max-width:900px) { .mbx-summary { grid-template-columns:1fr; gap:16px; } }
 .statx-card { height:100%; }
 
