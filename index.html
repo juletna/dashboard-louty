@@ -1002,7 +1002,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 #cap-actual .mbx-pill.neg { background:var(--red-bg); }
 .cap-comparison { color:var(--text-dim); font-family:inherit; font-size:13px; font-weight:400; line-height:1.35; margin-top:3px; }
 #cap-actual .mbx-objective { margin:16px 0 0; padding:14px 0 0; border-radius:0; border-top:1px solid var(--cap-divider); background:transparent; }
-#cap-actual .mbx-progress-summary { grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+#cap-actual .mbx-progress-summary { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
 #cap-actual .mbx-progress-title { grid-column:1 / -1; margin-bottom:0; }
 #cap-actual .mbx-progress-line,#cap-actual .mbx-progress-pace { display:flex; flex-direction:column; align-items:flex-start; gap:2px; font-size:13px; }
 #cap-actual .mbx-progress-caption { display:block; }
@@ -1041,7 +1041,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 #cap-actual .mbx-progress-summary { width:100%; gap:14px; }
 @media(max-width:1150px) { .cap-summary { grid-template-columns:1fr 1fr; } .cap-summary > .cap-need-wrap:last-child { grid-column:1 / -1; } }
 @media(max-width:800px) { .cap-summary { grid-template-columns:1fr; grid-template-rows:none; } .cap-aims,.cap-need-wrap { grid-row:auto; grid-template-rows:auto repeat(2,minmax(146px,auto)); gap:10px; } }
-@media(max-width:420px) { .cap-stat,.cap-need,#cap-actual .mbx-main,#cap-actual .mbx-objective { padding:16px; } #cap-actual .mbx-progress-summary { gap:12px 8px; } #cap-actual .mbx-progress-line strong,#cap-actual .mbx-progress-pace strong { font-size:20px; } #cap-actual .mbx-progress-summary { grid-template-columns:1fr 1fr; } #cap-actual .mbx-progress-pace { grid-column:1 / -1; } }
+@media(max-width:420px) { .cap-stat,.cap-need,#cap-actual .mbx-main,#cap-actual .mbx-objective { padding:16px; } #cap-actual .mbx-progress-summary { gap:12px 8px; } #cap-actual .mbx-progress-line strong,#cap-actual .mbx-progress-pace strong { font-size:20px; } #cap-actual .mbx-progress-summary { grid-template-columns:1fr 1fr; } }
 </style>
 <script>try{var _t=localStorage.getItem("cabestan_dashboard_theme");if(_t==="dark"||_t==="light")document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 </head>
@@ -2900,7 +2900,8 @@ function _statCardHTML(cfg) {
     progressHtml = '<div class="mbx-progress-summary"><div class="mbx-progress-title">Avancement sur l’année</div>' +
       '<div class="mbx-progress-line"><strong>' + fmtPct(yearProgress, 1) + '</strong><span class="mbx-progress-caption">de l’année écoulée</span></div>' +
       attainmentLine +
-      '<div class="mbx-progress-pace"><strong class="' + paceClass + '">' + paceSign + fmtEUR(Math.abs(paceGap)) + '</strong><span class="mbx-progress-caption">' + paceLabel + '</span></div></div>';
+      '<div class="mbx-progress-pace"><strong class="' + paceClass + '">' + paceSign + fmtEUR(Math.abs(paceGap)) + '</strong><span class="mbx-progress-caption">' + paceLabel + '</span></div>' +
+      (cfg.summaryOnly && cfg.shortLabel === 'MB' ? '<div class="mbx-progress-line"><strong>' + fmtEUR(Math.max(0, goal - value)) + '</strong><span class="mbx-progress-caption">de marge brute restant à réaliser</span></div>' : '') + '</div>';
   }
   var attHtml = progressHtml;
   var actualTone = (yearProgress != null && goal > 0 ? value >= goal * yearProgress : over) ? 'positive' : 'warning';
