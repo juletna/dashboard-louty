@@ -1011,6 +1011,33 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 @media(max-width:1050px) { .cap-summary { gap:14px; padding-left:18px; padding-right:18px; } .cap-need,.cap-actual { padding:16px; } .cap-need > strong,#cap-actual .mbx-hero { font-size:30px; } }
 @media(max-width:800px) { .cap-summary { grid-template-columns:1fr; } .cap-personal-goals { grid-template-columns:1fr 1fr; grid-template-rows:auto; } }
 @media(max-width:420px) { .cap-personal-goals { grid-template-columns:1fr; } }
+
+/* Six cartes alignées : les lignes partagées suivent le contenu le plus haut. */
+.cap-summary { grid-template-rows:auto repeat(2,minmax(146px,1fr)); gap:10px 20px; }
+.cap-aims,.cap-need-wrap { display:grid; grid-row:span 3; grid-template-rows:subgrid; row-gap:inherit; }
+.cap-aims-title,.cap-need-kicker { margin:0 0 2px; }
+.cap-personal-goals,.cap-actual,#cap-actual .mbx-summary { display:contents; }
+.cap-stat,.cap-need,#cap-actual .mbx-main,#cap-actual .mbx-objective { position:relative; min-width:0; margin:0; padding:18px; border:1px solid var(--cap-divider); border-radius:12px; }
+.cap-stat { background:var(--cap-neutral); }
+.cap-need.cap-margin { background:light-dark(#f7f3ff,#2b243b); border-color:light-dark(#e3d8fa,#4d3b69); }
+.cap-need.cap-revenue { background:light-dark(#f0f7ff,#202e3d); border-color:light-dark(#cce3fa,#365472); }
+#cap-actual .mbx-main,#cap-actual .mbx-objective { background:light-dark(#fff,#202020); border-color:light-dark(#dadce1,#454545); }
+.cap-stat-icon { position:absolute; top:16px; right:16px; width:42px; height:42px; border-radius:10px; background:light-dark(#ece3ff,#3d2d56); color:var(--mb-violet); }
+.cap-stat-icon svg { width:23px; height:23px; }
+.cap-revenue .cap-stat-icon { background:light-dark(#deedff,#293f59); color:var(--ca-blue); }
+#cap-actual .cap-stat-icon { background:var(--green-bg); color:var(--green); }
+.cap-label,.cap-metric-title,.cap-secondary-metric,#cap-actual .mbx-head { padding-right:48px; }
+.cap-salary .cap-value,.cap-need > strong,#cap-actual .mbx-hero { font-size:36px; font-weight:800; line-height:1.15; letter-spacing:-.03em; margin:8px 0 12px; }
+.cap-salary .cap-value { margin-bottom:0; }
+.cap-need-detail { margin:0; }
+.cap-need-detail.cap-secondary-metric { padding-top:0; border:0; }
+.cap-ca { margin-top:8px; }
+.cap-hypotheses { margin-top:12px; padding-top:0; }
+#cap-actual .mbx-prog-head { margin:0; }
+#cap-actual .mbx-progress-summary { width:100%; gap:14px; }
+@media(max-width:1150px) { .cap-summary { grid-template-columns:1fr 1fr; } .cap-summary > .cap-need-wrap:last-child { grid-column:1 / -1; } }
+@media(max-width:800px) { .cap-summary { grid-template-columns:1fr; grid-template-rows:none; } .cap-aims,.cap-need-wrap { grid-row:auto; grid-template-rows:auto repeat(2,minmax(146px,auto)); gap:10px; } }
+@media(max-width:420px) { .cap-stat,.cap-need,#cap-actual .mbx-main,#cap-actual .mbx-objective { padding:16px; } #cap-actual .mbx-progress-summary { gap:12px 8px; } #cap-actual .mbx-progress-line strong,#cap-actual .mbx-progress-pace strong { font-size:20px; } #cap-actual .mbx-progress-summary { grid-template-columns:1fr 1fr; } #cap-actual .mbx-progress-pace { grid-column:1 / -1; } }
 </style>
 <script>try{var _t=localStorage.getItem("cabestan_dashboard_theme");if(_t==="dark"||_t==="light")document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 </head>
@@ -2674,6 +2701,16 @@ function _planOrigin(value, reference, ref, formatter, n1Reference, hideReferenc
     (same || sameN1 || hideReferenceNote ? '' : ' <span class="cap-reference-note">Réf. ' + ref.label + ' : ' + formatter(reference) + '</span>');
 }
 
+function capIcon(kind) {
+  var paths = {
+    wallet: '<path d="M20 8V5a2 2 0 0 0-2-2L5 5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h15V8H5a2 2 0 0 1 0-4"/><path d="M20 12h-5v5h5M16 14.5h.01"/>',
+    chart: '<path d="M4 14h3v7H4zM10 9h3v12h-3zM16 3h3v18h-3z"/>',
+    compass: '<circle cx="12" cy="12" r="9"/><path d="m16 8-3 5-5 3 3-5z"/>',
+    trend: '<path d="m3 17 6-6 4 4 8-10M15 5h6v6"/>'
+  };
+  return '<span class="cap-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + paths[kind] + '</svg></span>';
+}
+
 function renderAnnualCap(data) {
   var host = document.getElementById('annual-cap');
   if (!host) return;
@@ -2694,10 +2731,10 @@ function renderAnnualCap(data) {
     '<div class="annual-cap-head"><div><h2 id="annual-cap-title">Mon cap annuel</h2><p class="annual-cap-intro">Tes objectifs personnels fixent les repères du tableau de bord.</p></div><button type="button" class="btn ghost" id="cap-edit" aria-haspopup="dialog" aria-controls="cap-drawer">Modifier mes objectifs</button></div>' +
     '<div class="cap-summary">' +
       '<div class="cap-aims"><span class="cap-aims-title">Ce que je vise</span><div class="cap-personal-goals">' +
-        '<div class="cap-stat"><span class="cap-stat-copy"><span class="cap-label">Mon salaire net mensuel</span><span class="cap-value">' + fmtEUR(PLAN.salary / 12 * NET_FROM_GROSS) + ' <span class="cap-unit">/ mois</span></span><span class="cap-note">En ' + ref.n1.year + ' : <b>' + fmtEUR(roundedRefSalary / 12 * NET_FROM_GROSS) + ' / mois</b></span></span></div>' +
-        '<div class="cap-stat"><span class="cap-stat-copy"><span class="cap-label">Mon résultat net annuel</span><span class="cap-value">' + fmtEUR(PLAN.surplus) + ' <span class="cap-unit">/ an</span></span><span class="cap-note">En ' + ref.n1.year + ' : <b>' + fmtEUR(ref.n1.netResult) + '</b></span></span></div>' +
+        '<div class="cap-stat cap-salary">' + capIcon('wallet') + '<span class="cap-stat-copy"><span class="cap-label">Mon salaire net mensuel</span><span class="cap-value">' + fmtEUR(PLAN.salary / 12 * NET_FROM_GROSS) + ' <span class="cap-unit">/ mois</span></span><span class="cap-note">En ' + ref.n1.year + ' : <b>' + fmtEUR(roundedRefSalary / 12 * NET_FROM_GROSS) + ' / mois</b></span></span></div>' +
+        '<div class="cap-stat">' + capIcon('chart') + '<span class="cap-stat-copy"><span class="cap-label">Mon résultat net annuel</span><span class="cap-value">' + fmtEUR(PLAN.surplus) + ' <span class="cap-unit">/ an</span></span><span class="cap-note">En ' + ref.n1.year + ' : <b>' + fmtEUR(ref.n1.netResult) + '</b></span></span></div>' +
       '</div></div>' +
-      '<div class="cap-need-wrap"><span class="cap-need-kicker">Le cap pour y arriver</span><div class="cap-need"><span class="cap-metric-title">Marge brute à réaliser</span><strong><span class="cap-mb">' + fmtEUR(neededMB) + '</span></strong><span class="cap-need-detail">Soit environ <b>' + fmtEUR(neededMB / 12) + ' / mois</b></span><span class="cap-need-detail cap-secondary-metric">Chiffre d’affaires à réaliser <b class="cap-ca">' + fmtEUR(requiredCA) + '</b></span><span class="cap-hypotheses"><span class="cap-hypotheses-label">Hypothèses de calcul :</span><span><b>' + fmtPct(PLAN.margin, 1) + '</b> de marge brute - <b>' + fmtEUR(PLAN.charges) + '</b> de charges annuelles</span></span></div></div>' +
+      '<div class="cap-need-wrap"><span class="cap-need-kicker">Le cap pour y arriver</span><div class="cap-need cap-margin">' + capIcon('compass') + '<span class="cap-metric-title">Marge brute à réaliser</span><strong><span class="cap-mb">' + fmtEUR(neededMB) + '</span></strong><span class="cap-need-detail">Soit environ <b>' + fmtEUR(neededMB / 12) + ' / mois</b></span></div><div class="cap-need cap-revenue">' + capIcon('chart') + '<span class="cap-need-detail cap-secondary-metric">Chiffre d’affaires à réaliser <b class="cap-ca">' + fmtEUR(requiredCA) + '</b></span><span class="cap-hypotheses"><span class="cap-hypotheses-label">Hypothèses de calcul :</span><span><b>' + fmtPct(PLAN.margin, 1) + '</b> de marge brute - <b>' + fmtEUR(PLAN.charges) + '</b> de charges annuelles</span></span></div></div>' +
       '<div class="cap-need-wrap"><span class="cap-need-kicker">Où j’en suis</span><div id="cap-actual" class="cap-actual"></div></div>' +
     '</div>' +
     '<div class="cap-sim" id="cap-sim" hidden>' +
@@ -2888,7 +2925,7 @@ function _statCardHTML(cfg) {
   }
   var comparison = refSame != null ? '<div class="cap-comparison">vs même période en ' + (refYear || 'N−1') + (refYear ? ' (N−1)' : '') + '</div>' : '';
   var summary = '<div class="mbx-summary">' +
-    '<div class="mbx-main"><div class="mbx-head"><div class="mbx-title">' + cfg.title + '</div>' + badge + '</div>' +
+    '<div class="mbx-main">' + (cfg.summaryOnly ? capIcon('trend') : '') + '<div class="mbx-head"><div class="mbx-title">' + cfg.title + '</div>' + badge + '</div>' +
     '<div class="mbx-heroline"><div class="mbx-hero">' + fmtEUR(value) + '</div>' + pillHtml + '</div>' + comparison + '</div>' +
     (attHtml ? '<div class="mbx-objective"><div class="mbx-prog-head">' + attHtml + '</div></div>' : '') + '</div>';
   if (cfg.summaryOnly) return summary;
