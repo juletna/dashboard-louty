@@ -1097,9 +1097,6 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
       <div class="sp-field"><label for="set-RATIO_CIBLE">Cible (en dessous = bon)<span class="sp-help" data-tip="Part des achats matières dans le CA que tu vises. En dessous = bon : tu gardes plus de marge sur ce que tu factures." tabindex="0" aria-label="Part des achats matières dans le CA que tu vises. En dessous = bon : tu gardes plus de marge sur ce que tu factures.">?</span></label><span class="in-wrap"><input type="number" step="0.1" id="set-RATIO_CIBLE" data-key="RATIO_CIBLE"><span class="sp-unit">%</span></span></div>
       <div class="sp-field"><label for="set-RATIO_ALERTE">Alerte (au dessus = à surveiller)<span class="sp-help" data-tip="Part des achats dans le CA à ne pas dépasser. Au-dessus = à surveiller : les achats pèsent trop lourd vs la facturation." tabindex="0" aria-label="Part des achats dans le CA à ne pas dépasser. Au-dessus = à surveiller : les achats pèsent trop lourd vs la facturation.">?</span></label><span class="in-wrap"><input type="number" step="0.1" id="set-RATIO_ALERTE" data-key="RATIO_ALERTE"><span class="sp-unit">%</span></span></div>
     </div>
-    <div class="sp-group"><div class="sp-glabel">Répartition du CA</div>
-      <div class="sp-field"><label for="set-CHARGES_SEUIL_PCT">Seuil détail charges<span class="sp-help" data-tip="Dans le donut de répartition, un poste de charges de fonctionnement qui dépasse ce % du CA ressort en segment dédié (ex. frais kilométriques). En dessous, tous les postes restent groupés dans « Charges de fonctionnement ». Mets 0 pour tout garder groupé." tabindex="0" aria-label="Dans le donut de répartition, un poste de charges de fonctionnement qui dépasse ce % du CA ressort en segment dédié (ex. frais kilométriques). En dessous, tous les postes restent groupés dans « Charges de fonctionnement ». Mets 0 pour tout garder groupé.">?</span></label><span class="in-wrap"><input type="number" step="0.5" id="set-CHARGES_SEUIL_PCT" data-key="CHARGES_SEUIL_PCT"><span class="sp-unit">%</span></span></div>
-    </div>
   </div>
   <div class="sp-foot">
     <button class="btn ghost" id="settings-reset">Réinitialiser</button>
@@ -2474,13 +2471,10 @@ var NET_FROM_GROSS = 0.654926;
 var LEGACY_NET_FROM_GROSS = 0.76;
 var UPLOAD_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
 var PLAN = null;
-// Seuil (part du CA) au-delà duquel un poste de charges de fonctionnement ressort
-// en segment dédié dans le donut de répartition. 0 = jamais (tout reste groupé).
-if (typeof C.CHARGES_SEUIL_PCT !== 'number') C.CHARGES_SEUIL_PCT = 0.05;
 // Valeurs par défaut = celles de C au chargement
 var C_DEFAULTS = JSON.parse(JSON.stringify(C));
 // Clés en pourcentage (stockées en fraction dans C, saisies en % dans l'UI)
-var PCT_KEYS = { TAUX_DANGER:1, TAUX_OBJ:1, TAUX_EXC:1, RATIO_CIBLE:1, RATIO_ALERTE:1, CHARGES_SEUIL_PCT:1 };
+var PCT_KEYS = { TAUX_DANGER:1, TAUX_OBJ:1, TAUX_EXC:1, RATIO_CIBLE:1, RATIO_ALERTE:1 };
 var EUR_KEYS = ['MB_AN_OBJ','CA_OBJ','MB_MIN'];
 var ALL_KEYS = EUR_KEYS.concat(Object.keys(PCT_KEYS));
 var LAST_DATA = null;
@@ -2513,7 +2507,7 @@ function readSettingsForm() {
     if (!el) return;
     var v = parseFloat(String(el.value).replace(',', '.'));
     if (!isFinite(v)) return;
-    if (v <= 0 && k !== 'CHARGES_SEUIL_PCT') return; // objectifs/seuils strictement positifs (évite les divisions par zéro)
+    if (v <= 0) return; // objectifs/seuils strictement positifs (évite les divisions par zéro)
     C[k] = PCT_KEYS[k] ? v / 100 : v;
   });
 }
