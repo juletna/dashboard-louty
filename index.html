@@ -808,7 +808,6 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .mbx-cell.right { text-align:right; }
 .mbx-cell.over .mbx-cell-val { color:var(--green); }
 .mbx-compare { display:grid; gap:0; }
-.mbx-gauge-separator { height:1px; margin:32px 0; background:var(--border); }
 .mbx-gauge { display:block; }
 .mbx-gauge-head { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:20px; padding:14px 16px; border-radius:9px; background:var(--bg-inset); }
 .mbx-gauge-period { display:flex; align-items:baseline; gap:9px; color:var(--text-dim); line-height:1.18; }
@@ -823,7 +822,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .mbx-gauge-fill.prior { background:var(--gray); border-radius:999px 0 0 999px; }
 .mbx-gauge-rest.prior { background:rgba(167,161,180,.28); border-radius:0 999px 999px 0; }
 .mbx-gauge-marker { position:absolute; top:-7px; bottom:-7px; width:6px; transform:translateX(-50%); border-radius:3px; background:var(--text); z-index:2; }
-.mbx-gauge-callout { position:absolute; left:var(--marker-left); transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; text-align:center; white-space:nowrap; }
+.mbx-gauge-callout { position:absolute; left:var(--marker-left); transform:translateX(-50%); display:flex; align-items:baseline; gap:5px; text-align:center; white-space:nowrap; }
 .mbx-gauge-callout.realized { bottom:calc(100% + 12px); }
 .mbx-gauge-callout.remaining { top:calc(100% + 12px); }
 .mbx-gauge-callout strong { font-size:15px; font-weight:800; font-variant-numeric:tabular-nums; }
@@ -831,7 +830,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .mbx-gauge-callout.realized.prior strong { color:#77727e; }
 .mbx-gauge-callout.remaining strong { color:#ff934b; }
 .mbx-gauge-callout.remaining.prior strong { color:#77727e; }
-.mbx-gauge-callout span,.mbx-gauge-total span { margin-top:2px; color:var(--text-dim); font-size:12.5px; font-weight:500; }
+.mbx-gauge-callout span,.mbx-gauge-total span { margin-top:0; color:var(--text-dim); font-size:12.5px; font-weight:500; }
 .mbx-gauge-total { display:flex; align-items:baseline; justify-content:flex-end; gap:6px; min-width:0; white-space:nowrap; text-align:right; }
 .mbx-gauge-total strong { color:var(--text); font-size:15px; font-weight:800; font-variant-numeric:tabular-nums; }
 .mbx-gauge-total span { margin:0; color:var(--text-dim); font-size:10px; font-weight:800; letter-spacing:.07em; text-transform:uppercase; }
@@ -2876,7 +2875,6 @@ function _statCardHTML(cfg) {
       (priorRest ? '<div class="mbx-gauge-callout remaining prior"><strong>' + fmtEUR(priorRest) + '</strong><span>' + priorRestPct + '% Restant</span></div>' : '') +
       '</div></div></div>';
   }
-  var gaugeSeparator = priorGauge ? '<div class="mbx-gauge-separator" aria-hidden="true"></div>' : '';
   var comparison = refSame != null ? '<div class="cap-comparison">vs même période en ' + (refYear || 'N−1') + (refYear ? ' (N−1)' : '') + '</div>' : '';
   var summary = '<div class="mbx-summary">' +
     '<div class="mbx-main"><div class="mbx-head"><div class="mbx-title">' + cfg.title + '</div>' + badge + '</div>' +
@@ -2884,7 +2882,7 @@ function _statCardHTML(cfg) {
     (attHtml ? '<div class="mbx-objective"><div class="mbx-prog-head">' + attHtml + '</div></div>' : '') + '</div>';
   if (cfg.summaryOnly) return summary;
   return '<div class="card statx-card"><h2 class="mbx-gauges-title">' + (cfg.shortLabel === 'CA' ? 'Avancement du chiffre d’affaires' : 'Avancement de la marge brute') + '</h2>' +
-    '<div class="mbx-compare">' + currentGauge + gaugeSeparator + priorGauge + '</div></div>';
+    '<div class="mbx-compare">' + currentGauge + priorGauge + '</div></div>';
 }
 
 // ---- Ligne 1 : cartes "Marge brute réalisée" + "Chiffre d'affaires cumulé" ----
