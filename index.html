@@ -638,6 +638,7 @@
 .kpi-pill .tri { font-size:8px; }
 
 /* Demi-jauge à graduations */
+.purchase-ratio-chart { position:relative; width:100%; max-width:220px; height:140px; margin:2px auto 0; }
 .gauge-arc { width:100%; max-width:220px; height:auto; display:block; margin:2px auto 0; }
 .gauge-big { fill:var(--text); font-weight:800; font-size:22px; letter-spacing:-0.02em; }
 .gauge-sub { fill:var(--text-dim); font-weight:700; font-size:11px; }
@@ -3420,23 +3421,17 @@ function renderAchats(cy, cur) {
   var gMax = C.RATIO_ALERTE + 0.10;
   var lo = [0, gTop, C.RATIO_CIBLE, C.RATIO_ALERTE];
   var hi = [gTop, C.RATIO_CIBLE, C.RATIO_ALERTE, gMax];
-  var cols = ['#7C5AD6', 'var(--green)', 'var(--amber)', 'var(--red)'];
   var gaugeHtml;
+  if (charts['chart-purchase-ratio']) {
+    charts['chart-purchase-ratio'].destroy(); delete charts['chart-purchase-ratio'];
+  }
   if (ratio !== null) {
     var zi = ratio <= gTop ? 0 : (ratio <= C.RATIO_CIBLE ? 1 : (ratio <= C.RATIO_ALERTE ? 2 : 3));
     var within = Math.max(0, Math.min(1, (ratio - lo[zi]) / ((hi[zi] - lo[zi]) || 1)));
     var frac = (zi + within) / 4;
-    var cx = 100, cy = 100, R = 80, sw = 16;
-    var P = function (f, r) { var a = Math.PI - f * Math.PI; return [(cx + r * Math.cos(a)).toFixed(2), (cy - r * Math.sin(a)).toFixed(2)]; };
-    var arc = function (f1, f2, r) { var p1 = P(f1, r), p2 = P(f2, r); return 'M ' + p1[0] + ' ' + p1[1] + ' A ' + r + ' ' + r + ' 0 0 1 ' + p2[0] + ' ' + p2[1]; };
-    var segs = '';
-    for (var qi = 0; qi < 4; qi++) { segs += '<path d="' + arc(qi / 4, (qi + 1) / 4, R) + '" fill="none" stroke="' + cols[qi] + '" stroke-width="' + sw + '"/>'; }
-    var mi = P(frac, R - sw / 2 - 3), mo = P(frac, R + sw / 2 + 3);
-    var marker = '<line x1="' + mi[0] + '" y1="' + mi[1] + '" x2="' + mo[0] + '" y2="' + mo[1] + '" stroke="var(--text)" stroke-width="4.5" stroke-linecap="round"/>';
-    var label = zi === 0 ? 'au top' : (zi === 1 ? 'bon' : (zi === 2 ? 'à surveiller' : 'alerte'));
-    gaugeHtml = '<svg class="gauge-arc" viewBox="0 0 200 126">' + segs + marker +
-      '<text class="gauge-big" x="100" y="86" text-anchor="middle">' + fmtPct(ratio, 1) + '</text>' +
-      '<text class="gauge-sub" x="100" y="108" text-anchor="middle">' + label + '</text></svg>';
+    var label = ['au top', 'bon', 'à surveiller', 'alerte'][zi];
+    var description = 'Ratio achats / CA : ' + fmtPct(ratio, 1) + ', ' + label;
+    gaugeHtml = '<div class="purchase-ratio-chart"><canvas id="chart-purchase-ratio" role="img" aria-label="' + esc(description) + '">' + esc(description) + '</canvas></div>';
   } else {
     gaugeHtml = '<div class="ratio-big">—</div>';
   }
@@ -3458,7 +3453,56 @@ function renderAchats(cy, cur) {
       '<span class="rl-item"><span class="rl-dot" style="background:var(--red)"></span>Alerte &gt; ' + fmtPct(C.RATIO_ALERTE, 0) + '</span>' +
     '</div>' +
     '<table class="mini-annual"><thead><tr><th>Année</th><th>Achats</th><th>Ratio / CA</th></tr></thead><tbody>' + rowsHtml + '</tbody></table>';
+  if (ratio !== null) _renderPurchaseRatioChart(ratio, frac, label, gTop);
+
 };
+
+// Chart.js owns the four equal qualitative zones; only the marker and
+// center labels are drawn by the local plugin, using the arc geometry.
+function _renderPurchaseRatioChart(ratio, fraction, label, topThreshold) {
+  var canvas = document.getElementById('chart-purchase-ratio');
+  var style = getComputedStyle(canvas);
+  var color = function (name) { return style.getPropertyValue(name).trim(); };
+  makeChart('chart-purchase-ratio', {
+    type:'doughnut',
+    data:{ labels:['Au top', 'Bon', 'À surveiller', 'Alerte'], datasets:[{
+      data:[1, 1, 1, 1], backgroundColor:['#7C5AD6', color('--green'), color('--amber'), color('--red')],
+      borderWidth:0, hoverOffset:0
+    }] },
+    plugins:[{
+      id:'purchaseRatioMarker',
+      afterDatasetsDraw:function (chart) {
+        var arcs = chart.getDatasetMeta(0).data;
+        if (!arcs.length) return;
+        var arc = arcs[0], last = arcs[arcs.length - 1];
+        var angle = arc.startAngle + fraction * (last.endAngle - arc.startAngle);
+        var ctx = chart.ctx;
+        ctx.save(); ctx.strokeStyle = color('--text'); ctx.lineWidth = 4.5; ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(arc.x + (arc.innerRadius - 3) * Math.cos(angle), arc.y + (arc.innerRadius - 3) * Math.sin(angle));
+        ctx.lineTo(arc.x + (arc.outerRadius + 3) * Math.cos(angle), arc.y + (arc.outerRadius + 3) * Math.sin(angle));
+        ctx.stroke();
+        ctx.textAlign = 'center'; ctx.fillStyle = color('--text'); ctx.font = '800 24px ' + CHART_FONT;
+        ctx.fillText(fmtPct(ratio, 1), arc.x, arc.y - 14);
+        ctx.fillStyle = color('--text-dim'); ctx.font = '700 12px ' + CHART_FONT;
+        ctx.fillText(label, arc.x, arc.y + 10);
+        ctx.restore();
+      }
+    }],
+    options:{ responsive:true, maintainAspectRatio:false, rotation:-90, circumference:180, cutout:'82%', animation:false,
+      layout:{ padding:{ top:10, left:10, right:10, bottom:24 } },
+      plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label:function (context) {
+        var boundaries = [
+          'Jusqu’à ' + fmtPct(topThreshold, 1),
+          'De ' + fmtPct(topThreshold, 1) + ' à ' + fmtPct(C.RATIO_CIBLE, 1),
+          'De ' + fmtPct(C.RATIO_CIBLE, 1) + ' à ' + fmtPct(C.RATIO_ALERTE, 1),
+          'Au-delà de ' + fmtPct(C.RATIO_ALERTE, 1)
+        ];
+        return [boundaries[context.dataIndex], 'Ratio actuel : ' + fmtPct(ratio, 1)];
+      } } } }
+    }
+  });
+}
 
 // ---- "Tendance achats annuels" : comparaison horizontale (barre + montant + badge ratio) ----
 function renderTrendChart(years) {
