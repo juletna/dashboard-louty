@@ -3773,21 +3773,31 @@ function _disposeEChartGauge(id) {
   if (!entry) return;
   entry.observer.disconnect(); entry.chart.dispose(); delete echartGauges[id];
 }
-function _makeEChartGauge(id, series, tooltipText) {
+function _makeEChartGauge(id, series, tooltipText, displayRate) {
   var host = document.getElementById(id);
   var existing = echartGauges[id];
   if (existing && existing.chart.getDom() !== host) { _disposeEChartGauge(id); existing = null; }
   var style = getComputedStyle(host);
   var chart = existing ? existing.chart : LoutyECharts.init(host, null, { renderer:'svg', width:host.clientWidth || 220, height:140 });
   var animate = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  chart.setOption({ animation:animate, animationDuration:900, animationEasing:'cubicOut',
-    animationDurationUpdate:600, animationEasingUpdate:'cubicOut', textStyle:{ fontFamily:CHART_FONT },
+  // Same easing as Chart.js (easeOutQuart), with a slower arrival at the target.
+  chart.setOption({ animation:animate, animationDuration:1800, animationEasing:'quarticOut',
+    animationDurationUpdate:1800, animationEasingUpdate:'quarticOut', textStyle:{ fontFamily:CHART_FONT },
     tooltip:{ trigger:'item', confine:true, formatter:function () { return tooltipText; } },
     series:[Object.assign({ type:'gauge', startAngle:180, endAngle:0, center:['50%', '80%'], radius:'140%',
       axisTick:{ show:false }, splitLine:{ show:false }, axisLabel:{ show:false }, anchor:{ show:false },
       title:{ offsetCenter:[0, '8%'], color:style.getPropertyValue('--text-dim').trim(), fontSize:12, fontWeight:700 },
-      detail:{ offsetCenter:[0, '-18%'], color:style.getPropertyValue('--text').trim(), fontSize:24, fontWeight:800 }
-    }, series)]
+      detail:{ show:false }
+    }, series), {
+      // Animate the actual percentage independently of the arc's mapped/clamped scale.
+      type:'gauge', center:['50%', '80%'], radius:'140%', silent:true,
+      axisLine:{ show:false }, axisTick:{ show:false }, splitLine:{ show:false },
+      axisLabel:{ show:false }, pointer:{ show:false }, anchor:{ show:false }, title:{ show:false },
+      detail:{ valueAnimation:animate, offsetCenter:[0, '-18%'],
+        color:style.getPropertyValue('--text').trim(), fontSize:24, fontWeight:800,
+        formatter:function (value) { return fmtPct(value / 100, 1); } },
+      data:[{ value:displayRate * 100 }]
+    }]
   });
   if (existing) return;
   var observer = new ResizeObserver(function () {
@@ -3803,8 +3813,8 @@ function _renderPurchaseRatioChart(ratio, fraction, label, topThreshold) {
     min:0, max:1,
     axisLine:{ lineStyle:{ width:18, color:[[0.25, '#7C5AD6'], [0.5, color('--green')], [0.75, color('--amber')], [1, color('--red')]] } },
     pointer:{ icon:'roundRect', length:26, width:4.5, offsetCenter:[0, '-79%'], itemStyle:{ color:color('--text') } },
-    data:[{ value:fraction, name:label, detail:{ formatter:function () { return fmtPct(ratio, 1); } } }]
-  }, 'Ratio actuel : ' + fmtPct(ratio, 1) + '<br>Au top ≤ ' + fmtPct(topThreshold, 1) + '<br>Bon ≤ ' + fmtPct(C.RATIO_CIBLE, 1) + '<br>À surveiller ≤ ' + fmtPct(C.RATIO_ALERTE, 1) + '<br>Alerte au-delà');
+    data:[{ value:fraction, name:label }]
+  }, 'Ratio actuel : ' + fmtPct(ratio, 1) + '<br>Au top ≤ ' + fmtPct(topThreshold, 1) + '<br>Bon ≤ ' + fmtPct(C.RATIO_CIBLE, 1) + '<br>À surveiller ≤ ' + fmtPct(C.RATIO_ALERTE, 1) + '<br>Alerte au-delà', ratio);
 }
 
 // ---- "Tendance achats annuels" : comparaison horizontale (barre + montant + badge ratio) ----
@@ -3848,8 +3858,8 @@ function _renderMarginRateChart(rate) {
     min:0, max:80, pointer:{ show:false },
     axisLine:{ roundCap:true, lineStyle:{ width:17, color:[[1, style.getPropertyValue('--border-strong').trim()]] } },
     progress:{ show:true, roundCap:true, width:17, itemStyle:{ color:'#7C5AD6' } },
-    data:[{ value:Math.max(0, Math.min(80, rate * 100)), name:label, detail:{ formatter:function () { return fmtPct(rate, 1); } } }]
-  }, 'Taux actuel : ' + fmtPct(rate, 1) + '<br>Objectif : ' + fmtPct(C.TAUX_OBJ, 1) + '<br>Échelle : 0 à 80 %');
+    data:[{ value:Math.max(0, Math.min(80, rate * 100)), name:label }]
+  }, 'Taux actuel : ' + fmtPct(rate, 1) + '<br>Objectif : ' + fmtPct(C.TAUX_OBJ, 1) + '<br>Échelle : 0 à 80 %', rate);
 }
 
 // ---- Refonte carte "Santé financière" : barre de composition (trésorerie = position nette + dettes) ----
