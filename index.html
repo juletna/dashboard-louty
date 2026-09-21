@@ -1042,6 +1042,9 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 #cap-actual .actual-performance-card .mbx-gauge { margin-top:0; }
 #cap-actual .actual-performance-card .mbx-gauge-plot { padding:52px 0 12px; }
 .actual-performance-card .mbx-gauge-track { height:12px; }
+.mbx-gauge-pace-gap { position:absolute; top:0; bottom:0; z-index:1; }
+.mbx-gauge-pace-gap.behind { background:var(--orange); }
+.mbx-gauge-pace-gap.ahead { background:var(--green); }
 .actual-progress-grid { display:grid; grid-template-columns:repeat(3,minmax(0,max-content)); gap:32px 64px; }
 .actual-progress-item { display:grid; gap:4px; color:var(--text-dim); font-size:12.5px; line-height:1.35; }
 .actual-progress-item strong { color:var(--text); font-size:24px; font-weight:900; letter-spacing:-.035em; line-height:1.1; font-variant-numeric:tabular-nums; }
@@ -2916,13 +2919,19 @@ function _actualPerformanceCardHTML(cfg) {
   var paceGap = value - (goal * yearProgress);
   var paceClass = paceGap >= 0 ? 'ahead' : 'behind';
   var paceSign = paceGap >= 0 ? '+ ' : '− ';
+  var paceTarget = Math.max(0, Math.min(currentTotal, goal * yearProgress));
+  var gaugeBase = Math.min(value, paceTarget);
+  var gaugePaceGap = Math.abs(value - paceTarget);
+  var gaugeEnd = Math.max(value, paceTarget);
+  var gaugeRest = Math.max(0, currentTotal - gaugeEnd);
   return '<section class="actual-performance-card actual-performance-card--' + (cfg.shortLabel === 'CA' ? 'ca' : 'mb') + '">' +
     '<div class="actual-performance-main"><div class="mbx-head"><div class="mbx-title">' + cfg.title + '</div></div>' +
       '<div class="mbx-heroline"><div class="mbx-hero">' + fmtEUR(value) + '</div></div>' +
     '</div>' +
-    '<div class="actual-performance-gauge"><div class="mbx-gauge"><div class="mbx-gauge-plot"><div class="mbx-gauge-track" style="--gauge-accent:var(--actual-accent);--gauge-rest:var(--actual-rest);--gauge-rest-text:var(--actual-rest-text)"><div class="mbx-gauge-fill current" style="width:' + ratio(value) + '%"></div>' +
-      (currentRest ? '<div class="mbx-gauge-rest current" style="left:' + ratio(value) + '%; width:' + ratio(currentRest) + '%"></div>' : '') +
-      '<div class="mbx-gauge-marker" style="left:' + ratio(value) + '%"></div>' +
+    '<div class="actual-performance-gauge"><div class="mbx-gauge"><div class="mbx-gauge-plot"><div class="mbx-gauge-track" style="--gauge-accent:var(--actual-accent);--gauge-rest:var(--actual-rest);--gauge-rest-text:var(--actual-rest-text)"><div class="mbx-gauge-fill current" style="width:' + ratio(gaugeBase) + '%"></div>' +
+      (gaugePaceGap ? '<div class="mbx-gauge-pace-gap ' + paceClass + '" style="left:' + ratio(gaugeBase) + '%; width:' + ratio(gaugePaceGap) + '%"></div>' : '') +
+      (gaugeRest ? '<div class="mbx-gauge-rest current" style="left:' + ratio(gaugeEnd) + '%; width:' + ratio(gaugeRest) + '%"></div>' : '') +
+      '<div class="mbx-gauge-marker" style="left:' + ratio(paceTarget) + '%"></div>' +
       '<div class="mbx-gauge-callout realized current"><strong>' + fmtEUR(value) + '</strong><span>' + realizedPct + '% Réalisé</span></div>' +
       (currentRest ? '<div class="mbx-gauge-callout remaining"><strong>' + fmtEUR(currentRest) + '</strong><span>' + remainingPct + '% Restant</span></div>' : '') +
     '</div></div></div></div>' +
