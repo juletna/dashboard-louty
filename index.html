@@ -719,7 +719,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 
 /* Module unifié : performance et structure du CA */
 .performance-structure { margin-top:16px; }
-.performance-distribution-row { margin-top:16px; align-items:stretch; }
+.performance-distribution-row { grid-template-columns:minmax(0,2fr) minmax(0,1fr); margin-top:16px; align-items:stretch; }
 .performance-distribution-row .performance-structure { margin-top:0; }
 .distribution-column { display:flex; flex-direction:column; gap:16px; min-width:0; }
 .performance-distribution-row > .distribution-column { height:100%; }
