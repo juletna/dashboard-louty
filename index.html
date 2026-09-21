@@ -768,20 +768,8 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .annual-progress-delta strong { font-size:14px; font-weight:800; font-variant-numeric:tabular-nums; }
 .annual-progress-delta.average { background:var(--green-bg); }.annual-progress-delta.average strong { color:var(--green); }
 .annual-progress-delta.previous { background:var(--violet-bg); }.annual-progress-delta.previous strong { color:var(--violet); }
-.annual-progress-rows { display:grid; gap:19px; }
-.annual-progress-row { display:grid; grid-template-columns:minmax(112px,.66fr) minmax(180px,2.1fr) minmax(105px,.62fr); align-items:center; gap:14px; }
-.annual-progress-year { min-width:0; }.annual-progress-year strong { display:block; color:var(--text); font-size:16px; font-weight:800; letter-spacing:-.015em; }
-.annual-progress-year span { display:block; margin-top:2px; color:var(--text-faint); font-size:11.5px; font-weight:700; }
-.annual-progress-plot { position:relative; min-width:0; height:46px; padding-top:3px; background-image:linear-gradient(to right, transparent 24.8%, var(--border) 25%, transparent 25.2%, transparent 49.8%, var(--border) 50%, transparent 50.2%, transparent 74.8%, var(--border) 75%, transparent 75.2%); }
-.annual-progress-track { height:14px; width:var(--annual-total-width); border-radius:999px; background:var(--bg-soft); overflow:hidden; }
-.annual-progress-fill { display:block; height:100%; width:var(--annual-realized-width); border-radius:999px 0 0 999px; background:var(--gray); }
-.annual-progress-row.current .annual-progress-fill { background:var(--annual-accent); }
-.annual-progress-realized { display:block; margin-top:5px; color:var(--text-dim); font-size:11.5px; font-weight:600; white-space:nowrap; }
-.annual-progress-realized strong { color:var(--text); font-size:13px; font-weight:800; font-variant-numeric:tabular-nums; }
-.annual-progress-total { min-width:0; text-align:right; }.annual-progress-total strong { display:block; color:var(--text); font-size:16px; font-weight:800; letter-spacing:-.015em; font-variant-numeric:tabular-nums; white-space:nowrap; }
-.annual-progress-total span { display:block; margin-top:2px; color:var(--text-faint); font-size:9.5px; font-weight:800; letter-spacing:.045em; line-height:1.2; text-transform:uppercase; }
-.annual-progress-axis { display:flex; justify-content:space-between; margin:0 calc(105px + 14px) 0 calc(112px + 14px); color:var(--text-faint); font-size:10.5px; font-weight:700; font-variant-numeric:tabular-nums; }
-@media (max-width:700px) { .annual-progress-row { grid-template-columns:minmax(88px,.7fr) minmax(135px,1.8fr) minmax(86px,.62fr); gap:9px; }.annual-progress-year strong { font-size:14px; }.annual-progress-total strong { font-size:13px; }.annual-progress-total span { font-size:8px; }.annual-progress-axis { margin-left:97px; margin-right:95px; }.annual-progress-deltas { margin-bottom:18px; } }
+.annual-progress-chart { position:relative; height:230px; min-width:0; }
+@media (max-width:700px) { .annual-progress-deltas { margin-bottom:18px; } }
 .mbx-head { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
 .mbx-title { font-size:17px; font-weight:800; color:var(--text); letter-spacing:-0.015em; }
 .mbx-badge { display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.03em; color:var(--green); background:var(--green-bg); padding:4px 11px; border-radius:999px; }
@@ -2988,24 +2976,83 @@ function _annualProgressCardHTML(cfg) {
     rows.push({ year:refs[0] + '–' + refs[refs.length - 1], sublabel:'Moyenne', realized:average.realized, total:average.total, totalLabel:'Total annuel moyen' });
   }
   if (previousYear) rows.push({ year:previousYear, sublabel:'Même période', realized:cfg.samePeriod[previousYear].ytd, total:cfg.samePeriod[previousYear].full, totalLabel:'Total annuel' });
-  var maxTotal = Math.max.apply(null, rows.map(function (row) { return row.total || 0; }).concat([1]));
-  var pct = function (value, total) { return total > 0 ? Math.max(0, Math.min(100, value / total * 100)) : 0; };
-  var width = function (total) { return Math.max(0, Math.min(100, total / maxTotal * 100)); };
-  var accent = cfg.shortLabel === 'CA' ? 'var(--ca-blue)' : 'var(--violet)';
-  var chartRows = rows.map(function (row) {
-    return '<div class="annual-progress-row' + (row.current ? ' current' : '') + '" style="--annual-total-width:' + width(row.total) + '%;--annual-realized-width:' + pct(row.realized, row.total) + '%;--annual-accent:' + accent + '">' +
-      '<div class="annual-progress-year"><strong>' + esc(String(row.year)) + '</strong><span>' + esc(row.sublabel) + '</span></div>' +
-      '<div class="annual-progress-plot"><div class="annual-progress-track"><span class="annual-progress-fill"></span></div><span class="annual-progress-realized"><strong>' + fmtEUR(row.realized) + '</strong> réalisé à date</span></div>' +
-      '<div class="annual-progress-total"><strong>' + fmtEUR(row.total) + '</strong><span>' + esc(row.totalLabel) + '</span></div>' +
-    '</div>';
-  }).join('');
   var deltas = [];
   if (average) deltas.push('<span class="annual-progress-delta average"><strong>' + (cfg.value - average.realized >= 0 ? '+' : '−') + fmtEUR(Math.abs(cfg.value - average.realized)) + '</strong>vs ' + esc(refs[0] + '–' + refs[refs.length - 1]) + '</span>');
   if (previousYear) deltas.push('<span class="annual-progress-delta previous"><strong>' + (cfg.value - cfg.samePeriod[previousYear].ytd >= 0 ? '+' : '−') + fmtEUR(Math.abs(cfg.value - cfg.samePeriod[previousYear].ytd)) + '</strong>vs ' + esc(previousYear) + '</span>');
-  var axis = [0, maxTotal / 3, maxTotal * 2 / 3, maxTotal].map(function (value) { return '<span>' + fmtEUR(value) + '</span>'; }).join('');
+  var accessible = rows.map(function (row) {
+    return esc(row.year + ' : ' + fmtEUR(row.realized) + ' réalisé à date, ' + row.totalLabel + ' ' + fmtEUR(row.total));
+  }).join('. ');
   return '<section class="card annual-progress-card"><h2>Comparatif d’avancement annuel</h2><p class="annual-progress-subtitle">' + esc(cfg.title) + ' — à fin ' + esc(cfg.asOfLabel) + '</p>' +
     (deltas.length ? '<div class="annual-progress-deltas">' + deltas.join('') + '</div>' : '') +
-    '<div class="annual-progress-rows">' + chartRows + '</div><div class="annual-progress-axis">' + axis + '</div></section>';
+    '<div class="annual-progress-chart" style="height:' + (rows.length * 68 + 28) + 'px"><canvas id="chart-annual-progress" role="img" aria-label="' + accessible + '" data-rows="' + esc(JSON.stringify(rows)) + '" data-metric="' + esc(cfg.shortLabel) + '">' + accessible + '</canvas></div></section>';
+}
+
+function _renderAnnualProgressChart() {
+  var canvas = document.getElementById('chart-annual-progress');
+  if (!canvas) return;
+  var rows = JSON.parse(canvas.dataset.rows);
+  var style = getComputedStyle(document.documentElement);
+  var color = function (name) { return style.getPropertyValue(name).trim(); };
+  var compact = canvas.parentElement.clientWidth < 550;
+  var left = compact ? 90 : 126;
+  var right = compact ? 96 : 130;
+  var maxTotal = Math.max.apply(null, rows.map(function (row) { return Math.max(row.total || 0, row.realized || 0); }).concat([1]));
+  var minValue = Math.min.apply(null, rows.map(function (row) { return row.realized || 0; }).concat([0]));
+  // Chart.js draws both bar datasets and their shared numeric axis. This
+  // local plugin only places the editorial labels at the category positions.
+  var labels = {
+    id:'annualProgressLabels',
+    beforeLayout:function (chart) {
+      compact = chart.width < 550;
+      chart.options.layout.padding.left = compact ? 90 : 126;
+      chart.options.layout.padding.right = compact ? 96 : 130;
+    },
+    afterDatasetsDraw:function (chart) {
+      var ctx = chart.ctx;
+      ctx.save();
+      rows.forEach(function (row, index) {
+        var y = chart.scales.y.getPixelForValue(index);
+        function text(value, x, top, size, weight, fill, align) {
+          ctx.font = weight + ' ' + size + 'px ' + CHART_FONT;
+          ctx.fillStyle = fill; ctx.textAlign = align || 'left';
+          ctx.fillText(value, x, top);
+        }
+        text(String(row.year), 0, y + 3, compact ? 13 : 16, 800, color('--text'));
+        text(row.sublabel, 0, y + 24, compact ? 10 : 11.5, 700, color('--text-faint'));
+        text(fmtEUR(row.realized) + ' réalisé à date', chart.chartArea.left, y + 27, compact ? 10 : 12, 700, color('--text-dim'));
+        text(fmtEUR(row.total), chart.width, y + 3, compact ? 13 : 16, 800, color('--text'), 'right');
+        var totalLabel = row.totalLabel === 'Total annuel moyen' ? ['TOTAL ANNUEL', 'MOYEN'] : [row.totalLabel.toUpperCase()];
+        totalLabel.forEach(function (line, i) { text(line, chart.width, y + 23 + i * 12, compact ? 8 : 9.5, 800, color('--text-faint'), 'right'); });
+      });
+      ctx.restore();
+    }
+  };
+  makeChart('chart-annual-progress', {
+    type:'bar',
+    data:{ labels:rows.map(function (row) { return String(row.year); }), datasets:[
+      { label:'Réalisé à date', data:rows.map(function (row) { return row.realized; }),
+        backgroundColor:rows.map(function (row) { return color(row.current ? (canvas.dataset.metric === 'CA' ? '--ca-blue' : '--violet') : '--gray'); }),
+        grouped:false, order:0, barThickness:14, borderRadius:function (context) {
+          var row = rows[context.dataIndex];
+          return row && row.realized < row.total ? { topLeft:7, bottomLeft:7, topRight:0, bottomRight:0 } : 7;
+        }, borderSkipped:false },
+      { label:'Total annuel', data:rows.map(function (row) { return row.total; }), backgroundColor:color('--bg-soft'),
+        grouped:false, order:1, barThickness:14, borderRadius:7, borderSkipped:false }
+    ] },
+    plugins:[labels],
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      layout:{ padding:{ left:left, right:right, top:0, bottom:0 } },
+      interaction:{ mode:'index', intersect:false },
+      plugins:{ legend:{ display:false }, tooltip:{ callbacks:{
+        label:function (context) { return (context.datasetIndex === 0 ? 'Réalisé à date' : rows[context.dataIndex].totalLabel) + ' : ' + fmtEUR(context.raw); }
+      } } },
+      scales:{
+        x:{ min:minValue, max:maxTotal, border:{ display:false }, grid:{ color:color('--border'), drawTicks:false },
+          ticks:{ count:4, autoSkip:true, maxRotation:0, color:color('--text-faint'), font:{ size:compact ? 9 : 10.5 }, callback:function (value) { return fmtEUR(value); } } },
+        y:{ offset:true, display:false, grid:{ display:false } }
+      }
+    }
+  });
 }
 
 function _statCardHTML(cfg) {
@@ -3118,6 +3165,7 @@ function renderBanner(data, cur, prev) {
       samePeriod:period, referenceYears:cur.reference_years, referenceYear:refYear, currentYear:cur.year, shortLabel:isCA ? 'CA' : 'MB',
       asOfLabel:monthLabels[Math.max(0, cur.mois_renseignes - 1)] || 'la période'
     });
+    _renderAnnualProgressChart();
   } catch (e) { /* rendu optionnel */ }
 };
 
