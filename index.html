@@ -1051,7 +1051,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .actual-progress-item strong { color:var(--text); font-size:24px; font-weight:900; letter-spacing:-.035em; line-height:1.1; font-variant-numeric:tabular-nums; }
 .actual-progress-item .ahead { color:var(--green); }
 .actual-progress-item .behind { color:var(--amber); }
-.actual-progress-item strong.actual-status { display:inline-flex; align-items:center; width:max-content; padding:5px 10px; border-radius:999px; font-size:22px; }
+.actual-progress-item strong.actual-status { display:inline-flex; align-items:center; gap:6px; width:max-content; padding:8px 16px; border-radius:999px; font-size:16px; font-weight:800; letter-spacing:0; }
 .actual-progress-item strong.actual-status.ahead { background:var(--green-bg); }
 .actual-progress-item strong.actual-status.behind { background:var(--amber-bg); }
 .actual-progress-item .pace { color:var(--orange); }
@@ -2923,7 +2923,7 @@ function _actualPerformanceCardHTML(cfg) {
   var attainment = goal > 0 ? Math.round(value / goal * 100) : 0;
   var paceGap = value - (goal * yearProgress);
   var paceClass = paceGap > 0 ? 'ahead' : (paceGap < 0 ? 'behind' : 'on-track');
-  var paceSign = paceGap > 0 ? '+ ' : (paceGap < 0 ? '− ' : '');
+  var paceIcon = paceGap > 0 ? '▲' : (paceGap < 0 ? '▼' : '•');
   var paceTarget = Math.max(0, Math.min(currentTotal, goal * yearProgress));
   var gaugeBase = Math.min(value, paceTarget);
   var gaugePaceGap = Math.abs(value - paceTarget);
@@ -2940,8 +2940,8 @@ function _actualPerformanceCardHTML(cfg) {
     '</div></div></div></div>' +
     '<div class="actual-performance-footer"><div class="actual-progress-grid">' +
       '<div class="actual-progress-item"><strong>' + fmtPct(yearProgress, 1) + '</strong><span>de l’année écoulée</span></div>' +
-      '<div class="actual-progress-item"><strong class="actual-status ' + paceClass + '">' + attainment + ' %</strong><span>de l’objectif atteint</span></div>' +
-      '<div class="actual-progress-item"><strong class="actual-status ' + paceClass + '">' + paceSign + fmtEUR(Math.abs(paceGap)) + '</strong><span>' + (paceGap >= 0 ? 'd’avance sur le rythme' : 'de retard sur le rythme') + '</span></div>' +
+      '<div class="actual-progress-item"><strong class="actual-status ' + paceClass + '"><span>' + paceIcon + '</span>' + attainment + ' %</strong><span>de l’objectif atteint</span></div>' +
+      '<div class="actual-progress-item"><strong class="actual-status ' + paceClass + '"><span>' + paceIcon + '</span>' + fmtEUR(Math.abs(paceGap)) + '</strong><span>' + (paceGap >= 0 ? 'd’avance sur le rythme' : 'de retard sur le rythme') + '</span></div>' +
     '</div><div class="actual-performance-comparison">' + pillHtml + comparison + '</div></div></section>';
 }
 
