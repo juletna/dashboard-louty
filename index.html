@@ -2780,8 +2780,15 @@ function renderCumulChart(years, currentYear, metric) {
   const yearKeys = Object.keys(years).sort();
   const previousYear = String(Number(currentYear) - 1);
   const hasPreviousYear = !!years[previousYear];
-  // Le premier exercice est partiel : on l'exclut de la moyenne historique.
-  const prevYears = yearKeys.slice(1).filter(y => Number(y) < Number(currentYear));
+  // Toutes les années précédentes complètes, sans écarter la première si elle couvre bien 12 mois.
+  const prevYears = yearKeys.filter(y => {
+    if (Number(y) >= Number(currentYear)) return false;
+    const year = years[y];
+    const months = year.months_present;
+    const values = year.monthly[metricKey];
+    return Array.from({ length: 12 }, (_, m) => m).every(m =>
+      months ? months.includes(m + 1) : values[m] !== null && values[m] !== undefined);
+  });
   const cumOf = yk => { let c = 0; return years[yk].monthly[metricKey].map(v => v === null ? null : (c += v, c)); };
   const curCum = cumOf(currentYear);
   const prevCums = prevYears.map(cumOf);
