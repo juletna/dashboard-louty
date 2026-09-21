@@ -1026,6 +1026,10 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .cap-need.cap-margin { background:light-dark(#f7f3ff,#2b243b); border-color:light-dark(#e3d8fa,#4d3b69); }
 .cap-need.cap-revenue { background:light-dark(#f0f7ff,#202e3d); border-color:light-dark(#cce3fa,#365472); }
 #cap-actual .mbx-main,#cap-actual .mbx-objective { background:light-dark(#fff,#202020); border-color:light-dark(#dadce1,#454545); }
+#cap-actual .mbx-main { border-color:var(--violet); }
+#cap-actual .mbx-gauge { margin-top:24px; }
+#cap-actual .mbx-gauge-plot { padding:52px 0 12px; }
+#cap-actual .mbx-gauge-track { height:12px; }
 .cap-stat,.cap-need.cap-margin,.cap-need.cap-revenue { border-color:transparent; }
 .cap-label,.cap-metric-title,.cap-secondary-metric,#cap-actual .mbx-head { padding-right:0; }
 .cap-salary .cap-value,.cap-need > strong,#cap-actual .mbx-hero { font-size:36px; font-weight:800; line-height:1.15; letter-spacing:-.03em; margin:8px 0 12px; }
@@ -2933,7 +2937,13 @@ function _statCardHTML(cfg) {
   var comparison = refSame != null ? '<div class="cap-comparison">vs même période en ' + (refYear || 'N−1') + (refYear ? ' (N−1)' : '') + '</div>' : '';
   var summary = '<div class="mbx-summary">' +
     '<div class="mbx-main"><div class="mbx-head"><div class="mbx-title">' + cfg.title + '</div>' + badge + '</div>' +
-    '<div class="mbx-heroline"><div class="mbx-hero">' + fmtEUR(value) + '</div>' + pillHtml + '</div>' + comparison + '</div>' +
+    '<div class="mbx-heroline"><div class="mbx-hero">' + fmtEUR(value) + '</div>' + pillHtml + '</div>' + comparison +
+    (cfg.summaryOnly ? '<div class="mbx-gauge"><div class="mbx-gauge-plot"><div class="mbx-gauge-track" style="--gauge-accent:' + accent + ';--gauge-rest:' + restAccent + ';--gauge-rest-text:' + restTextAccent + '"><div class="mbx-gauge-fill current" style="width:' + relativeWidth(value, currentTotal) + '%"></div>' +
+      (currentRest ? '<div class="mbx-gauge-rest current" style="left:' + relativeWidth(value, currentTotal) + '%; width:' + relativeWidth(currentRest, currentTotal) + '%"></div>' : '') +
+      '<div class="mbx-gauge-marker" style="left:' + relativeWidth(value, currentTotal) + '%"></div>' +
+      '<div class="mbx-gauge-callout realized current"><strong>' + fmtEUR(value) + '</strong><span>' + currentPct + '% Réalisé</span></div>' +
+      (currentRest ? '<div class="mbx-gauge-callout remaining"><strong>' + fmtEUR(currentRest) + '</strong><span>' + currentRestPct + '% Restant</span></div>' : '') +
+      '</div></div></div>' : '') + '</div>' +
     (attHtml ? '<div class="mbx-objective"><div class="mbx-prog-head">' + attHtml + '</div></div>' : '') + '</div>';
   if (cfg.summaryOnly) return summary;
   return '<div class="card statx-card"><h2 class="mbx-gauges-title">' + (cfg.shortLabel === 'CA' ? 'Avancement du chiffre d’affaires' : 'Avancement de la marge brute') + '</h2>' +
