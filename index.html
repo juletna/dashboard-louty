@@ -659,6 +659,7 @@
 .achats-grid { grid-template-columns:minmax(0,1fr) minmax(0,2fr); }
 @media (max-width:900px) { .achats-grid { grid-template-columns:1fr; } }
 .achats-left { display:flex; flex-direction:column; gap:16px; min-width:0; }
+.achats-left > .card { flex:1; }
 .achats-main { display:flex; flex-direction:column; }
 .achats-main .chart-wrap { flex:1; height:auto; min-height:320px; }
 
@@ -718,10 +719,16 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 
 /* Module unifié : performance et structure du CA */
 .performance-structure { margin-top:16px; }
-.performance-distribution-row { margin-top:16px; align-items:start; }
+.performance-distribution-row { margin-top:16px; align-items:stretch; }
 .performance-distribution-row .performance-structure { margin-top:0; }
 .distribution-column { display:flex; flex-direction:column; gap:16px; min-width:0; }
+.performance-distribution-row > .distribution-column { height:100%; }
 .distribution-column .margin-distribution { margin-top:0; }
+.performance-distribution-row > .distribution-column > .card { flex:none; }
+#margin-distribution-row { flex:1 1 0; min-height:0; }
+#margin-distribution-row .distribution-card { flex:1 1 0; display:flex; flex-direction:column; min-height:0; }
+#quote-margin-distribution { display:flex; flex:1; min-height:0; }
+#quote-margin-distribution .chart-wrap { flex:1; height:auto; min-height:180px; }
 .performance-kpis { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:12px; margin:16px 0 24px; }
 .performance-kpi { background:var(--bg-inset); border-radius:var(--radius-sm); padding:14px 16px; }
 .performance-kpi .label { color:var(--text-dim); font-size:12px; font-weight:700; }
@@ -888,26 +895,34 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 
 /* Cap annuel : le point de départ du pilotage */
 .annual-cap { margin:0 0 16px; overflow:hidden; }
-.annual-cap-head { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; padding:20px 22px 10px; }
-.annual-cap h2 { margin:0; font-size:19px; letter-spacing:-.025em; }
-.annual-cap-intro { margin:4px 0 0; color:var(--text-dim); font-size:13px; line-height:1.45; }
-.cap-summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:0; padding:4px 22px 18px; }
-.cap-stat { padding:12px 18px 12px 0; }
-.cap-stat + .cap-stat { padding-left:18px; border-left:1px solid var(--border); }
-.cap-label { display:block; color:var(--text-faint); font-size:11px; font-weight:800; letter-spacing:.055em; text-transform:uppercase; }
-.cap-value { display:block; margin-top:4px; color:var(--text); font-size:20px; font-weight:900; letter-spacing:-.035em; font-variant-numeric:tabular-nums; }
-.cap-note { display:block; margin-top:4px; color:var(--text-dim); font-size:12px; line-height:1.35; }
+.annual-cap-head { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; padding:22px 26px 8px; }
+.annual-cap h2 { display:flex; align-items:center; gap:10px; margin:0; font-size:19px; letter-spacing:-.025em; }
+.cap-title-icon { width:32px; height:32px; display:inline-flex; align-items:center; justify-content:center; flex:none; border-radius:10px; background:var(--violet-bg); color:var(--violet); }
+.cap-title-icon svg { width:18px; height:18px; }
+.annual-cap-intro { margin:5px 0 0 42px; color:var(--text-dim); font-size:13px; line-height:1.45; }
+.cap-summary { display:grid; grid-template-columns:minmax(0,1fr) minmax(280px,1.15fr); gap:26px; padding:12px 26px 24px; align-items:stretch; }
+.cap-aims-title { display:block; color:var(--violet); font-size:11px; font-weight:800; letter-spacing:.07em; text-transform:uppercase; margin-bottom:10px; }
+.cap-personal-goals { display:grid; gap:10px; }
+.cap-stat { display:flex; align-items:flex-start; gap:12px; padding:14px; border-radius:12px; background:var(--bg-inset); }
+.cap-stat-icon { width:34px; height:34px; display:inline-flex; align-items:center; justify-content:center; flex:none; border-radius:10px; background:var(--violet-bg); color:var(--violet); }
+.cap-stat-icon svg { width:18px; height:18px; }
+.cap-stat-copy { min-width:0; }
+.cap-label { display:block; color:var(--text-dim); font-size:12px; font-weight:700; }
+.cap-value { display:block; margin-top:3px; color:var(--text); font-size:23px; font-weight:900; letter-spacing:-.035em; font-variant-numeric:tabular-nums; line-height:1.2; }
+.cap-value .cap-unit { color:var(--text-dim); font-size:13px; font-weight:600; letter-spacing:0; }
+.cap-note { display:block; margin-top:5px; color:var(--text-dim); font-size:12px; line-height:1.35; }
 .cap-origin { display:inline-flex; align-items:center; padding:2px 7px; border:1px solid var(--border-strong); border-radius:999px; background:var(--bg-inset); color:var(--text-dim); font-size:10px; font-weight:900; line-height:1.25; letter-spacing:.015em; vertical-align:middle; white-space:nowrap; }
 .cap-origin.n1 { background:var(--bg-card); color:var(--text-dim); }
 .cap-origin.custom { border-color:transparent; background:var(--violet-bg); color:var(--violet); }
 .cap-origin.custom::before { content:'✦'; font-size:9px; }
 .cap-reference-note { color:var(--text-faint); font-weight:700; white-space:nowrap; }
-.cap-need { padding:18px 22px; background:var(--bg-inset); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
-.cap-summary .cap-need { padding:12px 0 12px 18px; background:transparent; border:0; border-left:1px solid var(--border); }
-.cap-need-kicker { display:block; color:var(--text-faint); font-size:11px; font-weight:800; letter-spacing:.055em; text-transform:uppercase; }
-.cap-need strong { display:block; margin-top:2px; color:var(--text); font-size:22px; line-height:1.25; letter-spacing:-.025em; }
-.cap-need-label { font-size:16px; font-weight:800; letter-spacing:-.01em; }
-.cap-need-detail { display:block; margin-top:3px; color:var(--text-dim); font-size:13px; }
+.cap-need { display:flex; flex-direction:column; padding:20px 22px; border-radius:14px; background:var(--violet-bg); }
+.cap-need-kicker { display:flex; align-items:center; gap:8px; color:var(--violet); font-size:11px; font-weight:800; letter-spacing:.07em; text-transform:uppercase; }
+.cap-need-kicker svg { width:17px; height:17px; }
+.cap-need strong { display:block; margin-top:20px; color:var(--text); font-size:42px; line-height:1.08; letter-spacing:-.05em; }
+.cap-need-label { display:block; margin-top:8px; font-size:17px; font-weight:800; letter-spacing:-.01em; }
+.cap-need-detail { display:block; margin-top:16px; color:var(--text-dim); font-size:13px; }
+.cap-hypotheses { display:block; margin-top:auto; padding-top:15px; border-top:1px solid color-mix(in srgb, var(--violet) 16%, var(--border)); color:var(--text-dim); font-size:11px; line-height:1.45; }
 .cap-mb { color:var(--mb-violet); }
 .cap-ca { color:var(--ca-blue); }
 .cap-sim { margin:14px 22px 22px; padding:18px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--bg-inset); }
@@ -953,7 +968,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .cap-result strong.cap-mb { color:var(--mb-violet); }
 .cap-result strong.cap-ca { color:var(--ca-blue); }
 .cap-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
-@media (max-width:700px) { .annual-cap-head { display:block; } .annual-cap-head .btn { margin-top:12px; } .cap-summary,.cap-inputs { grid-template-columns:1fr; } .cap-summary { padding:4px 18px 14px; } .cap-stat,.cap-stat + .cap-stat,.cap-summary .cap-need { padding:12px 0; border-left:0; } .cap-stat + .cap-stat { border-top:1px solid var(--border); } .cap-need { padding:16px 18px; } .cap-sim { margin:12px 18px 18px; } }
+@media (max-width:700px) { .annual-cap-head { display:block; padding:20px 18px 8px; } .annual-cap-head .btn { margin:14px 0 0 42px; } .cap-summary,.cap-inputs { grid-template-columns:1fr; } .cap-summary { gap:18px; padding:12px 18px 18px; } .cap-need { min-height:0; } .cap-need strong { font-size:36px; margin-top:16px; } .cap-sim { margin:12px 18px 18px; } }
 
 </style>
 <script>try{var _t=localStorage.getItem("cabestan_dashboard_theme");if(_t==="dark"||_t==="light")document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
@@ -1113,8 +1128,8 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 </aside>
 
 <div id="cap-drawer-backdrop"></div>
-<aside id="cap-drawer" aria-label="Modifier le cap annuel" aria-hidden="true">
-  <div class="sp-head"><h2>Mon cap annuel</h2>
+<aside id="cap-drawer" role="dialog" aria-modal="true" aria-labelledby="cap-drawer-title" aria-hidden="true">
+  <div class="sp-head"><h2 id="cap-drawer-title">Modifier mes objectifs</h2>
     <button class="btn ghost btn-icon" id="cap-drawer-close" title="Fermer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
   <div id="cap-drawer-content" class="cap-drawer-body"></div>
 </aside>
@@ -2635,11 +2650,13 @@ function renderAnnualCap(data) {
   var chargesReferencePeriod = ref.n1 && ref.n1.year ? ref.n1.year : ref.label;
   var maxCharges = Math.max(5000, Math.ceil(Math.max(ref.charges, PLAN.charges) * 1.8 / 1000) * 1000);
   host.innerHTML =
-    '<div class="annual-cap-head"><div><h2 id="annual-cap-title">Mon cap annuel</h2><p class="annual-cap-intro">Tes objectifs personnels fixent les repères du tableau de bord.</p></div><button type="button" class="btn ghost" id="cap-edit">Modifier mes objectifs</button></div>' +
+    '<div class="annual-cap-head"><div><h2 id="annual-cap-title"><span class="cap-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="m15 9-2 4-4 2 2-4 4-2Z"/></svg></span>Mon cap annuel</h2><p class="annual-cap-intro">Tes objectifs personnels fixent les repères du tableau de bord.</p></div><button type="button" class="btn ghost" id="cap-edit" aria-haspopup="dialog" aria-controls="cap-drawer">Modifier mes objectifs</button></div>' +
     '<div class="cap-summary">' +
-      '<div class="cap-stat"><span class="cap-label">Salaire net mensuel visé</span><span class="cap-value">' + fmtEUR(PLAN.salary / 12 * NET_FROM_GROSS) + ' / mois</span><span class="cap-note">Salaire net moyen en ' + ref.n1.year + ' : ' + fmtEUR(roundedRefSalary / 12 * NET_FROM_GROSS) + ' / mois</span></div>' +
-      '<div class="cap-stat"><span class="cap-label">Résultat annuel visé</span><span class="cap-value">' + fmtEUR(PLAN.surplus) + '</span><span class="cap-note">Résultat net ' + ref.n1.year + ' : ' + fmtEUR(ref.n1.netResult) + '</span></div>' +
-      '<div class="cap-need"><span class="cap-need-kicker">Pour atteindre ce cap</span><strong><span class="cap-mb">' + fmtEUR(neededMB) + '</span> <span class="cap-need-label">de marge brute</span></strong><span class="cap-need-detail">Soit <b class="cap-ca">' + fmtEUR(requiredCA) + '</b> de CA à facturer sur une base de <b>' + fmtPct(PLAN.margin, 1) + '</b> de marge brute et <b>' + fmtEUR(PLAN.charges) + '</b> de charges annuelles.</span></div>' +
+      '<div class="cap-aims"><span class="cap-aims-title">Ce que je vise</span><div class="cap-personal-goals">' +
+        '<div class="cap-stat"><span class="cap-stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7V6a2 2 0 0 0-2-2H5a3 3 0 0 0 0 6h15v8a2 2 0 0 1-2 2H5a3 3 0 0 1-3-3V7"/><path d="M16 14h.01"/></svg></span><span class="cap-stat-copy"><span class="cap-label">Mon salaire net mensuel</span><span class="cap-value">' + fmtEUR(PLAN.salary / 12 * NET_FROM_GROSS) + ' <span class="cap-unit">/ mois</span></span><span class="cap-note">En ' + ref.n1.year + ' : ' + fmtEUR(roundedRefSalary / 12 * NET_FROM_GROSS) + ' / mois</span></span></div>' +
+        '<div class="cap-stat"><span class="cap-stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="m17.7 6.3-3.6 3.6"/></svg></span><span class="cap-stat-copy"><span class="cap-label">Mon résultat net annuel</span><span class="cap-value">' + fmtEUR(PLAN.surplus) + ' <span class="cap-unit">/ an</span></span><span class="cap-note">En ' + ref.n1.year + ' : ' + fmtEUR(ref.n1.netResult) + '</span></span></div>' +
+      '</div></div>' +
+      '<div class="cap-need"><span class="cap-need-kicker"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V3"/><path d="M5 4c5-3 9 3 14 0v10c-5 3-9-3-14 0"/></svg>Le cap pour y arriver</span><strong><span class="cap-mb">' + fmtEUR(neededMB) + '</span><span class="cap-need-label">de marge brute sur l’année</span></strong><span class="cap-need-detail">Soit environ <b>' + fmtEUR(neededMB / 12) + ' / mois</b></span><span class="cap-need-detail">CA à facturer sur l’année <b class="cap-ca">' + fmtEUR(requiredCA) + '</b></span><span class="cap-hypotheses">Hypothèses de calcul : ' + fmtPct(PLAN.margin, 1) + ' de marge brute - ' + fmtEUR(PLAN.charges) + ' de charges annuelles</span></div>' +
     '</div>' +
     '<div class="cap-sim" id="cap-sim" hidden>' +
       '<div class="cap-sim-head"><div><h3>Modifier mon cap et mes hypothèses</h3><p><span class="cap-origin">Référence</span> vient de tes données réelles ; <span class="cap-origin custom">Personnalisé</span> signale une valeur modifiée.</p></div><button type="button" class="btn ghost" id="cap-close">Fermer</button></div>' +
@@ -2658,11 +2675,13 @@ function renderAnnualCap(data) {
   var toggle = function (open, focusId) {
     capDrawer.classList.toggle('open', open); capDrawerBackdrop.style.display = open ? 'block' : 'none'; capDrawer.setAttribute('aria-hidden', open ? 'false' : 'true');
     if (open) { updateCapPreview(ref); requestAnimationFrame(function () { var focus = document.getElementById(focusId); if (focus) { focus.focus({ preventScroll:true }); focus.closest('.cap-field').scrollIntoView({ block:'center' }); } }); }
+    else { var editButton = document.getElementById('cap-edit'); if (editButton) editButton.focus({ preventScroll:true }); }
   };
   document.getElementById('cap-edit').addEventListener('click', function () { toggle(true, 'cap-salary'); });
   document.getElementById('cap-close').addEventListener('click', function () { toggle(false); });
   document.getElementById('cap-drawer-close').onclick = function () { toggle(false); };
   capDrawerBackdrop.onclick = function () { toggle(false); };
+  capDrawer.onkeydown = function (event) { if (event.key === 'Escape') { event.preventDefault(); toggle(false); } };
   ['cap-margin','cap-charges'].forEach(function (id) {
     var field = document.getElementById(id);
     ['input','change'].forEach(function (eventName) { field.addEventListener(eventName, function () { updateCapPreview(ref); }); });
