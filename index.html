@@ -759,6 +759,29 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .pilotage-switch button { appearance:none; border:0; border-radius:999px; padding:6px 11px; background:transparent; color:var(--text-dim); font:inherit; font-size:12px; font-weight:800; cursor:pointer; }
 .pilotage-switch button[data-pilotage-metric="mb"][aria-pressed="true"] { background:var(--violet-bg); color:var(--violet); }
 .pilotage-switch button[data-pilotage-metric="ca"][aria-pressed="true"] { background:light-dark(#e7f2ff,#293f59); color:var(--ca-blue); }
+/* Comparatif d'avancement annuel — la couleur montre le réalisé, le fond le reste jusqu'au total annuel. */
+.annual-progress-card { height:100%; }
+.annual-progress-card h2 { margin-bottom:3px; }
+.annual-progress-subtitle { margin:0 0 14px; color:var(--text-dim); font-size:13px; font-weight:600; }
+.annual-progress-deltas { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:22px; }
+.annual-progress-delta { display:inline-flex; align-items:baseline; gap:5px; padding:6px 10px; border-radius:var(--radius-sm); color:var(--text-dim); background:var(--bg-inset); font-size:12.5px; font-weight:700; }
+.annual-progress-delta strong { font-size:14px; font-weight:800; font-variant-numeric:tabular-nums; }
+.annual-progress-delta.average { background:var(--green-bg); }.annual-progress-delta.average strong { color:var(--green); }
+.annual-progress-delta.previous { background:var(--violet-bg); }.annual-progress-delta.previous strong { color:var(--violet); }
+.annual-progress-rows { display:grid; gap:19px; }
+.annual-progress-row { display:grid; grid-template-columns:minmax(112px,.66fr) minmax(180px,2.1fr) minmax(105px,.62fr); align-items:center; gap:14px; }
+.annual-progress-year { min-width:0; }.annual-progress-year strong { display:block; color:var(--text); font-size:16px; font-weight:800; letter-spacing:-.015em; }
+.annual-progress-year span { display:block; margin-top:2px; color:var(--text-faint); font-size:11.5px; font-weight:700; }
+.annual-progress-plot { position:relative; min-width:0; height:46px; padding-top:3px; background-image:linear-gradient(to right, transparent 24.8%, var(--border) 25%, transparent 25.2%, transparent 49.8%, var(--border) 50%, transparent 50.2%, transparent 74.8%, var(--border) 75%, transparent 75.2%); }
+.annual-progress-track { height:14px; width:var(--annual-total-width); border-radius:999px; background:var(--bg-soft); overflow:hidden; }
+.annual-progress-fill { display:block; height:100%; width:var(--annual-realized-width); border-radius:999px 0 0 999px; background:var(--gray); }
+.annual-progress-row.current .annual-progress-fill { background:var(--annual-accent); }
+.annual-progress-realized { display:block; margin-top:5px; color:var(--text-dim); font-size:11.5px; font-weight:600; white-space:nowrap; }
+.annual-progress-realized strong { color:var(--text); font-size:13px; font-weight:800; font-variant-numeric:tabular-nums; }
+.annual-progress-total { min-width:0; text-align:right; }.annual-progress-total strong { display:block; color:var(--text); font-size:16px; font-weight:800; letter-spacing:-.015em; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.annual-progress-total span { display:block; margin-top:2px; color:var(--text-faint); font-size:9.5px; font-weight:800; letter-spacing:.045em; line-height:1.2; text-transform:uppercase; }
+.annual-progress-axis { display:flex; justify-content:space-between; margin:0 calc(105px + 14px) 0 calc(112px + 14px); color:var(--text-faint); font-size:10.5px; font-weight:700; font-variant-numeric:tabular-nums; }
+@media (max-width:700px) { .annual-progress-row { grid-template-columns:minmax(88px,.7fr) minmax(135px,1.8fr) minmax(86px,.62fr); gap:9px; }.annual-progress-year strong { font-size:14px; }.annual-progress-total strong { font-size:13px; }.annual-progress-total span { font-size:8px; }.annual-progress-axis { margin-left:97px; margin-right:95px; }.annual-progress-deltas { margin-bottom:18px; } }
 .mbx-head { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
 .mbx-title { font-size:17px; font-weight:800; color:var(--text); letter-spacing:-0.015em; }
 .mbx-badge { display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.03em; color:var(--green); background:var(--green-bg); padding:4px 11px; border-radius:999px; }
@@ -2241,6 +2264,31 @@ function renderCAMB(cy, curYear, years) {
     { type: 'bar', label: 'Achats & coûts (reste du CA)', data: reste, backgroundColor: COLORS.red, stack: 's', order: 3,
       borderRadius: { topLeft: R, topRight: R, bottomLeft: 0, bottomRight: 0 }, borderSkipped: false }
   ];
+  // La fin de mois projetée est une vraie pile Chart.js, et non plus une
+  // surimpression canvas. Seul le complément au réalisé du mois est ajouté.
+  if (currentMonthProjection) {
+    var projectionMB = Array(12).fill(null);
+    var projectionCosts = Array(12).fill(null);
+    var projectedMonth = currentMonthProjection.monthIndex;
+    var actualCA = caArr[projectedMonth] || 0;
+    var actualMB = mb[projectedMonth] || 0;
+    var remainingCA = Math.max(0, currentMonthProjection.ca - actualCA);
+    var remainingMB = Math.max(0, Math.min(remainingCA, currentMonthProjection.mb - actualMB));
+    projectionMB[projectedMonth] = remainingMB;
+    projectionCosts[projectedMonth] = Math.max(0, remainingCA - remainingMB);
+    if (remainingCA > 0) {
+      datasets.push({
+        type: 'bar', label: 'Projeté — marge brute', data: projectionMB,
+        backgroundColor: 'rgba(79, 188, 188, 0.42)', stack: 's', order: 3,
+        borderRadius: { topLeft: 0, topRight: 0, bottomLeft: 0, bottomRight: 0 }, borderSkipped: false, _projection: true
+      });
+      datasets.push({
+        type: 'bar', label: 'Projeté — achats & coûts', data: projectionCosts,
+        backgroundColor: 'rgba(255, 95, 133, 0.38)', stack: 's', order: 3,
+        borderRadius: { topLeft: R, topRight: R, bottomLeft: 0, bottomRight: 0 }, borderSkipped: false, _projection: true
+      });
+    }
+  }
   if (prevYears.length) {
     datasets.push({
       type: 'line', label: avgLabel, data: avgCA, stack: 'avgCA',
@@ -2265,7 +2313,9 @@ function renderCAMB(cy, curYear, years) {
           labels: {
             font: { size: 11 },
             generateLabels: function (chart) {
-              var base = Chart.defaults.plugins.legend.labels.generateLabels(chart);
+              var base = Chart.defaults.plugins.legend.labels.generateLabels(chart).filter(function (item) {
+                return !chart.data.datasets[item.datasetIndex]._projection;
+              });
               var guides = [{ text: 'Seuil salaire brut ' + fmtEUR(C.MB_MIN), strokeStyle: COLORS.black, fillStyle: 'transparent', lineWidth: 2, pointStyle: 'circle', hidden: false, datasetIndex: -1 }];
               if (currentMonthProjection) guides.push({ text: 'Objectif fin de mois', strokeStyle: 'rgba(79, 188, 188, 0.55)', fillStyle: 'rgba(79, 188, 188, 0.22)', lineWidth: 1, pointStyle: 'rect', hidden: false, datasetIndex: -1 });
               return guides.concat(base);
@@ -2294,26 +2344,6 @@ function renderCAMB(cy, curYear, years) {
       }
     },
     plugins: [{
-      id: 'currentMonthObjectiveProjection',
-      afterDatasetDraw: function (chart, args) {
-        if (!currentMonthProjection || !chart.data.datasets[args.index]._drawSalaryThresholdAfter) return;
-        var bar = chart.getDatasetMeta(0).data[currentMonthProjection.monthIndex];
-        if (!bar) return;
-        var props = bar.getProps(['x', 'width']);
-        var ctx = chart.ctx, y = chart.scales.y, x = props.x - props.width / 2;
-        var baseY = y.getPixelForValue(0), mbY = y.getPixelForValue(currentMonthProjection.mb), caY = y.getPixelForValue(currentMonthProjection.ca);
-        ctx.save();
-        ctx.fillStyle = 'rgba(79, 188, 188, 0.24)';
-        ctx.fillRect(x, mbY, props.width, baseY - mbY);
-        ctx.fillStyle = 'rgba(255, 95, 133, 0.22)';
-        ctx.fillRect(x, caY, props.width, mbY - caY);
-        ctx.strokeStyle = 'rgba(79, 188, 188, 0.62)';
-        ctx.lineWidth = 1;
-        ctx.setLineDash([4, 3]);
-        ctx.strokeRect(x + .5, caY + .5, props.width - 1, baseY - caY - 1);
-        ctx.restore();
-      }
-    }, {
       id: 'salaryThreshold',
       draw: function (chart) {
         var area = chart.chartArea, ctx = chart.ctx, y = chart.scales.y;
@@ -2945,6 +2975,39 @@ function _actualPerformanceCardHTML(cfg) {
     '</div><div class="actual-performance-comparison">' + pillHtml + comparison + '</div></div></section>';
 }
 
+function _annualProgressCardHTML(cfg) {
+  var refs = (cfg.referenceYears || []).filter(function (year) { return cfg.samePeriod && cfg.samePeriod[year]; });
+  var previousYear = cfg.referenceYear && cfg.samePeriod[cfg.referenceYear] ? cfg.referenceYear : (refs.length ? refs[refs.length - 1] : null);
+  var rows = [{ year:cfg.currentYear, sublabel:'À date', realized:cfg.value, total:cfg.goal, totalLabel:'Objectif annuel', current:true }];
+  var average = null;
+  if (refs.length > 1) {
+    average = {
+      realized: refs.reduce(function (sum, year) { return sum + (cfg.samePeriod[year].ytd || 0); }, 0) / refs.length,
+      total: refs.reduce(function (sum, year) { return sum + (cfg.samePeriod[year].full || 0); }, 0) / refs.length
+    };
+    rows.push({ year:refs[0] + '–' + refs[refs.length - 1], sublabel:'Moyenne', realized:average.realized, total:average.total, totalLabel:'Total annuel moyen' });
+  }
+  if (previousYear) rows.push({ year:previousYear, sublabel:'Même période', realized:cfg.samePeriod[previousYear].ytd, total:cfg.samePeriod[previousYear].full, totalLabel:'Total annuel' });
+  var maxTotal = Math.max.apply(null, rows.map(function (row) { return row.total || 0; }).concat([1]));
+  var pct = function (value, total) { return total > 0 ? Math.max(0, Math.min(100, value / total * 100)) : 0; };
+  var width = function (total) { return Math.max(0, Math.min(100, total / maxTotal * 100)); };
+  var accent = cfg.shortLabel === 'CA' ? 'var(--ca-blue)' : 'var(--violet)';
+  var chartRows = rows.map(function (row) {
+    return '<div class="annual-progress-row' + (row.current ? ' current' : '') + '" style="--annual-total-width:' + width(row.total) + '%;--annual-realized-width:' + pct(row.realized, row.total) + '%;--annual-accent:' + accent + '">' +
+      '<div class="annual-progress-year"><strong>' + esc(String(row.year)) + '</strong><span>' + esc(row.sublabel) + '</span></div>' +
+      '<div class="annual-progress-plot"><div class="annual-progress-track"><span class="annual-progress-fill"></span></div><span class="annual-progress-realized"><strong>' + fmtEUR(row.realized) + '</strong> réalisé à date</span></div>' +
+      '<div class="annual-progress-total"><strong>' + fmtEUR(row.total) + '</strong><span>' + esc(row.totalLabel) + '</span></div>' +
+    '</div>';
+  }).join('');
+  var deltas = [];
+  if (average) deltas.push('<span class="annual-progress-delta average"><strong>' + (cfg.value - average.realized >= 0 ? '+' : '−') + fmtEUR(Math.abs(cfg.value - average.realized)) + '</strong>vs ' + esc(refs[0] + '–' + refs[refs.length - 1]) + '</span>');
+  if (previousYear) deltas.push('<span class="annual-progress-delta previous"><strong>' + (cfg.value - cfg.samePeriod[previousYear].ytd >= 0 ? '+' : '−') + fmtEUR(Math.abs(cfg.value - cfg.samePeriod[previousYear].ytd)) + '</strong>vs ' + esc(previousYear) + '</span>');
+  var axis = [0, maxTotal / 3, maxTotal * 2 / 3, maxTotal].map(function (value) { return '<span>' + fmtEUR(value) + '</span>'; }).join('');
+  return '<section class="card annual-progress-card"><h2>Comparatif d’avancement annuel</h2><p class="annual-progress-subtitle">' + esc(cfg.title) + ' — à fin ' + esc(cfg.asOfLabel) + '</p>' +
+    (deltas.length ? '<div class="annual-progress-deltas">' + deltas.join('') + '</div>' : '') +
+    '<div class="annual-progress-rows">' + chartRows + '</div><div class="annual-progress-axis">' + axis + '</div></section>';
+}
+
 function _statCardHTML(cfg) {
   var value = cfg.value || 0, goal = cfg.goal || 0, refSame = cfg.refSame, refFull = cfg.refFull, refYear = cfg.refYear;
   var yearProgress = cfg.yearProgress;
@@ -3043,14 +3106,17 @@ function renderBanner(data, cur, prev) {
       refSame: sp ? sp.ca_ytd : null, refFull: sp ? sp.ca_full : null, refYear: refYear,
       currentYear: cur.year, shortLabel: 'CA', yearProgress: yearProgress
     });
-    pilotageCard.innerHTML = _statCardHTML(isCA ? {
-      title: "Chiffre d'affaires cumulé", value: cur.ytd_ca, goal: C.CA_OBJ,
-      refSame: sp ? sp.ca_ytd : null, refFull: sp ? sp.ca_full : null, refYear: refYear, currentYear: cur.year, shortLabel: 'CA',
-      monthly: cy.monthly.ca, caption: 'CA mensuel', barColor: COLORS.blue, yearProgress: yearProgress
-    } : {
-      title: 'Marge brute réalisée', value: cur.ytd_mb, goal: C.MB_AN_OBJ,
-      refSame: sp ? sp.mb_ytd : null, refFull: sp ? sp.mb_full : null, refYear: refYear, currentYear: cur.year, shortLabel: 'MB',
-      monthly: cy.monthly.marge_brute, caption: 'Marge brute mensuelle', barColor: '#7C5AD6', yearProgress: yearProgress
+    var monthLabels = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+    var metricKey = isCA ? 'ca' : 'mb';
+    var period = {};
+    Object.keys(cur.same_period || {}).forEach(function (year) {
+      var source = cur.same_period[year];
+      period[year] = { ytd:source[metricKey + '_ytd'], full:source[metricKey + '_full'] };
+    });
+    pilotageCard.innerHTML = _annualProgressCardHTML({
+      title:isCA ? "Chiffre d'affaires" : 'Marge brute', value:isCA ? cur.ytd_ca : cur.ytd_mb, goal:isCA ? C.CA_OBJ : C.MB_AN_OBJ,
+      samePeriod:period, referenceYears:cur.reference_years, referenceYear:refYear, currentYear:cur.year, shortLabel:isCA ? 'CA' : 'MB',
+      asOfLabel:monthLabels[Math.max(0, cur.mois_renseignes - 1)] || 'la période'
     });
   } catch (e) { /* rendu optionnel */ }
 };

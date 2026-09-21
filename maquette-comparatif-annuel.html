@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Maquette — Comparatif d’avancement annuel</title>
+  <style>
+    :root { --ink:#262331; --muted:#716b7f; --violet:#7959d8; --violet-soft:#e9e1ff; --track:#efedf4; --gray:#aaa6ba; --green:#24935f; --line:#e8e5ef; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; padding:42px 24px; background:#f5f4f8; color:var(--ink); font-family:Nunito, ui-rounded, system-ui, sans-serif; }
+    .page-note { width:min(1280px,100%); margin:0 auto 14px; color:var(--muted); font-size:14px; font-weight:650; }
+    .card { width:min(1280px,100%); margin:auto; padding:34px 40px 31px; border:1px solid #e9e6f0; border-radius:22px; background:#fff; box-shadow:0 5px 16px rgba(43,34,69,.07); }
+    h1 { margin:0; font-size:30px; letter-spacing:-.035em; line-height:1.1; }
+    .subtitle { margin:8px 0 19px; color:var(--muted); font-size:17px; font-weight:650; }
+    .badges { display:flex; gap:12px; margin-bottom:36px; }
+    .badge { padding:9px 15px; border-radius:10px; font-size:16px; color:#514c61; font-weight:650; }
+    .badge strong { margin-right:7px; font-size:18px; font-weight:850; }
+    .badge.average { background:#edf8f2; }.badge.average strong { color:var(--green); }
+    .badge.prior { background:#f1edff; }.badge.prior strong { color:var(--violet); }
+    .chart { display:grid; grid-template-columns:300px minmax(300px,1fr) 170px; column-gap:20px; row-gap:30px; align-items:center; }
+    .row-label strong { display:block; font-size:21px; letter-spacing:-.025em; }
+    .row-label span { display:block; margin-top:3px; font-size:14px; color:var(--muted); font-weight:650; }
+    .row-label .average-label { color:#aaa5b4; font-size:13px; font-weight:700; }
+    .bar-area { position:relative; height:67px; padding-top:9px; background-image:linear-gradient(to right, transparent 24.8%, var(--line) 25%, transparent 25.2%, transparent 49.8%, var(--line) 50%, transparent 50.2%, transparent 74.8%, var(--line) 75%, transparent 75.2%); }
+    .gauge { position:relative; height:18px; width:var(--total); border-radius:999px; background:var(--track); overflow:hidden; }
+    .fill { display:block; height:100%; width:var(--realized); border-radius:999px 0 0 999px; }
+    .current .fill { background:var(--violet); }.comparison .fill { background:var(--gray); }
+    .realized { position:absolute; left:0; top:36px; color:var(--muted); font-size:13px; font-weight:700; white-space:nowrap; }
+    .realized b { color:var(--ink); font-size:15px; font-weight:850; }
+    .annual-total { color:var(--ink); text-align:right; font-variant-numeric:tabular-nums; }
+    .annual-total b { display:block; font-size:22px; letter-spacing:-.03em; }.annual-total span { display:block; margin-top:2px; color:var(--muted); font-size:12px; font-weight:750; text-transform:uppercase; letter-spacing:.035em; }
+    .axis { grid-column:2; position:relative; display:flex; justify-content:space-between; margin-top:-16px; color:#857f92; font-size:12px; font-weight:700; font-variant-numeric:tabular-nums; }
+    .legend { display:flex; gap:24px; align-items:center; margin:27px 0 0 320px; color:var(--muted); font-size:13px; font-weight:650; }.key { display:inline-flex; gap:8px; align-items:center; }.dot { width:12px; height:12px; border-radius:50%; background:var(--violet); }.dot.rest { background:var(--track); border:1px solid #ded9e9; }
+    @media (max-width:1000px) and (min-width:701px) { .card{padding:30px 28px}.chart{grid-template-columns:190px minmax(220px,1fr) 126px;column-gap:14px}.annual-total b{font-size:18px}.annual-total span{font-size:10px}.row-label strong{font-size:18px}.legend{margin-left:204px} }
+    @media(max-width:700px) { body{padding:18px 12px}.card{padding:25px 20px}.chart{grid-template-columns:1fr;gap:10px}.annual-total{text-align:left;margin-bottom:13px}.axis{grid-column:1;margin:0}.legend{margin:25px 0 0;flex-wrap:wrap}.bar-area{height:58px}.badges{flex-wrap:wrap} }
+  </style>
+</head>
+<body>
+  <div class="page-note">Maquette — le switch « Marge brute / CA » reste global, au-dessus des deux cartes.</div>
+  <main class="card">
+    <h1>Comparatif d’avancement annuel</h1>
+    <p class="subtitle">Marge brute — à fin septembre</p>
+    <div class="badges">
+      <div class="badge average"><strong>+10&nbsp;532&nbsp;€</strong>vs 2024–2025</div>
+      <div class="badge prior"><strong>+13&nbsp;534&nbsp;€</strong>vs 2025</div>
+    </div>
+    <section class="chart" aria-label="Comparatif de marge brute à fin septembre">
+      <div class="row-label"><strong>2026</strong><span class="average-label">À date</span></div>
+      <div class="bar-area current"><div class="gauge" style="--total:100%;--realized:68.3%"><span class="fill"></span></div><div class="realized"><b>43&nbsp;552&nbsp;€</b> réalisé à date</div></div>
+      <div class="annual-total"><b>63&nbsp;785&nbsp;€</b><span>Objectif annuel</span></div>
+
+      <div class="row-label"><strong>2024–2025</strong><span class="average-label">Moyenne</span></div>
+      <div class="bar-area comparison"><div class="gauge" style="--total:82.3%;--realized:62.9%"><span class="fill"></span></div><div class="realized"><b>33&nbsp;020&nbsp;€</b> réalisé à date</div></div>
+      <div class="annual-total"><b>52&nbsp;480&nbsp;€</b><span>Total annuel moyen</span></div>
+
+      <div class="row-label"><strong>2025</strong><span class="average-label">Même période</span></div>
+      <div class="bar-area comparison"><div class="gauge" style="--total:78.6%;--realized:60.3%"><span class="fill"></span></div><div class="realized"><b>30&nbsp;018&nbsp;€</b> réalisé à date</div></div>
+      <div class="annual-total"><b>50&nbsp;112&nbsp;€</b><span>Total annuel</span></div>
+
+      <div class="axis"><span>0 €</span><span>20&nbsp;000 €</span><span>40&nbsp;000 €</span><span>60&nbsp;000 €</span></div>
+    </section>
+  </main>
+</body>
+</html>
