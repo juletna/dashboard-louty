@@ -1037,11 +1037,10 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .actual-performance-footer { display:flex; align-items:flex-end; justify-content:space-between; gap:28px; margin-top:28px; }
 .actual-performance-comparison { display:flex; flex-direction:column; align-items:flex-end; gap:10px; text-align:right; }
 .actual-performance-card .mbx-head { margin:0; }
-.actual-performance-card .mbx-heroline { margin-top:8px; }
-.actual-performance-card .mbx-hero { margin:0; color:var(--actual-accent); }
 #cap-actual .actual-performance-card .mbx-gauge { margin-top:0; }
-#cap-actual .actual-performance-card .mbx-gauge-plot { padding:52px 0 12px; }
+#cap-actual .actual-performance-card .mbx-gauge-plot { padding:78px 0 12px; }
 .actual-performance-card .mbx-gauge-track { height:12px; }
+.actual-performance-card .mbx-gauge-callout.realized strong { font-size:36px; line-height:1.1; letter-spacing:-.03em; }
 .mbx-gauge-pace-gap { position:absolute; top:0; bottom:0; z-index:1; }
 .mbx-gauge-pace-gap.behind { background:var(--orange); }
 .mbx-gauge-pace-gap.ahead { background:var(--green); }
@@ -2925,9 +2924,7 @@ function _actualPerformanceCardHTML(cfg) {
   var gaugeEnd = Math.max(value, paceTarget);
   var gaugeRest = Math.max(0, currentTotal - gaugeEnd);
   return '<section class="actual-performance-card actual-performance-card--' + (cfg.shortLabel === 'CA' ? 'ca' : 'mb') + '">' +
-    '<div class="actual-performance-main"><div class="mbx-head"><div class="mbx-title">' + cfg.title + '</div></div>' +
-      '<div class="mbx-heroline"><div class="mbx-hero">' + fmtEUR(value) + '</div></div>' +
-    '</div>' +
+    '<div class="actual-performance-main"><div class="mbx-head"><div class="mbx-title">' + cfg.title + '</div></div></div>' +
     '<div class="actual-performance-gauge"><div class="mbx-gauge"><div class="mbx-gauge-plot"><div class="mbx-gauge-track" style="--gauge-accent:var(--actual-accent);--gauge-rest:var(--actual-rest);--gauge-rest-text:var(--actual-rest-text)"><div class="mbx-gauge-fill current" style="width:' + ratio(gaugeBase) + '%"></div>' +
       (gaugePaceGap ? '<div class="mbx-gauge-pace-gap ' + paceClass + '" style="left:' + ratio(gaugeBase) + '%; width:' + ratio(gaugePaceGap) + '%"></div>' : '') +
       (gaugeRest ? '<div class="mbx-gauge-rest current" style="left:' + ratio(gaugeEnd) + '%; width:' + ratio(gaugeRest) + '%"></div>' : '') +
