@@ -972,6 +972,34 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .cap-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
 @media (max-width:700px) { .annual-cap-head { display:block; padding:20px 18px 8px; } .annual-cap-head .btn { margin:14px 0 0; } .cap-summary,.cap-inputs { grid-template-columns:1fr; } .cap-summary { gap:18px; padding:12px 18px 18px; } .cap-need { min-height:0; } .cap-need strong { font-size:36px; margin-top:0; } .cap-sim { margin:12px 18px 18px; } }
 
+/* Cap annuel : objectifs, trajectoire et réalisé sur une même ligne. */
+.annual-cap { --cap-neutral:light-dark(#f5f5f5,#242424); --cap-divider:light-dark(#e5e5e5,#393939); }
+.cap-summary { grid-template-columns:repeat(3,minmax(0,1fr)); align-items:stretch; gap:20px; }
+.cap-aims,.cap-need-wrap { display:flex; flex-direction:column; min-width:0; gap:0; }
+.cap-aims-title,.cap-need-kicker { color:var(--text-dim); margin:0 0 12px; line-height:1.5; }
+.cap-personal-goals { flex:1; grid-template-rows:1fr 1fr; }
+.cap-stat,.cap-need,.cap-actual { background:var(--cap-neutral); }
+.cap-stat-icon { background:transparent; }
+.cap-need,.cap-actual { flex:1; padding:20px; border-radius:12px; }
+.cap-metric-title,#cap-actual .mbx-title { font-size:14px; font-weight:800; color:var(--text); letter-spacing:0; }
+.cap-need > strong,#cap-actual .mbx-hero { font-size:36px; line-height:1.15; letter-spacing:-.03em; margin:8px 0 12px; }
+.cap-need-detail { margin:0 0 16px; }
+.cap-need-detail + .cap-need-detail { padding-top:14px; border-top:1px solid var(--cap-divider); }
+.cap-ca { display:block; margin-top:4px; font-size:18px; }
+.cap-hypotheses { border-color:var(--cap-divider); }
+#cap-actual .mbx-summary { display:block; }
+#cap-actual .mbx-head { margin:0; }
+#cap-actual .mbx-heroline { display:block; }
+#cap-actual .mbx-pill { background:transparent; padding:0; border-radius:0; font-size:14px; }
+.cap-comparison { color:var(--text-dim); font-size:11px; margin-top:3px; }
+#cap-actual .mbx-objective { margin:16px 0 0; padding:14px 0 0; border-radius:0; border-top:1px solid var(--cap-divider); background:transparent; }
+#cap-actual .mbx-progress-title { margin-bottom:5px; }
+#cap-actual .mbx-progress-line,#cap-actual .mbx-progress-pace { font-size:13px; }
+.mbx-gauges-title { margin-bottom:18px; }
+.mbx-gauge-head { background:light-dark(#f5f5f5,#242424); }
+@media(max-width:1050px) { .cap-summary { gap:14px; padding-left:18px; padding-right:18px; } .cap-need,.cap-actual { padding:16px; } .cap-need > strong,#cap-actual .mbx-hero { font-size:30px; } }
+@media(max-width:800px) { .cap-summary { grid-template-columns:1fr; } .cap-personal-goals { grid-template-columns:1fr 1fr; grid-template-rows:auto; } }
+@media(max-width:420px) { .cap-personal-goals { grid-template-columns:1fr; } }
 </style>
 <script>try{var _t=localStorage.getItem("cabestan_dashboard_theme");if(_t==="dark"||_t==="light")document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 </head>
@@ -2658,7 +2686,8 @@ function renderAnnualCap(data) {
         '<div class="cap-stat"><span class="cap-stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7V6a2 2 0 0 0-2-2H5a3 3 0 0 0 0 6h15v8a2 2 0 0 1-2 2H5a3 3 0 0 1-3-3V7"/><path d="M16 14h.01"/></svg></span><span class="cap-stat-copy"><span class="cap-label">Mon salaire net mensuel</span><span class="cap-value">' + fmtEUR(PLAN.salary / 12 * NET_FROM_GROSS) + ' <span class="cap-unit">/ mois</span></span><span class="cap-note">En ' + ref.n1.year + ' : ' + fmtEUR(roundedRefSalary / 12 * NET_FROM_GROSS) + ' / mois</span></span></div>' +
         '<div class="cap-stat"><span class="cap-stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="m17.7 6.3-3.6 3.6"/></svg></span><span class="cap-stat-copy"><span class="cap-label">Mon résultat net annuel</span><span class="cap-value">' + fmtEUR(PLAN.surplus) + ' <span class="cap-unit">/ an</span></span><span class="cap-note">En ' + ref.n1.year + ' : ' + fmtEUR(ref.n1.netResult) + '</span></span></div>' +
       '</div></div>' +
-      '<div class="cap-need-wrap"><span class="cap-need-kicker"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V3"/><path d="M5 4c5-3 9 3 14 0v10c-5 3-9-3-14 0"/></svg>Le cap pour y arriver</span><div class="cap-need"><strong><span class="cap-mb">' + fmtEUR(neededMB) + '</span><span class="cap-need-label">de marge brute sur l’année</span></strong><span class="cap-need-detail">Soit environ <b>' + fmtEUR(neededMB / 12) + ' / mois</b></span><span class="cap-need-detail">CA à facturer sur l’année <b class="cap-ca">' + fmtEUR(requiredCA) + '</b></span><span class="cap-hypotheses">Hypothèses de calcul : ' + fmtPct(PLAN.margin, 1) + ' de marge brute - ' + fmtEUR(PLAN.charges) + ' de charges annuelles</span></div></div>' +
+      '<div class="cap-need-wrap"><span class="cap-need-kicker">Le cap pour y arriver</span><div class="cap-need"><span class="cap-metric-title">Marge brute à réaliser</span><strong><span class="cap-mb">' + fmtEUR(neededMB) + '</span></strong><span class="cap-need-detail">Soit environ <b>' + fmtEUR(neededMB / 12) + ' / mois</b></span><span class="cap-need-detail">CA à facturer sur l’année <b class="cap-ca">' + fmtEUR(requiredCA) + '</b></span><span class="cap-hypotheses">Hypothèses de calcul : ' + fmtPct(PLAN.margin, 1) + ' de marge brute - ' + fmtEUR(PLAN.charges) + ' de charges annuelles</span></div></div>' +
+      '<div class="cap-need-wrap"><span class="cap-need-kicker">Où j’en suis</span><div id="cap-actual" class="cap-actual"></div></div>' +
     '</div>' +
     '<div class="cap-sim" id="cap-sim" hidden>' +
       '<div class="cap-sim-head"><div><h3>Modifier mon cap et mes hypothèses</h3><p><span class="cap-origin">Référence</span> vient de tes données réelles ; <span class="cap-origin custom">Personnalisé</span> signale une valeur modifiée.</p></div><button type="button" class="btn ghost" id="cap-close">Fermer</button></div>' +
@@ -2807,7 +2836,6 @@ function _statCardHTML(cfg) {
   var width = function (amount) { return Math.max(0, Math.min(100, amount / scaleMax * 100)); };
   var relativeWidth = function (amount, total) { return total > 0 ? Math.max(0, Math.min(100, amount / total * 100)) : 0; };
   var pillHtml = delta != null ? '<span class="mbx-pill ' + (deltaPositive ? 'pos' : 'neg') + '">' + (deltaPositive ? '▲' : '▼') + ' ' + fmtEUR(Math.abs(delta)) + '</span>' : '';
-  var context = cfg.showSamePeriodContext && refSame != null ? '<div class="mbx-ctx">vs <b>' + fmtEUR(refSame) + '</b> sur la même période en ' + refYear + '</div>' : '';
   var badge = over ? '<span class="mbx-badge">✓ Objectif atteint</span>' : '';
   var progressHtml = '';
   if (yearProgress != null && goal > 0) {
@@ -2848,11 +2876,14 @@ function _statCardHTML(cfg) {
       '</div></div></div>';
   }
   var gaugeSeparator = priorGauge ? '<div class="mbx-gauge-separator" aria-hidden="true"></div>' : '';
-  return '<div class="card statx-card"><div class="mbx-summary">' +
+  var comparison = refSame != null ? '<div class="cap-comparison">vs même période en ' + (refYear || 'N−1') + (refYear ? ' (N−1)' : '') + '</div>' : '';
+  var summary = '<div class="mbx-summary">' +
     '<div class="mbx-main"><div class="mbx-head"><div class="mbx-title">' + cfg.title + '</div>' + badge + '</div>' +
-    '<div class="mbx-heroline"><div class="mbx-hero">' + fmtEUR(value) + '</div>' + pillHtml + '</div>' + context + '</div>' +
-    '<div class="mbx-objective"><div class="mbx-prog-head">' + attHtml + '</div></div></div>' +
-    '<div class="mbx-div"></div><div class="mbx-compare">' + currentGauge + gaugeSeparator + priorGauge + '</div></div>';
+    '<div class="mbx-heroline"><div class="mbx-hero">' + fmtEUR(value) + '</div>' + pillHtml + '</div>' + comparison + '</div>' +
+    (attHtml ? '<div class="mbx-objective"><div class="mbx-prog-head">' + attHtml + '</div></div>' : '') + '</div>';
+  if (cfg.summaryOnly) return summary;
+  return '<div class="card statx-card"><h2 class="mbx-gauges-title">' + (cfg.shortLabel === 'CA' ? 'Avancement du chiffre d’affaires' : 'Avancement de la marge brute') + '</h2>' +
+    '<div class="mbx-compare">' + currentGauge + gaugeSeparator + priorGauge + '</div></div>';
 }
 
 // ---- Ligne 1 : cartes "Marge brute réalisée" + "Chiffre d'affaires cumulé" ----
@@ -2873,10 +2904,16 @@ function renderBanner(data, cur, prev) {
     var pilotageCard = document.getElementById('bloc-pilotage');
     if (!pilotageCard) return;
     var isCA = pilotageMetric === 'ca';
+    var capActual = document.getElementById('cap-actual');
+    if (capActual) capActual.innerHTML = _statCardHTML({
+      title: 'Marge brute réalisée', value: cur.ytd_mb, goal: C.MB_AN_OBJ,
+      refSame: sp ? sp.mb_ytd : null, refFull: sp ? sp.mb_full : null, refYear: refYear,
+      currentYear: cur.year, shortLabel: 'MB', yearProgress: yearProgress, summaryOnly: true
+    });
     pilotageCard.innerHTML = _statCardHTML(isCA ? {
       title: "Chiffre d'affaires cumulé", value: cur.ytd_ca, goal: C.CA_OBJ,
       refSame: sp ? sp.ca_ytd : null, refFull: sp ? sp.ca_full : null, refYear: refYear, currentYear: cur.year, shortLabel: 'CA',
-      monthly: cy.monthly.ca, caption: 'CA mensuel', barColor: COLORS.blue, yearProgress: yearProgress, showSamePeriodContext: true
+      monthly: cy.monthly.ca, caption: 'CA mensuel', barColor: COLORS.blue, yearProgress: yearProgress
     } : {
       title: 'Marge brute réalisée', value: cur.ytd_mb, goal: C.MB_AN_OBJ,
       refSame: sp ? sp.mb_ytd : null, refFull: sp ? sp.mb_full : null, refYear: refYear, currentYear: cur.year, shortLabel: 'MB',
