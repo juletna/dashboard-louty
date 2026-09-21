@@ -718,6 +718,10 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 
 /* Module unifié : performance et structure du CA */
 .performance-structure { margin-top:16px; }
+.performance-distribution-row { margin-top:16px; align-items:start; }
+.performance-distribution-row .performance-structure { margin-top:0; }
+.distribution-column { display:flex; flex-direction:column; gap:16px; min-width:0; }
+.distribution-column .margin-distribution { margin-top:0; }
 .performance-kpis { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:12px; margin:16px 0 24px; }
 .performance-kpi { background:var(--bg-inset); border-radius:var(--radius-sm); padding:14px 16px; }
 .performance-kpi .label { color:var(--text-dim); font-size:12px; font-weight:700; }
@@ -1026,6 +1030,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
   <div class="sante-row" style="margin-top:16px">
     <div id="bloc-sante"></div>
   </div>
+  <div class="grid grid-2 performance-distribution-row">
   <section class="card performance-structure" aria-labelledby="performance-structure-title">
     <h3 id="performance-structure-title">Performance &amp; structure du CA</h3>
     <div id="performance-kpis" class="performance-kpis"></div>
@@ -1034,7 +1039,8 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
     <h4 class="table-section-title">Détail des postes</h4>
     <div id="bloc4"></div>
   </section>
-  <div id="margin-distribution-row" class="grid grid-2 margin-distribution" style="display:none">
+  <div class="distribution-column">
+  <div id="margin-distribution-row" class="distribution-column margin-distribution" style="display:none">
     <section class="card distribution-card" aria-labelledby="quote-margin-title">
       <h3 id="quote-margin-title">Devis facturés par tranche de montant<span class="sp-help" data-tip="Répartition des devis qui ont été facturés, par tranche de montant HT. Les tranches restent dans l'ordre des montants ; la hauteur indique leur poids dans le total des devis facturés.">?</span></h3>
       <p class="distribution-note">Exercice courant en barres, comparé à la moyenne des exercices précédents comparables.</p>
@@ -1058,6 +1064,8 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
       </div></div>
     </section>
   </div>
+  </div>
+</div>
 </div>
 
 <div id="tab-achats" class="tab-panel" style="display:none">
