@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tableau de bord de l'activité — CABESTAN</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#7C5AD6">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src data:; connect-src 'self'">
+<style>{{src/styles/main.css}}</style>
+<script>{{src/app/early-theme.js}}</script>
+</head>
+<body>
+<header>
+  <div class="topbar">
+    <div>
+      <h1>Tableau de bord de l'activité</h1>
+      <div class="muted">Pilotage mensuel de ton activité · export Louty · 100% dans ton navigateur</div>
+    </div>
+    <div class="topbar-actions">
+      <div class="data-status" id="data-status" style="display:none" title="Tes données sont mémorisées sur cet ordinateur — inutile de les re-déposer à chaque ouverture.">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg><div class="ds-lines"><span><span id="ds-label">Généré le</span> <strong id="ds-date">—</strong></span><span id="ds-bal" class="ds-bal" style="display:none"></span></div>
+      </div>
+      <button class="btn ghost" id="change-file" style="display:none" title="Déposer des exports Louty plus récents"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.5 9a9 9 0 0 1 14.9-3.4L23 10M1 14l4.6 4.4A9 9 0 0 0 20.5 15"/></svg><span>Mettre à jour</span></button>
+      <button class="btn btn-icon" id="toggle-theme" title="Basculer clair / sombre"></button>
+      <button class="btn btn-icon" id="open-settings" title="Réglages"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+    </div>
+  </div>
+</header>
+
+<div id="welcome">
+  <button type="button" class="btn ghost" id="welcome-back" style="display:none;margin-bottom:16px">‹ Revenir au tableau de bord</button>
+  <div class="dropzone" id="dropzone">
+    <div class="dz-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+    <div class="dz-title">Glisse tes exports Louty ici</div>
+    <div class="dz-sub"><strong>RES_U_Résultat d'Activité</strong> (obligatoire)<br><strong>Pièces</strong> pour les répartitions devis et clients (facultatif)<br>et <strong>BAL_A_Balance Analytique</strong> pour la santé financière (facultatif).<br>Tu peux déposer les trois d'un coup.</div>
+    <button type="button" class="btn primary" id="browse-btn">Parcourir mes fichiers</button>
+    <input type="file" id="file-input" accept=".xlsx" multiple style="display:none">
+    <div class="dz-files" id="dz-files"></div>
+    <div class="welcome-err" id="welcome-err"></div>
+    <div class="dz-hint"><strong>Où trouver tes fichiers ?</strong> Dans Louty, ouvre la rubrique <strong>Rapports de gestion</strong> et télécharge <code>RES_U_Résultat d'Activité</code> (et <code>BAL_A_Balance Analytique</code> pour la santé financière), au format <code>.xlsx</code>.<br>
+    Tout se passe <strong>dans ton navigateur</strong> : aucune donnée n'est envoyée sur internet.</div>
+  </div>
+  <div class="welcome-callout">
+    <span class="wc-tag">À ne pas oublier</span>
+    Au téléchargement du <strong>Résultat d'Activité</strong> dans Louty, coche bien <strong>toutes les années</strong> dans la fenêtre « Exercices » (2024, 2025, 2026…), pas seulement l'année en cours. Sans ça, <strong>la comparaison avec les années précédentes et les cumuls ne peuvent pas s'afficher</strong>.
+  </div>
+  <div class="welcome-callout">
+    <span class="wc-tag">Répartitions devis &amp; clients</span>
+    Dans <strong>Gestion com. › Devis (liste) › Filtre avancé</strong>, sélectionne <strong>Devis facturés</strong>, <strong>Facture</strong>, <strong>Facture de situation</strong>, <strong>Facture d’acompte</strong> et <strong>Avoir</strong>. Garde les états <strong>Validé + Imprimé</strong> et <strong>Confirmé</strong>, ne filtre pas le règlement, puis exporte la liste complète au format <code>.xlsx</code>. Exclue les brouillons et les devis non facturés ; les acomptes servent uniquement au détail de santé financière, jamais au CA.
+  </div>
+</div>
+
+<div id="dashboard-root" style="display:none">
+
+
+
+<div id="loading" class="loading">Chargement des données…</div>
+<div id="error" class="error" style="display:none"></div>
+
+<div id="tab-general" class="tab-panel active" style="display:none">
+  <section id="annual-cap" class="card annual-cap" aria-labelledby="annual-cap-title"></section>
+  <div class="pilotage-mode" aria-label="Vue de pilotage cumulée"><div class="pilotage-switch" role="group" aria-label="Indicateur affiché"><button type="button" data-pilotage-metric="mb" aria-pressed="true">Marge brute</button><button type="button" data-pilotage-metric="ca" aria-pressed="false">CA</button></div></div>
+  <div class="grid grid-2 row1">
+    <div id="bloc-pilotage"></div>
+    <div class="card cumul-card">
+      <h3 id="cumul-chart-title">Marge brute cumulée</h3>
+      <div class="chart-wrap tall"><canvas id="chart-cumul"></canvas></div>
+    </div>
+  </div>
+  <div class="grid" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr); margin-top:16px">
+    <div class="card">
+      <h3>Chiffre d'affaires &amp; marge brute mensuels<span class="sp-help" data-tip="Chaque barre = ton CA du mois, décomposé en marge brute (vert, ce qui te reste) et achats &amp; coûts (rouge, le reste du CA). Les courbes pointillées montrent les moyennes historiques de CA et de marge brute. La ligne orange indique le seuil mensuel de salaire brut à financer.">?</span></h3>
+      <div class="chart-wrap tall"><canvas id="chart-ca-mb"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Part de la marge brute dans le CA<span class="sp-help" data-tip="Ta marge brute rapportée au CA (marge brute ÷ CA). L’année en cours est affichée à date ; les années précédentes correspondent à leur exercice complet. Le repère pointillé reprend la moyenne lissée de ces exercices historiques. Plus la barre est longue, plus tu gardes de marge sur ce que tu factures.">?</span></h3>
+      <div id="taux-annuel-reference" class="chart-reference-note"></div>
+      <div class="chart-wrap tall"><canvas id="chart-taux-annuel"></canvas></div>
+    </div>
+  </div>
+  <div class="sante-row" style="margin-top:16px">
+    <div id="bloc-sante"></div>
+  </div>
+  <div class="grid grid-2 performance-distribution-row">
+  <section class="card performance-structure" aria-labelledby="performance-structure-title">
+    <h3 id="performance-structure-title">Performance &amp; structure du CA</h3>
+    <div id="performance-kpis" class="performance-kpis"></div>
+    <h4 class="table-section-title">Structure et volume du CA par année</h4>
+    <div class="chart-wrap structure-chart"><canvas id="chart-repart-years"></canvas></div>
+    <h4 class="table-section-title">Détail des postes</h4>
+    <div id="bloc4"></div>
+  </section>
+  <div class="distribution-column">
+  <section class="card margin-rate-card" aria-labelledby="margin-rate-title">
+    <h3 id="margin-rate-title">Taux de marge brute<span class="sp-help" data-tip="Ta marge brute rapportée au chiffre d'affaires (marge brute ÷ CA). Plus le taux est élevé, plus chaque euro facturé te laisse de marge.">?</span></h3>
+    <div id="bloc-taux"></div>
+  </section>
+  <div id="margin-distribution-row" class="distribution-column margin-distribution" style="display:none">
+    <section class="card distribution-card" aria-labelledby="quote-margin-title">
+      <h3 id="quote-margin-title">Devis facturés par tranche de montant<span class="sp-help" data-tip="Répartition des devis qui ont été facturés, par tranche de montant HT. Les tranches restent dans l'ordre des montants ; la hauteur indique leur poids dans le total des devis facturés.">?</span></h3>
+      <p class="distribution-note">Exercice courant en barres, comparé à la moyenne des exercices précédents comparables.</p>
+      <div id="quote-margin-distribution"></div>
+    </section>
+    <section class="card distribution-card" aria-labelledby="client-margin-title">
+      <div class="distribution-title-line"><h3 id="client-margin-title">Concentration du CA facturé par client<span class="sp-help" data-tip="Clients classés par chiffre d’affaires facturé HT. La colonne « cumul » montre la part de CA atteinte en ajoutant les clients les plus contributeurs.">?</span></h3><div id="client-distribution-period" class="client-distribution-period"></div></div>
+      <p class="distribution-note">Lecture Pareto : mesure la dépendance éventuelle à quelques clients.</p>
+      <div id="client-margin-distribution"></div>
+    </section>
+  </div>
+  <div id="distribution-upload-row" class="margin-distribution" style="display:none">
+    <section class="card distribution-upload-card" aria-labelledby="pieces-upload-title">
+      <h3 id="pieces-upload-title">Répartition des devis et des clients</h3>
+      <div class="sante-empty"><div class="se-drop" id="pieces-drop">
+        <div class="se-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+        <div class="se-title">Ajoute l’export détaillé « Pièces »</div>
+        <div class="se-sub">Dans Louty : <strong>Gestion com. › Devis (liste) › Filtre avancé</strong>.<br>Sélectionne <strong>Devis facturés</strong>, <strong>Facture</strong>, <strong>Facture de situation</strong>, <strong>Facture d’acompte</strong> et <strong>Avoir</strong> ; conserve les états <strong>Validé + Imprimé</strong> et <strong>Confirmé</strong>, sans filtre de règlement. Exclue les brouillons et devis non facturés ; les acomptes alimentent seulement le détail de santé financière. Exporte toute la période au format <code>.xlsx</code>.</div>
+        <button type="button" class="btn primary" id="pieces-browse">Choisir le fichier Pièces</button>
+        <input type="file" id="pieces-input" accept=".xlsx" style="display:none">
+      </div></div>
+    </section>
+  </div>
+  </div>
+</div>
+</div>
+
+<div id="tab-achats" class="tab-panel" style="display:none">
+  <div class="grid achats-grid" style="margin-top:16px; align-items:stretch">
+    <div class="achats-left">
+      <section class="card" aria-labelledby="ratio-achats-title">
+        <h3 id="ratio-achats-title">Ratio achats / CA</h3>
+        <div id="blocA"></div>
+      </section>
+    </div>
+    <div class="card achats-main">
+      <h3>Achats vs CA par mois<span class="sp-help" data-tip="Tes achats matières et ton CA mois par mois, plus le ratio achats/CA en %. Les mois surlignés dépassent ton seuil d'alerte.">?</span></h3>
+      <div class="chart-wrap tall"><canvas id="chart-achats-ca"></canvas></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+
+<div id="settings-backdrop"></div>
+<aside id="settings-panel" aria-label="Réglages">
+  <div class="sp-head"><h2>Réglages avancés</h2>
+    <button class="btn ghost btn-icon" id="settings-close" title="Fermer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+  <div class="sp-body">
+    <div class="sp-onboard" id="sp-onboard" style="display:none"><strong>Premier export</strong> — définis d’abord ton revenu et ton résultat visé dans « Mon cap annuel » en tête du tableau de bord.</div>
+    <p class="small">Le <strong>cap annuel</strong> est visible dans le tableau de bord. Ici, tu ajustes seulement les seuils d’alerte et de lecture des graphiques.</p>
+    <div class="sp-group"><div class="sp-glabel">Taux de marge brute (marge brute ÷ CA)</div>
+      <div class="sp-field"><label for="set-TAUX_DANGER">Seuil danger<span class="sp-help" data-tip="Sous ce taux, la rentabilité est insuffisante — zone rouge du graphe des taux. En dessous, chaque euro facturé laisse trop peu de marge." tabindex="0" aria-label="Sous ce taux, la rentabilité est insuffisante — zone rouge du graphe des taux. En dessous, chaque euro facturé laisse trop peu de marge.">?</span></label><span class="in-wrap"><input type="number" step="0.1" id="set-TAUX_DANGER" data-key="TAUX_DANGER"><span class="sp-unit">%</span></span></div>
+      <div class="sp-field"><label for="set-TAUX_EXC">Excellent<span class="sp-help" data-tip="Taux de marge brute considéré comme excellent — zone verte du graphe des taux." tabindex="0" aria-label="Taux de marge brute considéré comme excellent — zone verte du graphe des taux.">?</span></label><span class="in-wrap"><input type="number" step="0.1" id="set-TAUX_EXC" data-key="TAUX_EXC"><span class="sp-unit">%</span></span></div>
+    </div>
+    <div class="sp-group"><div class="sp-glabel">Ratio achats / CA</div>
+      <div class="sp-field"><label for="set-RATIO_CIBLE">Cible (en dessous = bon)<span class="sp-help" data-tip="Part des achats matières dans le CA que tu vises. En dessous = bon : tu gardes plus de marge sur ce que tu factures." tabindex="0" aria-label="Part des achats matières dans le CA que tu vises. En dessous = bon : tu gardes plus de marge sur ce que tu factures.">?</span></label><span class="in-wrap"><input type="number" step="0.1" id="set-RATIO_CIBLE" data-key="RATIO_CIBLE"><span class="sp-unit">%</span></span></div>
+      <div class="sp-field"><label for="set-RATIO_ALERTE">Alerte (au dessus = à surveiller)<span class="sp-help" data-tip="Part des achats dans le CA à ne pas dépasser. Au-dessus = à surveiller : les achats pèsent trop lourd vs la facturation." tabindex="0" aria-label="Part des achats dans le CA à ne pas dépasser. Au-dessus = à surveiller : les achats pèsent trop lourd vs la facturation.">?</span></label><span class="in-wrap"><input type="number" step="0.1" id="set-RATIO_ALERTE" data-key="RATIO_ALERTE"><span class="sp-unit">%</span></span></div>
+    </div>
+  </div>
+  <div class="sp-foot">
+    <button class="btn ghost" id="settings-reset">Réinitialiser</button>
+    <button class="btn primary" id="settings-save">Enregistrer</button>
+  </div>
+</aside>
+
+<div id="cap-drawer-backdrop"></div>
+<aside id="cap-drawer" role="dialog" aria-modal="true" aria-labelledby="cap-drawer-title" aria-hidden="true">
+  <div class="sp-head"><h2 id="cap-drawer-title">Modifier mes objectifs</h2>
+    <button class="btn ghost btn-icon" id="cap-drawer-close" title="Fermer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+  <div id="cap-drawer-content" class="cap-drawer-body"></div>
+</aside>
+
+<script>{{src/vendor/echarts.js}}</script>
+<script>{{src/vendor/chart.js}}</script>
+<script>{{src/vendor/xlsx.js}}</script>
+<script>{{src/app/parser.js}}</script>
+<script>{{src/app/legacy.js}}</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "dashboard-louty",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "build:echarts": "node scripts/build-echarts-gauges.mjs && node scripts/build.mjs",
+    "verify": "node scripts/verify-build.mjs",
+    "test": "node --test test/build.test.mjs",
+    "test:browser": "node test/browser/smoke.mjs"
+  },
+  "devDependencies": {
+    "echarts": "6.1.0",
+    "esbuild": "0.25.12"
+  }
+}
