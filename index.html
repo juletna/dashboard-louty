@@ -3744,7 +3744,9 @@ function _makeEChart(id, buildOption) {
     var chart = LoutyECharts.init(host, null, { renderer:'svg', width:host.clientWidth || 220, height:host.clientHeight || 140 });
     entry = { chart:chart, buildOption:buildOption };
     entry.observer = new ResizeObserver(function () {
-      if (host.clientWidth && host.clientHeight) {
+      // The initial observer notification must not finish the entry animation.
+      if (host.clientWidth && host.clientHeight &&
+          (chart.getWidth() !== host.clientWidth || chart.getHeight() !== host.clientHeight)) {
         chart.resize({ width:host.clientWidth, height:host.clientHeight });
         chart.setOption(entry.buildOption());
       }
@@ -3759,16 +3761,28 @@ function _makeEChart(id, buildOption) {
     textStyle:{ fontFamily:CHART_FONT }
   }, buildOption()), { notMerge:true });
 }
-function _makeEChartGauge(id, series, tooltipText) {
+function _makeEChartGauge(id, series, tooltipText, displayRate) {
   _makeEChart(id, function () {
     var style = getComputedStyle(document.getElementById(id));
+    var animate = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     return {
+      animation:animate, animationDuration:1800, animationEasing:'quarticOut',
+      animationDurationUpdate:1800, animationEasingUpdate:'quarticOut',
       tooltip:{ trigger:'item', confine:true, formatter:function () { return tooltipText; } },
       series:[Object.assign({ type:'gauge', startAngle:180, endAngle:0, center:['50%', '80%'], radius:'140%',
         axisTick:{ show:false }, splitLine:{ show:false }, axisLabel:{ show:false }, anchor:{ show:false },
         title:{ offsetCenter:[0, '8%'], color:style.getPropertyValue('--text-dim').trim(), fontSize:12, fontWeight:700 },
-        detail:{ offsetCenter:[0, '-18%'], color:style.getPropertyValue('--text').trim(), fontSize:24, fontWeight:800 }
-      }, series)]
+        detail:{ show:false }
+      }, series), {
+        // Keep the displayed percentage independent of the mapped/clamped arc value.
+        type:'gauge', center:['50%', '80%'], radius:'140%', silent:true,
+        axisLine:{ show:false }, axisTick:{ show:false }, splitLine:{ show:false },
+        axisLabel:{ show:false }, pointer:{ show:false }, anchor:{ show:false }, title:{ show:false },
+        detail:{ valueAnimation:animate, offsetCenter:[0, '-18%'],
+          color:style.getPropertyValue('--text').trim(), fontSize:24, fontWeight:800,
+          formatter:function (value) { return fmtPct(value / 100, 1); } },
+        data:[{ value:displayRate * 100 }]
+      }]
     };
   });
 }
