@@ -984,15 +984,17 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .cap-stat-icon { background:transparent; }
 .cap-need,.cap-actual { flex:1; padding:20px; border-radius:12px; }
 .cap-metric-title,#cap-actual .mbx-title { font-size:14px; font-weight:800; color:var(--text); letter-spacing:0; }
-.cap-need > strong,#cap-actual .mbx-hero { font-size:36px; line-height:1.15; letter-spacing:-.03em; margin:8px 0 12px; }
+.cap-need > strong,#cap-actual .mbx-hero { font-family:inherit; font-size:36px; font-weight:800; line-height:1.15; letter-spacing:-.03em; margin:8px 0 12px; }
 .cap-need-detail { margin:0 0 16px; }
 .cap-need-detail + .cap-need-detail { padding-top:14px; border-top:1px solid var(--cap-divider); }
 .cap-ca { display:block; margin-top:4px; font-size:18px; }
 .cap-hypotheses { border-color:var(--cap-divider); }
 #cap-actual .mbx-summary { display:block; }
 #cap-actual .mbx-head { margin:0; }
-#cap-actual .mbx-heroline { display:block; }
-#cap-actual .mbx-pill { background:transparent; padding:0; border-radius:0; font-size:14px; }
+#cap-actual .mbx-heroline { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+#cap-actual .mbx-pill { align-self:center; padding:5px 9px; border-radius:999px; font-size:14px; line-height:1.2; }
+#cap-actual .mbx-pill.pos { background:var(--green-bg); }
+#cap-actual .mbx-pill.neg { background:var(--red-bg); }
 .cap-comparison { color:var(--text-dim); font-size:11px; margin-top:3px; }
 #cap-actual .mbx-objective { margin:16px 0 0; padding:14px 0 0; border-radius:0; border-top:1px solid var(--cap-divider); background:transparent; }
 #cap-actual .mbx-progress-title { margin-bottom:5px; }
