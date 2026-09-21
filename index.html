@@ -990,6 +990,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .cap-ca { display:block; margin-top:4px; }
 .cap-value,.cap-ca,#cap-actual .mbx-progress-line strong,#cap-actual .mbx-progress-pace strong { font-family:inherit; font-size:23px; font-weight:900; letter-spacing:-.035em; font-variant-numeric:tabular-nums; line-height:1.2; }
 .cap-note,.cap-need-detail,.cap-hypotheses,.cap-comparison,#cap-actual .mbx-progress-line,#cap-actual .mbx-progress-pace { font-family:inherit; font-size:13px; font-weight:400; line-height:1.35; }
+.cap-need-detail.cap-secondary-metric { color:var(--text); font-size:14px; font-weight:800; letter-spacing:0; }
 .cap-hypotheses { border-top:0; border-color:var(--cap-divider); }
 .cap-hypotheses-label { display:block; }
 #cap-actual .mbx-summary { display:block; }
@@ -2696,7 +2697,7 @@ function renderAnnualCap(data) {
         '<div class="cap-stat"><span class="cap-stat-copy"><span class="cap-label">Mon salaire net mensuel</span><span class="cap-value">' + fmtEUR(PLAN.salary / 12 * NET_FROM_GROSS) + ' <span class="cap-unit">/ mois</span></span><span class="cap-note">En ' + ref.n1.year + ' : <b>' + fmtEUR(roundedRefSalary / 12 * NET_FROM_GROSS) + ' / mois</b></span></span></div>' +
         '<div class="cap-stat"><span class="cap-stat-copy"><span class="cap-label">Mon résultat net annuel</span><span class="cap-value">' + fmtEUR(PLAN.surplus) + ' <span class="cap-unit">/ an</span></span><span class="cap-note">En ' + ref.n1.year + ' : <b>' + fmtEUR(ref.n1.netResult) + '</b></span></span></div>' +
       '</div></div>' +
-      '<div class="cap-need-wrap"><span class="cap-need-kicker">Le cap pour y arriver</span><div class="cap-need"><span class="cap-metric-title">Marge brute à réaliser</span><strong><span class="cap-mb">' + fmtEUR(neededMB) + '</span></strong><span class="cap-need-detail">Soit environ <b>' + fmtEUR(neededMB / 12) + ' / mois</b></span><span class="cap-need-detail cap-secondary-metric">CA à facturer sur l’année <b class="cap-ca">' + fmtEUR(requiredCA) + '</b></span><span class="cap-hypotheses"><span class="cap-hypotheses-label">Hypothèses de calcul :</span><span><b>' + fmtPct(PLAN.margin, 1) + '</b> de marge brute - <b>' + fmtEUR(PLAN.charges) + '</b> de charges annuelles</span></span></div></div>' +
+      '<div class="cap-need-wrap"><span class="cap-need-kicker">Le cap pour y arriver</span><div class="cap-need"><span class="cap-metric-title">Marge brute à réaliser</span><strong><span class="cap-mb">' + fmtEUR(neededMB) + '</span></strong><span class="cap-need-detail">Soit environ <b>' + fmtEUR(neededMB / 12) + ' / mois</b></span><span class="cap-need-detail cap-secondary-metric">CA à réaliser <b class="cap-ca">' + fmtEUR(requiredCA) + '</b></span><span class="cap-hypotheses"><span class="cap-hypotheses-label">Hypothèses de calcul :</span><span><b>' + fmtPct(PLAN.margin, 1) + '</b> de marge brute - <b>' + fmtEUR(PLAN.charges) + '</b> de charges annuelles</span></span></div></div>' +
       '<div class="cap-need-wrap"><span class="cap-need-kicker">Où j’en suis</span><div id="cap-actual" class="cap-actual"></div></div>' +
     '</div>' +
     '<div class="cap-sim" id="cap-sim" hidden>' +
