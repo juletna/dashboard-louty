@@ -722,9 +722,10 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .performance-distribution-row { grid-template-columns:minmax(0,2fr) minmax(0,1fr); margin-top:16px; align-items:stretch; }
 .performance-distribution-row .performance-structure { margin-top:0; }
 .distribution-column { display:flex; flex-direction:column; gap:16px; min-width:0; }
-.performance-distribution-row > .distribution-column { height:100%; }
+.performance-distribution-row > .distribution-column { min-height:0; }
 .distribution-column .margin-distribution { margin-top:0; }
-.performance-distribution-row > .distribution-column > .card { flex:none; }
+/* La jauge garde sa hauteur naturelle ; les deux cartes suivantes partagent le reste. */
+.performance-distribution-row .margin-rate-card { flex:0 0 auto; }
 #margin-distribution-row { flex:1 1 0; min-height:0; }
 #margin-distribution-row .distribution-card { flex:1 1 0; display:flex; flex-direction:column; min-height:0; }
 #quote-margin-distribution { display:flex; flex:1; min-height:0; }
@@ -1085,9 +1086,9 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
     <div id="bloc4"></div>
   </section>
   <div class="distribution-column">
-  <section class="card" aria-labelledby="ratio-achats-title">
-    <h3 id="ratio-achats-title">Ratio achats / CA</h3>
-    <div id="blocA"></div>
+  <section class="card margin-rate-card" aria-labelledby="margin-rate-title">
+    <h3 id="margin-rate-title">Taux de marge brute<span class="sp-help" data-tip="Ta marge brute rapportée au chiffre d'affaires (marge brute ÷ CA). Plus le taux est élevé, plus chaque euro facturé te laisse de marge.">?</span></h3>
+    <div id="bloc-taux"></div>
   </section>
   <div id="margin-distribution-row" class="distribution-column margin-distribution" style="display:none">
     <section class="card distribution-card" aria-labelledby="quote-margin-title">
@@ -1120,10 +1121,10 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 <div id="tab-achats" class="tab-panel" style="display:none">
   <div class="grid achats-grid" style="margin-top:16px; align-items:stretch">
     <div class="achats-left">
-      <div class="card">
-        <h3>Taux de marge brute<span class="sp-help" data-tip="Ta marge brute rapportée au chiffre d'affaires (marge brute ÷ CA). Plus le taux est élevé, plus chaque euro facturé te laisse de marge.">?</span></h3>
-        <div id="bloc-taux"></div>
-      </div>
+      <section class="card" aria-labelledby="ratio-achats-title">
+        <h3 id="ratio-achats-title">Ratio achats / CA</h3>
+        <div id="blocA"></div>
+      </section>
     </div>
     <div class="card achats-main">
       <h3>Achats vs CA par mois<span class="sp-help" data-tip="Tes achats matières et ton CA mois par mois, plus le ratio achats/CA en %. Les mois surlignés dépassent ton seuil d'alerte.">?</span></h3>
