@@ -2931,7 +2931,7 @@ function _actualPerformanceCardHTML(cfg) {
     '<div class="actual-performance-gauge"><div class="mbx-gauge"><div class="mbx-gauge-plot"><div class="mbx-gauge-track" style="--gauge-accent:var(--actual-accent);--gauge-rest:var(--actual-rest);--gauge-rest-text:var(--actual-rest-text)"><div class="mbx-gauge-fill current" style="width:' + ratio(gaugeBase) + '%"></div>' +
       (gaugePaceGap ? '<div class="mbx-gauge-pace-gap ' + paceClass + '" style="left:' + ratio(gaugeBase) + '%; width:' + ratio(gaugePaceGap) + '%"></div>' : '') +
       (gaugeRest ? '<div class="mbx-gauge-rest current" style="left:' + ratio(gaugeEnd) + '%; width:' + ratio(gaugeRest) + '%"></div>' : '') +
-      '<div class="mbx-gauge-marker" style="left:' + ratio(paceTarget) + '%"></div>' +
+      '<div class="mbx-gauge-marker" style="left:' + ratio(value) + '%"></div>' +
       '<div class="mbx-gauge-callout realized current"><strong>' + fmtEUR(value) + '</strong><span>' + realizedPct + '% Réalisé</span></div>' +
       (currentRest ? '<div class="mbx-gauge-callout remaining"><strong>' + fmtEUR(currentRest) + '</strong><span>' + remainingPct + '% Restant</span></div>' : '') +
     '</div></div></div></div>' +
