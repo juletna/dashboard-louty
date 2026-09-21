@@ -639,9 +639,7 @@
 
 /* Demi-jauge à graduations */
 .purchase-ratio-chart { position:relative; width:100%; max-width:220px; height:140px; margin:2px auto 0; }
-.gauge-arc { width:100%; max-width:220px; height:auto; display:block; margin:2px auto 0; }
-.gauge-big { fill:var(--text); font-weight:800; font-size:22px; letter-spacing:-0.02em; }
-.gauge-sub { fill:var(--text-dim); font-weight:700; font-size:11px; }
+.margin-rate-chart { position:relative; width:100%; max-width:220px; height:140px; margin:2px auto 0; }
 
 /* Bloc achats fusionné : colonne de droite (Ratio + Tendance empilés) */
 .achats-col2 { display:flex; flex-direction:column; }
@@ -3436,14 +3434,7 @@ function renderAchats(cy, cur) {
     gaugeHtml = '<div class="ratio-big">—</div>';
   }
   // Taux de marge brute (marge brute ÷ CA) — rendu dans sa propre carte #bloc-taux
-  var taux = cur.taux_mb || 0;
-  var tauxOk = taux >= C.TAUX_OBJ;
-  var tauxHtml =
-    '<div class="ratio-sub">' +
-      _tickGauge(taux / 0.80, fmtPct(taux, 1), (tauxOk ? 'objectif atteint' : 'objectif ' + fmtPct(C.TAUX_OBJ, 0))) +
-    '</div>';
-  var tauxWrap = document.getElementById('bloc-taux');
-  if (tauxWrap) tauxWrap.innerHTML = tauxHtml;
+  _renderMarginRateChart(cur.taux_mb || 0);
   wrap.innerHTML =
     gaugeHtml +
     '<div class="ratio-legend">' +
@@ -3532,18 +3523,44 @@ function renderTrendChart(years) {
   }).join('');
 };
 
-// ---- Demi-jauge à graduations (remplace les anneaux CA cumulé / Taux) ----
-function _tickGauge(fraction, big, small) {
-  var f = Math.max(0, Math.min(1, fraction || 0));
-  var cx = 100, cy = 100, R = 80, sw = 15;
-  var len = Math.PI * R;
-  var d = 'M ' + (cx - R) + ' ' + cy + ' A ' + R + ' ' + R + ' 0 0 1 ' + (cx + R) + ' ' + cy;
-  return '<svg class="gauge-arc" viewBox="0 0 200 126">' +
-    '<path d="' + d + '" fill="none" stroke="var(--border-strong)" stroke-width="' + sw + '" stroke-linecap="round"/>' +
-    '<path d="' + d + '" fill="none" stroke="#7C5AD6" stroke-width="' + sw + '" stroke-linecap="round" stroke-dasharray="' + (f * len).toFixed(1) + ' ' + (len * 2).toFixed(1) + '"/>' +
-    '<text class="gauge-big" x="100" y="88" text-anchor="middle">' + big + '</text>' +
-    '<text class="gauge-sub" x="100" y="110" text-anchor="middle">' + small + '</text>' +
-    '</svg>';
+// Demi-jauge de taux : l'arc conserve l'échelle historique de 0 à 80 %.
+function _renderMarginRateChart(rate) {
+  var host = document.getElementById('bloc-taux');
+  if (!host) return;
+  var label = rate >= C.TAUX_OBJ ? 'objectif atteint' : 'objectif ' + fmtPct(C.TAUX_OBJ, 0);
+  var description = 'Taux de marge brute : ' + fmtPct(rate, 1) + ', ' + label;
+  host.innerHTML = '<div class="ratio-sub"><div class="margin-rate-chart"><canvas id="chart-margin-rate" role="img" aria-label="' + esc(description) + '">' + esc(description) + '</canvas></div></div>';
+  var style = getComputedStyle(host);
+  var color = function (name) { return style.getPropertyValue(name).trim(); };
+  var fraction = Math.max(0, Math.min(1, rate / 0.80));
+  makeChart('chart-margin-rate', {
+    type:'doughnut',
+    data:{ labels:['Taux de marge brute', 'Reste de l’échelle'], datasets:[{
+      data:[fraction, 1 - fraction], backgroundColor:['#7C5AD6', color('--border-strong')],
+      borderWidth:0, borderRadius:7, spacing:0, hoverOffset:0
+    }] },
+    plugins:[{
+      id:'marginRateLabels',
+      afterDatasetsDraw:function (chart) {
+        var arc = chart.getDatasetMeta(0).data[0];
+        if (!arc) return;
+        var ctx = chart.ctx;
+        ctx.save(); ctx.textAlign = 'center';
+        ctx.fillStyle = color('--text'); ctx.font = '800 24px ' + CHART_FONT;
+        ctx.fillText(fmtPct(rate, 1), arc.x, arc.y - 14);
+        ctx.fillStyle = color('--text-dim'); ctx.font = '700 12px ' + CHART_FONT;
+        ctx.fillText(label, arc.x, arc.y + 10);
+        ctx.restore();
+      }
+    }],
+    options:{ responsive:true, maintainAspectRatio:false, rotation:-90, circumference:180, cutout:'83%', animation:false,
+      layout:{ padding:{ top:10, left:10, right:10, bottom:24 } },
+      plugins:{ legend:{ display:false }, tooltip:{ displayColors:false, callbacks:{
+        title:function () { return 'Taux de marge brute'; },
+        label:function () { return ['Taux actuel : ' + fmtPct(rate, 1), 'Objectif : ' + fmtPct(C.TAUX_OBJ, 1), 'Échelle de la jauge : 0 à 80 %']; }
+      } } }
+    }
+  });
 }
 
 // ---- Refonte carte "Santé financière" : barre de composition (trésorerie = position nette + dettes) ----
