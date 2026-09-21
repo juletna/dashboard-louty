@@ -716,6 +716,29 @@
 table.cmp tbody td:nth-child(2) { font-weight:800; color:var(--text); }
 table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 
+/* Module unifié : performance et structure du CA */
+.performance-structure { margin-top:16px; }
+.performance-kpis { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:12px; margin:16px 0 24px; }
+.performance-kpi { background:var(--bg-inset); border-radius:var(--radius-sm); padding:14px 16px; }
+.performance-kpi .label { color:var(--text-dim); font-size:12px; font-weight:700; }
+.performance-kpi .value { color:var(--text); font-size:26px; font-weight:800; letter-spacing:-0.025em; margin-top:5px; }
+.performance-kpi .delta { color:var(--green); font-size:13px; font-weight:800; margin-top:8px; }
+.performance-kpi .delta.bad { color:var(--red); }
+.structure-chart { height:230px; margin-bottom:20px; }
+.table-section-title { font-size:17px; font-weight:800; color:var(--text); letter-spacing:-0.015em; margin:0 0 9px; }
+.cmp .cmp-post { display:flex; align-items:center; gap:7px; }
+.cmp .cmp-dot { width:9px; height:9px; border-radius:3px; display:inline-block; flex:none; }
+.cmp .cmp-gauge { width:180px; max-width:100%; height:4px; border-radius:99px; overflow:hidden; background:var(--bg-inset); margin-top:6px; }
+.cmp .cmp-gauge > span { display:block; height:100%; border-radius:inherit; }
+.cmp .cmp-summary-title td { color:var(--text-faint); font-size:10px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; padding-top:18px; padding-bottom:6px; border-bottom:0; }
+.cmp .cmp-summary td:first-child { font-weight:800; }
+.cmp .cmp-summary:last-child td { border-bottom:0; }
+@media (max-width:700px) {
+  .performance-kpis { grid-template-columns:1fr; }
+  .structure-chart { height:260px; }
+  .cmp .cmp-gauge { width:120px; }
+}
+
 /* === Carte "Marge brute réalisée" — refonte héros + jauge à repères === */
 .pilotage-mode { display:flex; justify-content:flex-end; margin:0 0 8px; }
 .pilotage-switch { display:inline-flex; gap:3px; padding:3px; border:1px solid var(--border-strong); border-radius:999px; background:var(--bg-card); }
@@ -1003,24 +1026,14 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
   <div class="sante-row" style="margin-top:16px">
     <div id="bloc-sante"></div>
   </div>
-  <div class="grid grid-2" style="margin-top:16px; align-items:stretch">
-    <div class="card repart-card">
-      <h3>Répartition du chiffre d'affaires<span class="sp-help" data-tip="Où va ton CA cumulé : achats, salaire, charges, contribution coopérative, frais km, et ce qu'il reste (résultat). Les deux badges du haut comparent CA et coûts à la même période l'an dernier.">?</span></h3>
-      <div id="repart-kpis" class="repart-kpis"></div>
-      <div class="chart-wrap tall"><canvas id="chart-waterfall"></canvas></div>
-      <div id="repartition-legend" class="repart-legend"></div>
-    </div>
-    <div style="display:flex; flex-direction:column; gap:16px; min-width:0">
-      <div class="card">
-        <h3>Répartition du CA par année<span class="sp-help" data-tip="Comment se répartit chaque euro de CA (achats, salaire, charges, contribution coopérative, frais km, résultat) pour chaque année, à la même période (jan → dernier mois renseigné). Barres normalisées à 100 % pour comparer les parts.">?</span></h3>
-        <div class="chart-wrap" style="height:210px"><canvas id="chart-repart-years"></canvas></div>
-      </div>
-      <div class="card">
-        <h3>Tableau comparatif N-1 / N<span class="sp-help" data-tip="Tes indicateurs 2026 (à date) face à la même période de l'an dernier, avec l'écart et, en repère, le total de l'année précédente.">?</span></h3>
-        <div id="bloc4"></div>
-      </div>
-    </div>
-  </div>
+  <section class="card performance-structure" aria-labelledby="performance-structure-title">
+    <h3 id="performance-structure-title">Performance &amp; structure du CA</h3>
+    <div id="performance-kpis" class="performance-kpis"></div>
+    <h4 class="table-section-title">Structure et volume du CA par année</h4>
+    <div class="chart-wrap structure-chart"><canvas id="chart-repart-years"></canvas></div>
+    <h4 class="table-section-title">Détail des postes</h4>
+    <div id="bloc4"></div>
+  </section>
   <div id="margin-distribution-row" class="grid grid-2 margin-distribution" style="display:none">
     <section class="card distribution-card" aria-labelledby="quote-margin-title">
       <h3 id="quote-margin-title">Devis facturés par tranche de montant<span class="sp-help" data-tip="Répartition des devis qui ont été facturés, par tranche de montant HT. Les tranches restent dans l'ordre des montants ; la hauteur indique leur poids dans le total des devis facturés.">?</span></h3>
@@ -1766,6 +1779,7 @@ function render(data) {
   renderAnnualCap(data);
   renderBanner(data, cur, prev);
   renderSante(data, cur);
+  renderPerformanceKpis(cy, py, cur);
   renderTableCmp(cy, py, cur);
   renderRepartYears(cur, years);
   renderCAMB(cy, currentYear, years);
@@ -1780,7 +1794,6 @@ function render(data) {
       renderCumulChart(years, currentYear, pilotageMetric);
     };
   });
-  renderWaterfall(cur, cy);
   renderMarginDistributions(data);
 
   renderAchats(cy, cur);
@@ -3259,79 +3272,81 @@ function renderSante(data, cur) {
   });
 };
 
-// ---- Refonte "Tableau comparatif N-1 / N" : 2026 en 1er, date du fichier, Δ tout à droite ----
+// ---- Module unifié : KPI, répartition et comparaison N-1 / N ----
+function renderPerformanceKpis(cy, py, cur) {
+  var wrap = document.getElementById('performance-kpis');
+  if (!wrap) return;
+  var n = cur.mois_renseignes;
+  function ytd(y, key) { return y ? y.monthly[key].reduce(function (a, v) { return a + (v || 0); }, 0) : null; }
+  function same(y, key) { return y ? y.monthly[key].slice(0, n).reduce(function (a, v) { return a + (v || 0); }, 0) : null; }
+  var ca = ytd(cy, 'ca'), prevCA = same(py, 'ca');
+  var result = ytd(cy, 'ca') - ytd(cy, 'achats_matieres') - ytd(cy, 'remunerations') - ytd(cy, 'charges_fonct') - ytd(cy, 'contribution_coop');
+  var prevResult = py ? same(py, 'ca') - same(py, 'achats_matieres') - same(py, 'remunerations') - same(py, 'charges_fonct') - same(py, 'contribution_coop') : null;
+  var costs = ca - result, prevCosts = prevCA === null || prevResult === null ? null : prevCA - prevResult;
+  function pctDelta(now, before) { return before ? (now - before) / before : null; }
+  function kpi(label, value, delta, inverse) {
+    var good = delta === null ? '' : ((inverse ? delta < 0 : delta > 0) ? '' : ' bad');
+    var sign = delta === null ? '' : (delta > 0 ? '↑ ' : (delta < 0 ? '↓ ' : '→ '));
+    return '<div class="performance-kpi"><div class="label">' + label + '</div><div class="value">' + fmtEUR(value) + '</div><div class="delta' + good + '">' + (delta === null ? 'Comparaison indisponible' : sign + fmtPct(Math.abs(delta), 1) + ' · vs N-1') + '</div></div>';
+  }
+  wrap.innerHTML = kpi("Chiffre d'affaires", ca, pctDelta(ca, prevCA), false) + kpi('Coûts totaux', costs, pctDelta(costs, prevCosts), true) + kpi('Résultat', result, pctDelta(result, prevResult), false);
+}
+
 function renderTableCmp(cy, py, cur) {
   var wrap = document.getElementById('bloc4');
   var n = cur.mois_renseignes;
-  function ytd(yearObj, key) { if (!yearObj) return null; return yearObj.monthly[key].reduce(function (a, v) { return a + (v || 0); }, 0); }
-  function ytdSame(yearObj, key) { if (!yearObj) return null; return yearObj.monthly[key].slice(0, n).reduce(function (a, v) { return a + (v || 0); }, 0); }
-  function full(yearObj, key) { if (!yearObj) return null; var total = yearObj.solde && yearObj.solde[key]; return (total !== null && total !== undefined) ? total : ytd(yearObj, key); }
+  function ytd(y, key) { return y ? y.monthly[key].reduce(function (a, v) { return a + (v || 0); }, 0) : null; }
+  function same(y, key) { return y ? y.monthly[key].slice(0, n).reduce(function (a, v) { return a + (v || 0); }, 0) : null; }
+  function result(y, samePeriod) { if (!y) return null; var get = samePeriod ? same : ytd; return get(y, 'ca') - get(y, 'achats_matieres') - get(y, 'remunerations') - get(y, 'charges_fonct') - get(y, 'contribution_coop'); }
+  function pill(value, favorableWhenLower, points) {
+    if (value === null || value === undefined || isNaN(value)) return '—';
+    var good = favorableWhenLower ? value < 0 : value > 0;
+    var bad = favorableWhenLower ? value > 0 : value < 0;
+    var cls = good ? 'pos' : (bad ? 'neg' : 'zero');
+    var text = points ? fmtDeltaPts(value) : fmtDelta(value);
+    return '<span class="cmp-pill ' + cls + '">' + text + '</span>';
+  }
+  function catCell(row, share) {
+    return '<div class="cmp-post"><i class="cmp-dot" style="background:' + row.color + '"></i>' + row.label + '</div><div class="cmp-gauge"><span style="width:' + share + '%;background:' + row.color + '"></span></div>';
+  }
   var rows = [
-    { label: "Chiffre d'affaires", key: 'ca' },
-    { label: "Marge brute", key: 'marge_brute' },
-    { label: "Achats matières", key: 'achats_matieres' },
-    { label: "Salaire (rémunérations)", key: 'remunerations' },
-    { label: "Charges de fonctionnement", key: 'charges_fonct' },
-    { label: "Frais kilométriques", key: 'frais_km' },
-    { label: "Contribution coopérative", key: 'contribution_coop' }
+    { label:'Achats matières', key:'achats_matieres', color:COLORS.red, cost:true },
+    { label:'Salaires', key:'remunerations', color:COLORS.blue, cost:true },
+    { label:'Charges de fonctionnement', key:'charges_fonct', color:COLORS.orange, cost:true },
+    { label:'Frais kilométriques', key:'frais_km', color:COLORS.gray, cost:true },
+    { label:'Contribution coopérative', key:'contribution_coop', color:COLORS.teal, cost:true },
+    { label:'Résultat restant', calc:true, color:COLORS.green, cost:false }
   ];
-  function cmpPill(deltaCls, txt) {
-    var m = deltaCls === 'delta-pos' ? 'pos' : (deltaCls === 'delta-neg' ? 'neg' : 'zero');
-    return '<span class="cmp-pill ' + m + '">' + txt + '</span>';
+  var pyYear = py ? String(parseInt(cur.year) - 1) : 'N-1';
+  var dateStr = DATA && DATA.file_mtime_iso ? new Date(DATA.file_mtime_iso).toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric' }) : '—';
+  var ca = ytd(cy, 'ca'), prevCA = same(py, 'ca'), mb = ytd(cy, 'marge_brute'), prevMB = same(py, 'marge_brute');
+  var html = '<table class="cmp"><thead><tr><th>Poste</th><th>' + cur.year + ' · au ' + dateStr + '</th><th>' + pyYear + ' même période</th><th>Écart</th></tr></thead><tbody>';
+  rows.forEach(function (row) {
+    var now = row.calc ? result(cy, false) : ytd(cy, row.key);
+    var before = row.calc ? result(py, true) : same(py, row.key);
+    var delta = now === null || before === null ? null : now - before;
+    var share = ca ? Math.max(0, Math.round(now / ca * 100)) : 0;
+    html += '<tr><td>' + catCell(row, share) + '</td><td>' + fmtEUR(now) + (now !== null ? '<br><span class="muted-col">' + share + ' % du CA</span>' : '') + '</td><td>' + fmtEUR(before) + '</td><td>' + pill(delta, row.cost, false) + '</td></tr>';
+  });
+  var costs = ca - result(cy, false), prevCosts = prevCA === null ? null : prevCA - result(py, true);
+  var taux = ca ? mb / ca : null, prevTaux = prevCA ? prevMB / prevCA : null;
+  var alerts = cy.monthly.marge_brute.filter(function (v) { return v !== null && v < C.MB_MIN; }).length;
+  var prevAlerts = py ? py.monthly.marge_brute.slice(0, n).filter(function (v) { return v !== null && v < C.MB_MIN; }).length : null;
+  function summary(label, now, before, lowerIsBetter, formatter, isPoints) {
+    var delta = now === null || before === null ? null : now - before;
+    return '<tr class="cmp-summary"><td>' + label + '</td><td>' + formatter(now) + '</td><td>' + formatter(before) + '</td><td>' + pill(delta, lowerIsBetter, isPoints) + '</td></tr>';
   }
-  function deltaCell(val, isAchats) {
-    if (val === null || val === undefined || isNaN(val)) return '<td>—</td>';
-    var positive = isAchats ? val < 0 : val > 0;
-    var negative = isAchats ? val > 0 : val < 0;
-    var cls = positive ? 'delta-pos' : (negative ? 'delta-neg' : 'delta-zero');
-    return '<td>' + cmpPill(cls, fmtDelta(val)) + '</td>';
-  }
-  var pyYear = py ? (parseInt(cur.year) - 1) : 'N-1';
-  var dateStr = (DATA && DATA.file_mtime_iso) ? new Date(DATA.file_mtime_iso).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
-  var html = '<table class="cmp"><thead><tr>' +
-    '<th>Indicateur</th>' +
-    '<th>' + cur.year + ' · au ' + dateStr + '</th>' +
-    '<th>' + pyYear + ' (jan-' + MONTH_NAMES[n - 1] + ')</th>' +
-    '<th class="muted-col">' + pyYear + ' (total)</th>' +
-    '<th>&Delta; même période</th>' +
-    '</tr></thead><tbody>';
-  for (var i = 0; i < rows.length; i++) {
-    var r = rows[i];
-    var pySame = ytdSame(py, r.key);
-    var pyFull = full(py, r.key);
-    var cyVal = ytd(cy, r.key);
-    var delta = (pySame !== null && cyVal !== null) ? (cyVal - pySame) : null;
-    var isAchats = ['achats_matieres', 'charges_fonct', 'frais_km', 'contribution_coop'].indexOf(r.key) !== -1;
-    html += '<tr><td>' + r.label + '</td>' +
-            '<td>' + fmtEUR(cyVal) + '</td>' +
-            '<td>' + fmtEUR(pySame) + '</td>' +
-            '<td class="muted-col">' + fmtEUR(pyFull) + '</td>' +
-            deltaCell(delta, isAchats) + '</tr>';
-  }
-  var cyCA = ytd(cy, 'ca'), cyMB = ytd(cy, 'marge_brute');
-  var pySameCA = ytdSame(py, 'ca'), pySameMB = ytdSame(py, 'marge_brute');
-  var pyFullCA = full(py, 'ca'), pyFullMB = full(py, 'marge_brute');
-  var cyTaux = cyCA ? cyMB / cyCA : null;
-  var pySameTaux = pySameCA ? pySameMB / pySameCA : null;
-  var pyFullTaux = pyFullCA ? pyFullMB / pyFullCA : null;
-  var dTaux = (cyTaux !== null && pySameTaux !== null) ? (cyTaux - pySameTaux) : null;
-  var tauxCls = dTaux === null ? 'delta-zero' : (dTaux > 0 ? 'delta-pos' : (dTaux < 0 ? 'delta-neg' : 'delta-zero'));
-  html += '<tr><td>Taux de marge brute</td><td>' + fmtPct(cyTaux, 1) + '</td><td>' + fmtPct(pySameTaux, 1) + '</td><td class="muted-col">' + fmtPct(pyFullTaux, 1) + '</td><td>' + (dTaux === null ? '—' : cmpPill(tauxCls, fmtDeltaPts(dTaux))) + '</td></tr>';
-  var cyAlerte = cy.monthly.marge_brute.filter(function (v) { return v !== null && v < C.MB_MIN; }).length;
-  var pySameAlerte = null, pyFullAlerte = null;
-  if (py) {
-    pySameAlerte = py.monthly.marge_brute.slice(0, n).filter(function (v) { return v !== null && v < C.MB_MIN; }).length;
-    pyFullAlerte = py.monthly.marge_brute.filter(function (v) { return v !== null && v < C.MB_MIN; }).length;
-  }
-  var dAlerte = (pySameAlerte !== null) ? (cyAlerte - pySameAlerte) : null;
-  var alerteCls = dAlerte === null ? 'delta-zero' : (dAlerte > 0 ? 'delta-neg' : (dAlerte < 0 ? 'delta-pos' : 'delta-zero'));
-  var deltaAlerteTxt = dAlerte === null ? '—' : (dAlerte > 0 ? '+' : (dAlerte < 0 ? '−' : '±')) + ' ' + Math.abs(dAlerte) + ' mois';
-  html += '<tr><td>Mois sous seuil min.</td><td>' + cyAlerte + ' mois</td><td>' + (pySameAlerte === null ? '—' : pySameAlerte + ' mois') + '</td><td class="muted-col">' + (pyFullAlerte === null ? '—' : pyFullAlerte + ' mois') + '</td><td>' + (dAlerte === null ? '—' : cmpPill(alerteCls, deltaAlerteTxt)) + '</td></tr>';
-  html += '</tbody></table>';
-  wrap.innerHTML = html;
-};
+  html += '<tr class="cmp-summary-title"><td colspan="4">Indicateurs de synthèse</td></tr>';
+  html += summary("Chiffre d'affaires", ca, prevCA, false, fmtEUR, false);
+  html += summary('Marge brute', mb, prevMB, false, fmtEUR, false);
+  html += summary('Taux de marge brute', taux, prevTaux, false, function (v) { return fmtPct(v, 1); }, true);
+  html += summary('Coûts totaux', costs, prevCosts, true, fmtEUR, false);
+  html += summary('Résultat', result(cy, false), result(py, true), false, fmtEUR, false);
+  html += summary('Mois sous seuil min.', alerts, prevAlerts, true, function (v) { return v === null ? '—' : v + ' mois'; }, false);
+  wrap.innerHTML = html + '</tbody></table>';
+}
 
-// ---- Barre empilée horizontale 100 % : répartition du CA par année (même période) ----
+// ---- Barres empilées horizontales en valeur absolue ----
 function renderRepartYears(cur, years) {
   var canvas = document.getElementById('chart-repart-years');
   if (!canvas) return;
@@ -3348,13 +3363,12 @@ function renderRepartYears(cur, years) {
   ];
   var moisLbl = (MONTH_NAMES[n - 1] || '').toLowerCase();
   var labels = order.map(function (yk) { return yk === cur.year ? yk + ' (à date)' : yk + ' (jan-' + moisLbl + ')'; });
-  // matrice valeurs brutes [année][catégorie], puis normalisation en % (part positive de chaque année)
+  // Matrice en euros : la longueur de chaque barre représente le CA de la période.
   var raw = order.map(function (yk) { return cats.map(function (c) { return c.val(years[yk]); }); });
-  var totals = raw.map(function (vals) { return vals.reduce(function (a, v) { return a + Math.max(0, v); }, 0); });
   var datasets = cats.map(function (c, ci) {
     return {
       label: c.label, backgroundColor: c.col, borderWidth: 0, borderRadius: 3,
-      data: order.map(function (yk, yi) { return totals[yi] > 0 ? Math.max(0, raw[yi][ci]) / totals[yi] * 100 : 0; }),
+      data: order.map(function (yk, yi) { return Math.max(0, raw[yi][ci]); }),
       _raw: order.map(function (yk, yi) { return raw[yi][ci]; })
     };
   });
@@ -3364,7 +3378,7 @@ function renderRepartYears(cur, years) {
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false,
       scales: {
-        x: { stacked: true, min: 0, max: 100, ticks: { callback: function (v) { return v + '%'; } }, grid: { display: false } },
+        x: { stacked: true, beginAtZero: true, ticks: { callback: function (v) { return Math.round(v / 1000) + ' k€'; } }, grid: { color: CHART_GRID } },
         y: { stacked: true, grid: { display: false }, ticks: { font: { weight: '800', size: 13 } } }
       },
       plugins: {
@@ -3373,7 +3387,7 @@ function renderRepartYears(cur, years) {
           callbacks: {
             label: function (ctx) {
               var raw = ctx.dataset._raw ? ctx.dataset._raw[ctx.dataIndex] : null;
-              return ' ' + ctx.dataset.label + ' : ' + Math.round(ctx.parsed.x) + '%' + (raw != null ? ' (' + fmtEUR(raw) + ')' : '');
+              return ' ' + ctx.dataset.label + ' : ' + fmtEUR(raw);
             }
           }
         }
