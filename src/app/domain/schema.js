@@ -116,6 +116,9 @@ export function hasObservedEveryMonth(series, startMonth = 1, endMonth = 12) {
 }
 
 export function isCompleteHistoricalYear(year) {
+  // A covered month with an empty export cell keeps the existing aggregation
+  // convention (the cell contributes zero); it must not discard the complete
+  // exercise. A wholly unavailable metric still cannot support a reference.
   return isPeriodCovered(year, 12) && HISTORICAL_METRICS.every((key) =>
-    hasObservedEveryMonth(getMetricSeries(year, key)));
+    hasObservedValue(getMetricSeries(year, key), 1, 12));
 }

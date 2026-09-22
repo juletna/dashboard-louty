@@ -1686,15 +1686,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     if (!Array.isArray(series)) return false;
     return series.slice(startMonth - 1, endMonth).some(isFiniteNumber);
   }
-  function hasObservedEveryMonth(series, startMonth = 1, endMonth = 12) {
-    if (!Array.isArray(series)) return false;
-    for (let index = startMonth - 1; index < endMonth; index += 1) {
-      if (!isFiniteNumber(series[index])) return false;
-    }
-    return true;
-  }
   function isCompleteHistoricalYear(year) {
-    return isPeriodCovered(year, 12) && HISTORICAL_METRICS.every((key) => hasObservedEveryMonth(getMetricSeries(year, key)));
+    return isPeriodCovered(year, 12) && HISTORICAL_METRICS.every((key) => hasObservedValue(getMetricSeries(year, key), 1, 12));
   }
 
   // src/app/parser.js
@@ -2660,6 +2653,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
 
   // src/app/domain/metrics.js
   var round2 = (value) => value === null ? null : Math.round(value * 100) / 100;
+  var HEALTH_RESULT_KEYS = ["marge_brute", "charges_fonct", "contribution_coop", "remunerations"];
   function sumPeriod(year, key, endMonth = 12) {
     const series = getMetricSeries(year, key);
     if (!hasObservedValue(series, 1, endMonth)) return null;
@@ -2675,25 +2669,32 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     return last;
   }
   function canComparePeriod(year, endMonth, keys) {
-    return isPeriodCovered(year, endMonth) && keys.every((key) => hasObservedEveryMonth(getMetricSeries(year, key), 1, endMonth));
+    return isPeriodCovered(year, endMonth) && keys.every((key) => hasObservedValue(getMetricSeries(year, key), 1, 12));
+  }
+  function coveredPeriodTotal(year, key, endMonth) {
+    return sumPeriod(year, key, endMonth) ?? 0;
   }
   function samePeriodTotals(year, endMonth) {
     const keys = ["marge_brute", "ca", "achats_matieres"];
     if (!canComparePeriod(year, endMonth, keys)) return null;
     return {
-      mb_ytd: sumPeriod(year, "marge_brute", endMonth),
+      mb_ytd: coveredPeriodTotal(year, "marge_brute", endMonth),
       mb_full: sumPeriod(year, "marge_brute"),
-      ca_ytd: sumPeriod(year, "ca", endMonth),
+      ca_ytd: coveredPeriodTotal(year, "ca", endMonth),
       ca_full: sumPeriod(year, "ca"),
-      achats_ytd: sumPeriod(year, "achats_matieres", endMonth),
+      achats_ytd: coveredPeriodTotal(year, "achats_matieres", endMonth),
       achats_full: sumPeriod(year, "achats_matieres")
     };
   }
   function metricProjection(years, referenceKeys, key, endMonth, ytd) {
-    const usableReferences = referenceKeys.filter((yearKey) => hasObservedEveryMonth(getMetricSeries(years[yearKey], key), endMonth + 1, 12));
+    const usableReferences = referenceKeys.filter((yearKey) => hasObservedValue(getMetricSeries(years[yearKey], key), 1, 12));
     if (ytd === null || !usableReferences.length) return null;
-    const remaining = usableReferences.reduce((sum, yearKey) => sum + sumPeriod(years[yearKey], key, 12) - sumPeriod(years[yearKey], key, endMonth), 0);
+    const remaining = usableReferences.reduce((sum, yearKey) => sum + sumPeriod(years[yearKey], key, 12) - coveredPeriodTotal(years[yearKey], key, endMonth), 0);
     return ytd + remaining / usableReferences.length;
+  }
+  function healthResultForPeriod(year, endMonth) {
+    if (!isPeriodCovered(year, endMonth) || !HEALTH_RESULT_KEYS.every((key) => hasObservedValue(getMetricSeries(year, key), 1, 12))) return null;
+    return coveredPeriodTotal(year, "marge_brute", endMonth) - coveredPeriodTotal(year, "charges_fonct", endMonth) - coveredPeriodTotal(year, "contribution_coop", endMonth) - coveredPeriodTotal(year, "remunerations", endMonth);
   }
   function computeSnapshot(data, config) {
     const years = data && data.years;
@@ -2716,6 +2717,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     }
     const referenceYears = yearKeys.slice(0, currentIndex).filter((yearKey) => isCompleteHistoricalYear(years[yearKey])).slice(-2);
     const referenceYear = referenceYears[referenceYears.length - 1] || null;
+    const previousYear = currentIndex > 0 ? yearKeys[currentIndex - 1] : null;
     const previous = referenceYear ? samePeriod[referenceYear] : null;
     const projectionMB = endMonth ? metricProjection(years, referenceYears, "marge_brute", endMonth, ytdMB) : null;
     const projectionCA = endMonth ? metricProjection(years, referenceYears, "ca", endMonth, ytdCA) : null;
@@ -2738,6 +2740,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       growth_rate_ca: ytdCA !== null && previous && previous.ca_ytd ? ytdCA / previous.ca_ytd : null,
       reference_year: referenceYear,
       reference_years: referenceYears,
+      previous_year: previousYear,
       same_period: samePeriod
     };
   }
@@ -4451,15 +4454,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       return Math.abs(l.amount) > 0.5;
     });
     var chartDescription = "Tr\xE9sorerie " + fmtEUR(treso) + " = Position nette " + fmtEUR(position) + " + Dettes exigibles " + fmtEUR(dexpl);
-    var _refYr = cur.reference_year, _py = _refYr ? data.years[_refYr] : null, _n = cur.mois_renseignes, _rN1 = null;
-    if (_py) {
-      var _sk = function(k) {
-        return _py.monthly[k].slice(0, _n).reduce(function(a, v) {
-          return a + (v || 0);
-        }, 0);
-      };
-      _rN1 = _sk("marge_brute") - _sk("charges_fonct") - _sk("contribution_coop") - _sk("remunerations");
-    }
+    var _refYr = cur.previous_year || cur.reference_year, _py = _refYr ? data.years[_refYr] : null, _n = cur.mois_renseignes, _rN1 = null;
+    if (_py) _rN1 = healthResultForPeriod(_py, _n);
     var _delta = _rN1 !== null ? margeNette - _rN1 : null;
     var resultatPill = "";
     if (_delta !== null) {

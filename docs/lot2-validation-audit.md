@@ -56,9 +56,9 @@ zéro. Zéro numérique est toujours une observation valide.
 | --- | --- | --- |
 | Total YTD d'une métrique | Série présente et au moins une valeur numérique dans la période demandée | Indicateur indisponible |
 | Taux de marge | CA et marge brute YTD disponibles, CA non nul | `null` |
-| Comparaison même période | L'année de référence couvre les mois 1..N dans `months_present` et les métriques demandées sont observées sur cette période | Comparaison indisponible |
-| Projection saisonnière d'une métrique | YTD de la métrique, plus au moins une année de référence couvrant tous les mois restants nécessaires | Projection indisponible pour cette métrique |
-| Référence du cap annuel | Exercice complet au sens ci-dessous et six métriques de référence observées | Exclure l'exercice, puis appliquer le repli documenté |
+| Comparaison même période | L'année de référence couvre les mois 1..N dans `months_present` et chaque métrique demandée a au moins une valeur numérique sur cette période | Comparaison indisponible |
+| Projection saisonnière d'une métrique | YTD de la métrique, plus au moins une année de référence ayant une valeur numérique sur les mois restants | Projection indisponible pour cette métrique |
+| Référence du cap annuel | Exercice complet au sens ci-dessous et six métriques de référence calculables | Exclure l'exercice, puis appliquer le repli documenté |
 
 Pour préserver les affichages actuels, les sommations de présentation peuvent
 encore ignorer un trou isolé après que le domaine a déclaré l'indicateur
@@ -79,14 +79,15 @@ Un exercice est complet pour le cap annuel seulement si :
 
 1. `months_present` contient exactement les mois 1 à 12;
 2. chacune des métriques `ca`, `marge_brute`, `achats_matieres`,
-   `remunerations`, `charges_fonct` et `contribution_coop` a douze valeurs
-   numériques finies; et
+   `remunerations`, `charges_fonct` et `contribution_coop` conserve sa série
+   normalisée de douze cases et contient au moins une valeur numérique; et
 3. les totaux nécessaires sont calculables.
 
-Douze colonnes avec une cellule obligatoire vide est donc une donnée
-chargeable, mais pas un exercice complet. Une année de neuf mois est elle aussi
-chargeable pour les graphes YTD, mais exclue du cap et des projections annuelles
-historiques.
+Une cellule vide isolée dans une année couverte garde donc la convention
+d'agrégation existante (`null` contribue zéro aux totaux) sans rendre
+l'exercice incomplet. Une métrique entièrement absente reste indisponible. Une
+année de neuf mois est chargeable pour les graphes YTD, mais exclue du cap et
+des projections annuelles historiques.
 
 L'année la plus récente reste l'exercice courant pour l'écran. La référence du
 cap sélectionne les deux exercices complets les plus récents **antérieurs** à
@@ -96,6 +97,10 @@ sinon elle emploie les constantes de configuration et expose le libellé
 « historique indisponible ». Cette règle évite de prendre une année partielle
 pour un historique tout en gardant un dashboard exploitable avec un seul export
 annuel complet.
+
+La santé financière compare son résultat à l'exercice immédiatement précédent
+quand il existe. Ce comparatif N-1 ne dépend pas des années retenues pour les
+projections et le cap annuels.
 
 ## Contrat parser et jeux de test
 
@@ -127,4 +132,3 @@ Garder les fonctions pures et petites : `normalizeDashboardData`,
 simples avec `value`, `available` et, si utile, `reason`, afin que l'UI choisisse
 entre tiret, avertissement ou graphique vide sans recalculer. Les adaptateurs
 SheetJS, `localStorage` et DOM restent en dehors de ces modules.
-

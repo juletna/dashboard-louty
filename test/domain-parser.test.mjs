@@ -5,7 +5,7 @@ import {
   isCompleteHistoricalYear,
   normalizeDashboardData,
 } from '../src/app/domain/schema.js';
-import { computeSnapshot, historicalPlanReference } from '../src/app/domain/metrics.js';
+import { computeSnapshot, healthResultForPeriod, historicalPlanReference } from '../src/app/domain/metrics.js';
 import { TARGET_LABELS, parsePieces, parsePiecesDate, parseRES } from '../src/app/parser.js';
 
 const C = {
@@ -65,12 +65,14 @@ test('rejects a null monthly structure without throwing during normalization', (
   assert.throws(() => assertValidDashboardData({ years: { '2025': { monthly: null } } }));
 });
 
-test('complete historical year requires all months and all reference metrics', () => {
+test('complete historical year requires covered months and available reference metrics', () => {
   const full = completeYear();
   assert.equal(isCompleteHistoricalYear(full), true);
   full.monthly.ca[5] = null;
+  assert.equal(isCompleteHistoricalYear(full), true);
+  full.monthly.ca.fill(null);
   assert.equal(isCompleteHistoricalYear(full), false);
-  full.monthly.ca[5] = 100;
+  full.monthly.ca.fill(100);
   full.months_present.pop();
   assert.equal(isCompleteHistoricalYear(full), false);
 });
@@ -89,8 +91,42 @@ test('snapshot only projects from complete historical years', () => {
   assert.equal(snapshot.projection_mb_seasonal, 2100);
   data.years['2024'].monthly.ca[6] = null;
   const afterHole = computeSnapshot(data, C);
-  assert.deepEqual(afterHole.reference_years, ['2023']);
-  assert.equal(afterHole.projection_ca_seasonal, 1600);
+  assert.deepEqual(afterHole.reference_years, ['2023', '2024']);
+  assert.equal(afterHole.projection_ca_seasonal, 2000);
+});
+
+test('covered history with an isolated empty cell remains a cap reference and N-1', () => {
+  const prior = completeYear(100);
+  prior.monthly.ca[9] = null;
+  const data = {
+    years: {
+      '2024': completeYear(50),
+      '2025': prior,
+      '2026': completeYear(75, 9),
+    },
+  };
+  const snapshot = computeSnapshot(data, C);
+  assert.deepEqual(snapshot.reference_years, ['2024', '2025']);
+  assert.equal(snapshot.reference_year, '2025');
+  assert.equal(snapshot.previous_year, '2025');
+  assert.ok(Number.isFinite(snapshot.projection_ca_seasonal));
+  const reference = historicalPlanReference(data, C);
+  assert.deepEqual(reference.years, ['2024', '2025']);
+  assert.equal(reference.n1.year, '2025');
+});
+
+test('covered zero sub-periods remain comparable while missing health series are unavailable', () => {
+  const prior = completeYear(100);
+  metricKeys.forEach((key) => prior.monthly[key].fill(null, 0, 9));
+  const data = { years: { '2025': prior, '2026': completeYear(75, 9) } };
+  const snapshot = computeSnapshot(data, C);
+  assert.equal(snapshot.same_period['2025'].ca_ytd, 0);
+  assert.equal(snapshot.same_period['2025'].mb_ytd, 0);
+  assert.ok(Number.isFinite(snapshot.projection_ca_seasonal));
+
+  const incompleteHealth = completeYear(100);
+  delete incompleteHealth.monthly.contribution_coop;
+  assert.equal(healthResultForPeriod(incompleteHealth, 9), null);
 });
 
 test('snapshot reaches older complete history and never invents a rate from missing margin', () => {

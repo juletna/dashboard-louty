@@ -2,6 +2,7 @@ import './parser.js';
 import { createCartesianCharts } from './charts/cartesian.js';
 import {
   computeSnapshot as computeDomainSnapshot,
+  healthResultForPeriod,
   historicalPlanReference as computeHistoricalPlanReference,
 } from './domain/metrics.js';
 import { assertValidDashboardData } from './domain/schema.js';
@@ -1129,11 +1130,10 @@ function renderSante(data, cur) {
   var chartDescription = 'Trésorerie ' + fmtEUR(treso) + ' = Position nette ' + fmtEUR(position) + ' + Dettes exigibles ' + fmtEUR(dexpl);
 
   // Résultat même période N-1 -> badge de variation
-  var _refYr = cur.reference_year, _py = _refYr ? data.years[_refYr] : null, _n = cur.mois_renseignes, _rN1 = null;
-  if (_py) {
-    var _sk = function (k) { return _py.monthly[k].slice(0, _n).reduce(function (a, v) { return a + (v || 0); }, 0); };
-    _rN1 = _sk('marge_brute') - _sk('charges_fonct') - _sk('contribution_coop') - _sk('remunerations');
-  }
+  // Santé compares with the immediate preceding exercise, independently from
+  // the subset retained for annual historical projections.
+  var _refYr = cur.previous_year || cur.reference_year, _py = _refYr ? data.years[_refYr] : null, _n = cur.mois_renseignes, _rN1 = null;
+  if (_py) _rN1 = healthResultForPeriod(_py, _n);
   var _delta = (_rN1 !== null) ? (margeNette - _rN1) : null;
   var resultatPill = '';
   if (_delta !== null) {

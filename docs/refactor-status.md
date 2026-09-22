@@ -50,7 +50,7 @@ détruire les instances de façon cohérente. Cinq rendus Chart.js ont été ext
 dans `src/app/charts/cartesian.js` avec leurs dépendances explicites ; l'ancien
 rendu Waterfall sans appel a été retiré. Le smoke test Playwright utilise
 uniquement des classeurs XLSX synthétiques et contrôle l'import, le cache local,
-le rollback, les thèmes, la réduction des mouvements et une vue mobile. Les 24
+le rollback, les thèmes, la réduction des mouvements et une vue mobile. Les 26
 tests Node passent avec le build autonome.
 
 ## Vérification avant publication
@@ -86,3 +86,15 @@ servie ainsi que le parcours d'import.
   navigation utilise délibérément HTTP local pour reproduire le contexte de
   Pages et du stockage local ; aucune validation visuelle avec `file://` n'a
   été effectuée.
+
+## Validation finale sur exports réels
+
+La comparaison locale avec la version d’origine confirme les mêmes textes
+significatifs, valeurs affichées et données des séries Chart.js : huit graphiques
+Canvas, cinq instances ECharts et quatre exercices. Elle a permis de corriger
+un filtre historique trop strict : une cellule vide dans un exercice dont les
+douze mois sont présents ne doit pas exclure cet exercice des références.
+La référence de comparaison précédente est distincte des années de projection.
+Les cartes mobiles sont empilées et leur absence de chevauchement est testée.
+Les 26 tests unitaires, le contrôle du build et le parcours navigateur passent.
+Les exports et captures de cette comparaison restent hors du dépôt.

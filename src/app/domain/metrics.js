@@ -1,6 +1,5 @@
 import {
   getMetricSeries,
-  hasObservedEveryMonth,
   hasObservedValue,
   isCompleteHistoricalYear,
   isFiniteNumber,
@@ -8,6 +7,7 @@ import {
 } from './schema.js';
 
 const round2 = (value) => value === null ? null : Math.round(value * 100) / 100;
+const HEALTH_RESULT_KEYS = ['marge_brute', 'charges_fonct', 'contribution_coop', 'remunerations'];
 
 export function sumPeriod(year, key, endMonth = 12) {
   const series = getMetricSeries(year, key);
@@ -25,29 +25,42 @@ export function lastObservedMonth(year, key) {
 
 function canComparePeriod(year, endMonth, keys) {
   return isPeriodCovered(year, endMonth) && keys.every((key) =>
-    hasObservedEveryMonth(getMetricSeries(year, key), 1, endMonth));
+    hasObservedValue(getMetricSeries(year, key), 1, 12));
+}
+
+function coveredPeriodTotal(year, key, endMonth) {
+  return sumPeriod(year, key, endMonth) ?? 0;
 }
 
 function samePeriodTotals(year, endMonth) {
   const keys = ['marge_brute', 'ca', 'achats_matieres'];
   if (!canComparePeriod(year, endMonth, keys)) return null;
   return {
-    mb_ytd: sumPeriod(year, 'marge_brute', endMonth),
+    mb_ytd: coveredPeriodTotal(year, 'marge_brute', endMonth),
     mb_full: sumPeriod(year, 'marge_brute'),
-    ca_ytd: sumPeriod(year, 'ca', endMonth),
+    ca_ytd: coveredPeriodTotal(year, 'ca', endMonth),
     ca_full: sumPeriod(year, 'ca'),
-    achats_ytd: sumPeriod(year, 'achats_matieres', endMonth),
+    achats_ytd: coveredPeriodTotal(year, 'achats_matieres', endMonth),
     achats_full: sumPeriod(year, 'achats_matieres'),
   };
 }
 
 function metricProjection(years, referenceKeys, key, endMonth, ytd) {
   const usableReferences = referenceKeys.filter((yearKey) =>
-    hasObservedEveryMonth(getMetricSeries(years[yearKey], key), endMonth + 1, 12));
+    hasObservedValue(getMetricSeries(years[yearKey], key), 1, 12));
   if (ytd === null || !usableReferences.length) return null;
   const remaining = usableReferences.reduce((sum, yearKey) =>
-    sum + sumPeriod(years[yearKey], key, 12) - sumPeriod(years[yearKey], key, endMonth), 0);
+    sum + sumPeriod(years[yearKey], key, 12) - coveredPeriodTotal(years[yearKey], key, endMonth), 0);
   return ytd + remaining / usableReferences.length;
+}
+
+export function healthResultForPeriod(year, endMonth) {
+  if (!isPeriodCovered(year, endMonth) || !HEALTH_RESULT_KEYS.every((key) =>
+    hasObservedValue(getMetricSeries(year, key), 1, 12))) return null;
+  return coveredPeriodTotal(year, 'marge_brute', endMonth) -
+    coveredPeriodTotal(year, 'charges_fonct', endMonth) -
+    coveredPeriodTotal(year, 'contribution_coop', endMonth) -
+    coveredPeriodTotal(year, 'remunerations', endMonth);
 }
 
 export function computeSnapshot(data, config) {
@@ -75,6 +88,7 @@ export function computeSnapshot(data, config) {
     .filter((yearKey) => isCompleteHistoricalYear(years[yearKey]))
     .slice(-2);
   const referenceYear = referenceYears[referenceYears.length - 1] || null;
+  const previousYear = currentIndex > 0 ? yearKeys[currentIndex - 1] : null;
   const previous = referenceYear ? samePeriod[referenceYear] : null;
   const projectionMB = endMonth ? metricProjection(years, referenceYears, 'marge_brute', endMonth, ytdMB) : null;
   const projectionCA = endMonth ? metricProjection(years, referenceYears, 'ca', endMonth, ytdCA) : null;
@@ -98,6 +112,7 @@ export function computeSnapshot(data, config) {
     growth_rate_ca: ytdCA !== null && previous && previous.ca_ytd ? ytdCA / previous.ca_ytd : null,
     reference_year: referenceYear,
     reference_years: referenceYears,
+    previous_year: previousYear,
     same_period: samePeriod,
   };
 }
