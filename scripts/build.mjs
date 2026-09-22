@@ -17,7 +17,7 @@ function read(relativePath) {
   return readFileSync(resolve(root, relativePath), 'utf8');
 }
 
-function buildApplicationBundle() {
+export function buildApplicationBundle() {
   const result = buildSync({
     entryPoints: [resolve(root, 'src/app/entry.js')],
     bundle: true,

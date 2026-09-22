@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { createHash } from 'node:crypto';
-import { buildArtifact } from '../scripts/build.mjs';
+import { buildApplicationBundle, buildArtifact } from '../scripts/build.mjs';
 import { assertNoExternalActiveResources } from '../scripts/offline-check.mjs';
 
 test('build is deterministic and preserves the checked-in standalone page', () => {
@@ -20,4 +20,14 @@ test('offline check blocks protocol-relative active resources', () => {
   assert.throws(() => assertNoExternalActiveResources('', 'a{background:url(//cdn.example/image.png)}', ''), /CSS/);
   assert.throws(() => assertNoExternalActiveResources('', '', "fetch('//cdn.example/data')"), /application/);
   assert.doesNotThrow(() => assertNoExternalActiveResources('', '/* url(//license.example) */', ''));
+});
+
+test('offline check inspects imported application modules through the built bundle', () => {
+  const bundle = buildApplicationBundle();
+  assert.match(bundle, /cabestan_dashboard_data_v1/, 'state storage module must be included in the bundle');
+  assert.doesNotThrow(() => assertNoExternalActiveResources('', '', bundle));
+  assert.throws(
+    () => assertNoExternalActiveResources('', '', `${bundle}\nfetch('//cdn.example/data')`),
+    /application/,
+  );
 });

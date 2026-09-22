@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { buildArtifact } from './build.mjs';
+import { buildApplicationBundle, buildArtifact } from './build.mjs';
 import { assertNoExternalActiveResources } from './offline-check.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -28,10 +28,7 @@ if (!html.includes("default-src 'none'") || !html.includes("script-src 'unsafe-i
     !html.includes("connect-src 'self'")) {
   throw new Error('Offline Content Security Policy changed');
 }
-const appScripts = [
-  'src/app/early-theme.js', 'src/app/entry.js', 'src/app/parser.js',
-  'src/app/legacy.js', 'src/app/domain/schema.js', 'src/app/domain/metrics.js',
-].map(read).join('\n');
+const appScripts = `${read('src/app/early-theme.js')}\n${buildApplicationBundle()}`;
 assertNoExternalActiveResources(template, read('src/styles/main.css'), appScripts);
 for (const [path, marker] of [
   ['src/vendor/echarts.js', 'Apache ECharts 6.1.0'],

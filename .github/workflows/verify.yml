@@ -1,0 +1,44 @@
+name: Verify dashboard
+
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Build, test and smoke-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Build standalone artifact
+        run: npm run build
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Verify offline artifact
+        run: npm run verify
+
+      - name: Ensure generated files are committed
+        run: git diff --exit-code -- index.html version.txt
+
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Run synthetic browser smoke test
+        run: npm run test:browser

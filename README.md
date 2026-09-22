@@ -33,17 +33,35 @@ Le fichier HTML embarque uniquement les modules ECharts nécessaires (GaugeChart
 
 ## Développement
 
-`index.html` à la racine est l'artefact publié par GitHub Pages. Le build assemble le template, le CSS, les bibliothèques hors ligne, le parser et le script applicatif sans transformer leur code. Le fichier produit reste ouvrable directement avec `file://`.
+`index.html` à la racine est l'artefact publié par GitHub Pages depuis `main/`. Le build assemble le template, le CSS, les bibliothèques hors ligne et le bundle applicatif. Son autonomie hors ligne est contrôlée statiquement et ne dépend pas d'un CDN ; la validation visuelle s'exécute en HTTP local, pas avec `file://`.
+
+Le code source est réparti par responsabilité :
+
+- `src/template/` contient la structure HTML et les points d'injection ; `src/styles/` contient les styles et tokens visuels.
+- `src/app/domain/` normalise les données et calcule les métriques, sans DOM ni stockage ; `src/app/parser.js` lit les exports RES, BAL et Pièces.
+- `src/app/state/` gère l'import transactionnel et le cache local versionné ; `src/app/chart-lifecycle.js` possède les instances Chart.js et ECharts.
+- `src/app/entry.js` compose l'application, tandis que `src/app/legacy.js` conserve le rendu et les interactions pendant leur extraction progressive.
+- `scripts/` produit et vérifie l'artefact ; `test/` contient les tests unitaires et le scénario navigateur sur des exports synthétiques.
 
 ```sh
 npm ci
 npm run build
-npm run verify
 npm test
+npm run verify
+npx playwright install chromium
+npm run test:browser
 ```
+
+Le test navigateur lance un serveur HTTP local éphémère et crée ses fichiers XLSX fictifs dans un répertoire temporaire. Il ne remplace pas Chromium par un autre navigateur : s'il n'est pas installé, Playwright indique la commande d'installation et le test échoue. En CI, Chromium et ses dépendances système sont installés explicitement.
+
+Le dashboard cible les versions modernes de Chrome/Chromium, Firefox et Safari qui prennent en charge les modules JavaScript, les fichiers locaux, `localStorage`, Canvas/SVG et les requêtes média. Le contrôle automatisé s'exécute avec Chromium.
+
+Les données restent en cache dans `localStorage`, sous réserve de l'espace accordé par le navigateur. En navigation privée ou si le quota est atteint, le dashboard conserve la session affichée et prévient que la nouvelle donnée ne sera pas restaurée après rechargement ; l'ancien cache n'est pas effacé. Réimporte les exports si la persistance locale n'est pas disponible.
 
 La version affichée dans `src/app/legacy.js` (`APP_VERSION`) produit `version.txt` pendant le build. Incrémente-la lors d'une publication qui change l'application, puis committe ensemble les sources, `index.html` et `version.txt`. `npm run verify` échoue si l'artefact est obsolète ou si une ressource externe active est ajoutée.
 
 Le bundle ECharts existant est conservé tel quel par le build ordinaire. Pour le reconstruire avec les versions épinglées d'ECharts et d'esbuild, utilise `npm run build:echarts`; cette commande met à jour `src/vendor/echarts.js` puis régénère `index.html`.
+
+La présente refactorisation conserve les graphiques en place : elle n'inclut pas de migration générale de Chart.js vers ECharts. Les exports Louty et les contrats de cache existants restent la référence fonctionnelle.
 
 Les tests et captures ne doivent contenir que des données synthétiques ou anonymisées. N'ajoute jamais d'export Louty réel, de capture de données client ou de résultat identifiable au dépôt.
