@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
+import { buildSync } from 'esbuild';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const slots = [
@@ -9,12 +10,24 @@ const slots = [
   'src/vendor/echarts.js',
   'src/vendor/chart.js',
   'src/vendor/xlsx.js',
-  'src/app/parser.js',
-  'src/app/legacy.js',
+  'src/app/bundle.js',
 ];
 
 function read(relativePath) {
   return readFileSync(resolve(root, relativePath), 'utf8');
+}
+
+function buildApplicationBundle() {
+  const result = buildSync({
+    entryPoints: [resolve(root, 'src/app/entry.js')],
+    bundle: true,
+    format: 'iife',
+    platform: 'browser',
+    target: 'es2020',
+    legalComments: 'inline',
+    write: false,
+  });
+  return result.outputFiles[0].text;
 }
 
 export function buildArtifact() {
@@ -24,7 +37,7 @@ export function buildArtifact() {
     if (html.split(marker).length !== 2) {
       throw new Error(`Expected exactly one build marker: ${marker}`);
     }
-    const source = read(relativePath);
+    const source = relativePath === 'src/app/bundle.js' ? buildApplicationBundle() : read(relativePath);
     if (relativePath.endsWith('.js') && /<\/script/i.test(source)) {
       throw new Error(`Unsafe inline script delimiter: ${relativePath}`);
     }

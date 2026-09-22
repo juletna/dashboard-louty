@@ -6,11 +6,12 @@
     "build": "node scripts/build.mjs",
     "build:echarts": "node scripts/build-echarts-gauges.mjs && node scripts/build.mjs",
     "verify": "node scripts/verify-build.mjs",
-    "test": "node --test test/build.test.mjs",
+    "test": "node --test test/*.test.mjs test/state/*.test.mjs",
     "test:browser": "node test/browser/smoke.mjs"
   },
   "devDependencies": {
     "echarts": "6.1.0",
-    "esbuild": "0.25.12"
+    "esbuild": "0.25.12",
+    "playwright": "1.63.0"
   }
 }

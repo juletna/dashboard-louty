@@ -14,7 +14,7 @@ if (read('version.txt') !== version) throw new Error('version.txt does not match
 const template = read('src/template/index.html');
 const ordered = [
   'src/app/early-theme.js', 'src/vendor/echarts.js', 'src/vendor/chart.js',
-  'src/vendor/xlsx.js', 'src/app/parser.js', 'src/app/legacy.js',
+  'src/vendor/xlsx.js', 'src/app/bundle.js',
 ];
 const positions = ordered.map((path) => template.indexOf(`{{${path}}}`));
 if (positions.some((pos) => pos < 0) || positions.some((pos, i) => i && pos <= positions[i - 1])) {
@@ -28,7 +28,10 @@ if (!html.includes("default-src 'none'") || !html.includes("script-src 'unsafe-i
     !html.includes("connect-src 'self'")) {
   throw new Error('Offline Content Security Policy changed');
 }
-const appScripts = read('src/app/early-theme.js') + read('src/app/parser.js') + read('src/app/legacy.js');
+const appScripts = [
+  'src/app/early-theme.js', 'src/app/entry.js', 'src/app/parser.js',
+  'src/app/legacy.js', 'src/app/domain/schema.js', 'src/app/domain/metrics.js',
+].map(read).join('\n');
 assertNoExternalActiveResources(template, read('src/styles/main.css'), appScripts);
 for (const [path, marker] of [
   ['src/vendor/echarts.js', 'Apache ECharts 6.1.0'],
@@ -41,7 +44,11 @@ if (!read('src/vendor/echarts.js').includes('Apache License') ||
     !read('src/vendor/echarts.js').includes('zrender')) {
   throw new Error('ECharts licences missing');
 }
-for (const path of ordered.concat('src/vendor/echarts-entry.js')) {
+for (const path of [
+  'src/app/early-theme.js', 'src/app/entry.js', 'src/app/parser.js',
+  'src/app/legacy.js', 'src/app/domain/schema.js', 'src/app/domain/metrics.js',
+  'src/vendor/echarts-entry.js',
+]) {
   execFileSync(process.execPath, ['--check', resolve(root, path)], { stdio: 'pipe' });
 }
 process.stdout.write(`Verified standalone build ${version}\n`);

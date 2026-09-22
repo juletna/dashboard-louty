@@ -1,14 +1,17 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
+import { createHash } from 'node:crypto';
 import { buildArtifact } from '../scripts/build.mjs';
 import { assertNoExternalActiveResources } from '../scripts/offline-check.mjs';
 
 test('build is deterministic and preserves the checked-in standalone page', () => {
   const first = buildArtifact();
   const second = buildArtifact();
-  assert.deepEqual(first, second);
-  assert.equal(first.html, readFileSync(new URL('../index.html', import.meta.url), 'utf8'));
+  const digest = (value) => createHash('sha256').update(value).digest('hex');
+  assert.equal(digest(first.html), digest(second.html), 'Repeated builds must be identical');
+  assert.equal(first.version, second.version);
+  assert.equal(digest(first.html), digest(readFileSync(new URL('../index.html', import.meta.url))), 'index.html is stale; run npm run build');
   assert.equal(first.version, readFileSync(new URL('../version.txt', import.meta.url), 'utf8'));
 });
 

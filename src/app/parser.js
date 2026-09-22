@@ -1,13 +1,12 @@
+import { createDictionary } from './domain/schema.js';
+
 /* Parser CABESTAN (portage _parser.py) */
 /* ===================================================================
    Parser CABESTAN — portage JS fidèle de _parser.py
    Lit RES.xlsx (feuille "Rapport") + BAL.xlsx (optionnel) via SheetJS.
    Schéma de sortie identique à EMBEDDED_DATA (years{}, sante{}, ...).
    =================================================================== */
-(function (global) {
-  'use strict';
-
-  var TARGET_LABELS = {
+export const TARGET_LABELS = {
     marge_economique: "Marge économique",
     marge_brute: "Marge brute",
     ca: "Chiffre d'affaires",
@@ -18,19 +17,19 @@
     remunerations: "Rémunérations",
     frais_km: "62510150 - Frais Kilométriques"
   };
-  var TARGET_KEYS = Object.keys(TARGET_LABELS);
-  var POSITIVE_AS_ABS = {
+const TARGET_KEYS = Object.keys(TARGET_LABELS);
+export const POSITIVE_AS_ABS = {
     achats_approv: 1, achats_matieres: 1, contribution_coop: 1,
     charges_fonct: 1, remunerations: 1, frais_km: 1
   };
-  var MONTH_MAP = { janv: 1, "févr": 2, mars: 3, avr: 4, mai: 5, juin: 6,
+const MONTH_MAP = { janv: 1, "févr": 2, mars: 3, avr: 4, mai: 5, juin: 6,
                     juil: 7, "août": 8, sept: 9, oct: 10, nov: 11, "déc": 12 };
   // motif ^(janv|févr|mars|avr|mai|juin|juil|août|sept|oct|nov|déc)\.?-(\d{2})$
-  var MONTH_RE = /^(janv|févr|mars|avr|mai|juin|juil|août|sept|oct|nov|déc)\.?-(\d{2})$/i;
+const MONTH_RE = /^(janv|févr|mars|avr|mai|juin|juil|août|sept|oct|nov|déc)\.?-(\d{2})$/i;
 
   // Construit une matrice dense (lignes x colonnes) équivalente à
   // openpyxl ws.iter_rows(values_only=True) : cellule vide => null.
-  function sheetToMatrix(XLSX, ws) {
+export function sheetToMatrix(XLSX, ws) {
     if (!ws || !ws['!ref']) return [];
     var range = XLSX.utils.decode_range(ws['!ref']);
     var maxR = range.e.r, maxC = range.e.c;
@@ -47,7 +46,7 @@
   }
 
   // Équivalent de float(v) or None
-  function toFloat(v) {
+export function toFloat(v) {
     if (v === null || v === undefined) return null;
     if (typeof v === 'number') return isFinite(v) ? v : null;
     if (typeof v === 'boolean') return v ? 1 : 0;
@@ -85,7 +84,7 @@
     return out;
   }
 
-  function parseRES(XLSX, workbookOrRows) {
+export function parseRES(XLSX, workbookOrRows) {
     var rows, wsRef = null;
     if (Array.isArray(workbookOrRows)) {
       rows = workbookOrRows;
@@ -100,7 +99,7 @@
     if (rows.length < 4) throw new Error('Fichier trop court');
 
     var header = rows[2]; // 3e ligne (index 2)
-    var yearsData = {};   // year -> { months:[[colIdx,monthNum]], solde_col }
+    var yearsData = createDictionary();   // year -> { months:[[colIdx,monthNum]], solde_col }
     var currentYear = null;
     for (var col = 0; col < header.length; col++) {
       var val = header[col];
@@ -120,7 +119,7 @@
     }
 
     // Localise la ligne de chaque poste cible (égalité stricte après strip)
-    var labelToRow = {};
+    var labelToRow = createDictionary();
     for (var i = 0; i < rows.length; i++) {
       var lbl = rows[i][0];
       if (lbl && typeof lbl === 'string') {
@@ -139,13 +138,13 @@
     }
 
     var labelsMissing = TARGET_KEYS.filter(function (k) { return !(k in labelToRow); });
-    var out = { years: {}, labels_missing: labelsMissing };
+    var out = { years: createDictionary(), labels_missing: labelsMissing };
 
     var yearNums = Object.keys(yearsData).map(Number).sort(function (a, b) { return a - b; });
     yearNums.forEach(function (year) {
       var info = yearsData[year];
       var months = info.months;
-      var perMetric = {};
+      var perMetric = createDictionary();
       TARGET_KEYS.forEach(function (key) {
         var arr = new Array(12).fill(null);
         months.forEach(function (pair) {
@@ -155,7 +154,7 @@
         });
         perMetric[key] = arr;
       });
-      var soldes = {};
+      var soldes = createDictionary();
       TARGET_KEYS.forEach(function (key) {
         var v = gv(labelToRow[key], info.solde_col);
         soldes[key] = (v !== null) ? (POSITIVE_AS_ABS[key] ? Math.abs(v) : v) : null;
@@ -178,11 +177,11 @@
 
   function r2(x) { return Math.round(x * 100) / 100; }
 
-  function parseBAL(XLSX, workbook) {
+export function parseBAL(XLSX, workbook) {
     var ws = workbook.Sheets['Rapport'];
     if (!ws) throw new Error("Feuille 'Rapport' introuvable dans le fichier balance.");
     var rows = sheetToMatrix(XLSX, ws);
-    var data = {};
+    var data = createDictionary();
     for (var i = 0; i < rows.length; i++) {
       if (i === 0) continue; // en-tête
       var row = rows[i];
@@ -270,7 +269,7 @@
 
   // Export « Gestion com. > Devis (liste) ». Les règles évitent les brouillons,
   // les devis non aboutis et le double comptage potentiel des factures d'acompte.
-  function parsePieces(XLSX, workbook) {
+export function parsePieces(XLSX, workbook) {
     var ws = null;
     for (var si = 0; si < workbook.SheetNames.length; si++) {
       var candidate = workbook.Sheets[workbook.SheetNames[si]];
@@ -280,18 +279,14 @@
     }
     if (!ws) throw new Error('Export Pièces illisible : colonnes Type, Date, Client, Montant H.T. et Etat introuvables.');
     var rows = sheetToMatrix(XLSX, ws);
-    var header = rows[0] || [], col = {};
+    var header = rows[0] || [], col = createDictionary();
     header.forEach(function (v, i) { col[String(v == null ? '' : v).trim()] = i; });
-    var quoteByYear = {}, clientByYear = {}, quoteCoverage = {}, advancesByClient = {}, receivablesByClient = {};
+    var quoteByYear = createDictionary(), clientByYear = createDictionary(), quoteCoverage = createDictionary(), advancesByClient = createDictionary(), receivablesByClient = createDictionary();
     function add(map, year, label, amount) {
-      if (!map[year]) map[year] = {};
+      if (!map[year]) map[year] = createDictionary();
       map[year][label] = (map[year][label] || 0) + amount;
     }
-    function dateOf(v) {
-      if (v instanceof Date && !isNaN(v.getTime())) return v;
-      var d = new Date(v);
-      return isNaN(d.getTime()) ? null : d;
-    }
+    function dateOf(v) { return parsePiecesDate(v); }
     function quoteBucket(amount) {
       if (amount < 2000) return '< 2 k€';
       if (amount < 5000) return '2–5 k€';
@@ -335,7 +330,7 @@
       var labels = ['< 2 k€', '2–5 k€', '5–10 k€', '10–25 k€', '> 25 k€'];
       return labels.map(function (label) { return { label: label, amount: Math.round((values[label] || 0) * 100) / 100 }; }).filter(function (r) { return r.amount > 0; });
     }
-    var byYear = {}, years = {};
+    var byYear = createDictionary(), years = createDictionary();
     Object.keys(quoteByYear).concat(Object.keys(clientByYear)).forEach(function (year) { years[year] = true; });
     Object.keys(years).forEach(function (year) {
       byYear[year] = {
@@ -355,9 +350,13 @@
     return { by_year: byYear, payment_details: { advances: detailList(advancesByClient), receivables: detailList(receivablesByClient) } };
   }
 
-  var API = { TARGET_LABELS: TARGET_LABELS, POSITIVE_AS_ABS: POSITIVE_AS_ABS,
-              sheetToMatrix: sheetToMatrix, parseRES: parseRES, parseBAL: parseBAL, parsePieces: parsePieces };
-  if (typeof module !== 'undefined' && module.exports) module.exports = API;
-  global.CabestanParser = API;
-})(typeof window !== 'undefined' ? window : this);
+export function parsePiecesDate(value) {
+  if (value === null || value === undefined || value === '') return null;
+  if (typeof value === 'number') return null;
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
 
+const API = { TARGET_LABELS, POSITIVE_AS_ABS, sheetToMatrix, toFloat, parseRES, parseBAL, parsePieces, parsePiecesDate };
+if (typeof window !== 'undefined') window.CabestanParser = API;

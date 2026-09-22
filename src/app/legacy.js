@@ -1,3 +1,16 @@
+import './parser.js';
+import {
+  computeSnapshot as computeDomainSnapshot,
+  historicalPlanReference as computeHistoricalPlanReference,
+} from './domain/metrics.js';
+import { assertValidDashboardData } from './domain/schema.js';
+import { createDashboardStore } from './state/store.js';
+import { createDataStorage } from './state/storage.js';
+import {
+  createImportController,
+  parseExportDate,
+  readWorkbook as readStateWorkbook,
+} from './state/import.js';
 
 
 const MONTH_NAMES = ['Janv','Févr','Mars','Avr','Mai','Juin','Juil','Août','Sept','Oct','Nov','Déc'];
@@ -139,97 +152,7 @@ function setLoadingMsg(msg) {
   if (el) el.textContent = msg;
 }
 
-function computeSnapshot(data) {
-  const years = data.years;
-  if (!years) return null;
-  const yearKeys = Object.keys(years).sort();
-  const currentYear = yearKeys[yearKeys.length - 1];
-  const currentIdx = yearKeys.indexOf(currentYear);
-  const cy = years[currentYear];
-  const mb = cy.monthly.marge_brute;
-  const ca = cy.monthly.ca;
-  const achats = cy.monthly.achats_matieres;
-  // Dernier mois renseigné : un mois vide au milieu de l'année ne décale plus les comparaisons "même période"
-  const moisRenseignes = mb.reduce((last, v, i) => (v !== null ? i + 1 : last), 0);
-  const ytdMB = mb.reduce((a, v) => a + (v || 0), 0);
-  const ytdCA = ca.reduce((a, v) => a + (v || 0), 0);
-  const ytdAchats = achats.reduce((a, v) => a + (v || 0), 0);
-  const tauxMB = ytdCA ? (ytdMB / ytdCA) : null;
-  const mbParMois = mb.filter(v => v !== null);
-  const achatsParMois = achats.filter(v => v !== null);
-  const moisAlerte = mbParMois.filter(v => v < C.MB_MIN).length;
-  const projectionNaive = moisRenseignes > 0 ? (ytdMB / moisRenseignes) * 12 : null;
-
-  // === Same-period YTD for prior years ===
-  const samePeriod = {}; // { "2025": { mb_ytd, mb_full, ca_ytd, ca_full, achats_ytd, achats_full } }
-  for (let i = 0; i < currentIdx; i++) {
-    const yk = yearKeys[i];
-    const yObj = years[yk];
-    const slice = arr => arr.slice(0, moisRenseignes).reduce((a, v) => a + (v || 0), 0);
-    const sum = arr => arr.reduce((a, v) => a + (v || 0), 0);
-    samePeriod[yk] = {
-      mb_ytd: slice(yObj.monthly.marge_brute),
-      mb_full: sum(yObj.monthly.marge_brute),
-      ca_ytd: slice(yObj.monthly.ca),
-      ca_full: sum(yObj.monthly.ca),
-      achats_ytd: slice(yObj.monthly.achats_matieres),
-      achats_full: sum(yObj.monthly.achats_matieres),
-    };
-  }
-
-  // === Projection robuste : YTD + moyenne des mois restants sur N-1 + N-2 ===
-  // Plus robuste qu'une seule année de référence (atténue une année atypique).
-  let projSeasonalMB = null, projSeasonalCA = null, projSeasonalAchats = null;
-  let growthRateMB = null, growthRateCA = null;
-  let referenceYear = null;
-  let referenceYears = [];
-  if (currentIdx > 0) {
-    // Utiliser jusqu'à 2 années de référence (N-1 et N-2)
-    referenceYears = yearKeys.slice(Math.max(0, currentIdx - 2), currentIdx);
-    referenceYear = referenceYears[referenceYears.length - 1]; // Le plus récent pour affichage
-    // Somme des mois restants (mois moisRenseignes+1 .. 12) moyennée sur les années de réf
-    function avgRemainingMonths(key) {
-      let totalRemaining = 0, count = 0;
-      for (const yk of referenceYears) {
-        const arr = years[yk].monthly[key];
-        const remaining = arr.slice(moisRenseignes).reduce((a, v) => a + (v || 0), 0);
-        totalRemaining += remaining;
-        count++;
-      }
-      return count > 0 ? totalRemaining / count : 0;
-    }
-    // Croissance vs N-1 (pour affichage)
-    const ref = samePeriod[referenceYear];
-    if (ref && ref.mb_ytd !== 0) growthRateMB = ytdMB / ref.mb_ytd;
-    if (ref && ref.ca_ytd !== 0) growthRateCA = ytdCA / ref.ca_ytd;
-    // Projection = YTD réalisé + moyenne des mois restants sur les années de réf
-    projSeasonalMB = ytdMB + avgRemainingMonths('marge_brute');
-    projSeasonalCA = ytdCA + avgRemainingMonths('ca');
-    projSeasonalAchats = ytdAchats + avgRemainingMonths('achats_matieres');
-  }
-
-  return {
-    year: currentYear,
-    ytd_ca: Math.round(ytdCA * 100) / 100,
-    ytd_mb: Math.round(ytdMB * 100) / 100,
-    ytd_achats: Math.round(ytdAchats * 100) / 100,
-    taux_mb: tauxMB !== null ? Math.round(tauxMB * 10000) / 10000 : null,
-    mois_renseignes: moisRenseignes,
-    mb_par_mois: mbParMois,
-    achats_par_mois: achatsParMois,
-    mois_alerte: moisAlerte,
-    projection_mb_annuelle: projectionNaive !== null ? Math.round(projectionNaive * 100) / 100 : null,
-    projection_mb_seasonal: projSeasonalMB !== null ? Math.round(projSeasonalMB * 100) / 100 : null,
-    projection_ca_seasonal: projSeasonalCA !== null ? Math.round(projSeasonalCA * 100) / 100 : null,
-    projection_achats_seasonal: projSeasonalAchats !== null ? Math.round(projSeasonalAchats * 100) / 100 : null,
-    growth_rate_mb: growthRateMB,
-    growth_rate_ca: growthRateCA,
-    reference_year: referenceYear,
-    reference_years: referenceYears,
-    same_period: samePeriod,
-  };
-}
-// === FIN LOADDATA ===
+function computeSnapshot(data) { return computeDomainSnapshot(data, C); }
 
 
 let DATA = null;
@@ -1036,7 +959,11 @@ var PCT_KEYS = { TAUX_DANGER:1, TAUX_OBJ:1, TAUX_EXC:1, RATIO_CIBLE:1, RATIO_ALE
 var EUR_KEYS = ['MB_AN_OBJ','CA_OBJ','MB_MIN'];
 var ALL_KEYS = EUR_KEYS.concat(Object.keys(PCT_KEYS));
 var LAST_DATA = null;
-var DATA_KEY = 'cabestan_dashboard_data_v1';
+var dashboardStore = createDashboardStore();
+var dataStorage = createDataStorage({
+  getItem: function (key) { return localStorage.getItem(key); },
+  setItem: function (key, value) { return localStorage.setItem(key, value); }
+}, assertValidDashboardData);
 
 function loadSettings() {
   try {
@@ -1070,62 +997,7 @@ function readSettingsForm() {
   });
 }
 
-function _sumMetric(year, key) {
-  return (year && year.monthly && year.monthly[key] || []).reduce(function (sum, v) { return sum + (v || 0); }, 0);
-}
-function historicalPlanReference(data) {
-  var keys = Object.keys(data.years || {}).sort();
-  // L'exercice le plus récent est en cours : on prend les deux exercices complets qui le précèdent.
-  var refs = keys.slice(Math.max(0, keys.length - 3), Math.max(0, keys.length - 1));
-  if (!refs.length && keys.length) refs = keys.slice(-1);
-  var totals = { ca:0, mb:0, achats:0, remuneration:0, charges:0, contribution:0 };
-  refs.forEach(function (yk) {
-    var y = data.years[yk];
-    totals.ca += _sumMetric(y, 'ca');
-    totals.mb += _sumMetric(y, 'marge_brute');
-    totals.achats += _sumMetric(y, 'achats_matieres');
-    totals.remuneration += _sumMetric(y, 'remunerations');
-    totals.charges += _sumMetric(y, 'charges_fonct');
-    totals.contribution += _sumMetric(y, 'contribution_coop');
-  });
-  var n = refs.length || 1;
-  var annualCharges = (totals.charges + totals.contribution) / n;
-  var annualSalary = totals.remuneration / n;
-  var annualMB = totals.mb / n;
-  // Le surplus est une estimation de pilotage : il ne préjuge pas de son affectation en clôture.
-  var surplus = Math.max(0, annualMB - annualSalary - annualCharges);
-  var n1Key = refs[refs.length - 1] || keys[keys.length - 1];
-  var n1Year = n1Key ? data.years[n1Key] : null;
-  var n1ChargesFonct = _sumMetric(n1Year, 'charges_fonct');
-  var n1Contribution = _sumMetric(n1Year, 'contribution_coop');
-  var n1CA = _sumMetric(n1Year, 'ca');
-  var n1MB = _sumMetric(n1Year, 'marge_brute');
-  var n1Salary = _sumMetric(n1Year, 'remunerations');
-  var n1Charges = n1ChargesFonct + n1Contribution;
-  var n1NetResult = n1MB - n1Salary - n1Charges;
-  var n1Surplus = Math.max(0, n1NetResult);
-  return {
-    years: refs,
-    label: refs.length > 1 ? refs[0] + '–' + refs[refs.length - 1] : (refs[0] || 'historique disponible'),
-    // Les objectifs personnels se renouvellent d'un exercice à l'autre : N-1 est leur seule référence.
-    salary: n1Salary || annualSalary || C.MB_MIN * 12,
-    surplus: n1Surplus,
-    ca: totals.ca / n || C.CA_OBJ,
-    margin: totals.ca > 0 ? totals.mb / totals.ca : C.TAUX_OBJ,
-    purchases: totals.ca > 0 ? totals.achats / totals.ca : C.RATIO_CIBLE,
-    charges: annualCharges || Math.max(0, C.MB_AN_OBJ - C.MB_MIN * 12),
-    n1: {
-      year: n1Key || 'N-1',
-      charges: n1ChargesFonct + n1Contribution,
-      chargesFonct: n1ChargesFonct,
-      contribution: n1Contribution,
-      salary: n1Salary,
-      netResult: n1NetResult,
-      surplus: n1Surplus,
-      margin: n1CA > 0 ? n1MB / n1CA : (totals.ca > 0 ? totals.mb / totals.ca : C.TAUX_OBJ)
-    }
-  };
-}
+function historicalPlanReference(data) { return computeHistoricalPlanReference(data, C); }
 function _planRoundedSalaryReference(ref) { return Math.ceil(ref.salary / 12 * NET_FROM_GROSS) / NET_FROM_GROSS * 12; }
 function loadPlan(data) {
   var ref = historicalPlanReference(data);
@@ -2286,35 +2158,27 @@ function showError(e) {
 
 function hideWelcomeErr() { var we = document.getElementById('welcome-err'); if (we) we.style.display = 'none'; }
 
-// Persistance locale des données (pour ne pas re-déposer les fichiers à chaque ouverture)
+// Les données restent utilisables en session quand le navigateur refuse localStorage.
+function showStorageWarning(message) {
+  var host = document.getElementById('dashboard-root');
+  var warning = document.getElementById('storage-warn');
+  if (!message) { if (warning) warning.remove(); return; }
+  if (!warning) {
+    warning = document.createElement('div');
+    warning.id = 'storage-warn'; warning.className = 'error';
+    host.insertBefore(warning, host.firstChild);
+  }
+  warning.textContent = '⚠ ' + message;
+  warning.style.display = 'block';
+}
 function saveData(data) {
-  try {
-    localStorage.setItem(DATA_KEY, JSON.stringify({
-      years: data.years, labels_missing: data.labels_missing, charges_detail: data.charges_detail,
-      revenue_distribution: data.revenue_distribution, margin_distribution: data.margin_distribution, mb_distribution: data.mb_distribution,
-      sante: data.sante, sante_error: data.sante_error,
-      file_mtime_iso: data.file_mtime_iso, res_name: data.res_name, bal_name: data.bal_name, pieces_name: data.pieces_name,
-      res_export_iso: data.res_export_iso, bal_export_iso: data.bal_export_iso, pieces_export_iso: data.pieces_export_iso
-    }));
-  } catch (e) { /* quota / mode privé -> on ignore */ }
+  var result = dataStorage.saveData(data);
+  showStorageWarning(result.ok ? null : 'Les données restent utilisables pour cette session, mais ne seront pas mémorisées après rechargement.');
+  return result;
 }
 function loadSavedData() {
-  try {
-    var raw = localStorage.getItem(DATA_KEY);
-    if (!raw) return null;
-    var d = JSON.parse(raw);
-    if (d && d.years && Object.keys(d.years).length) return d;
-  } catch (e) { /* données corrompues */ }
-  return null;
-}
-function clearSavedData() { try { localStorage.removeItem(DATA_KEY); } catch (e) {} }
-
-// Déduit la date/heure d'export Louty du nom de fichier : ..._aammjj_hhmmss.xlsx
-function parseExportDate(name) {
-  var m = /_(\d{2})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})\.xlsx$/i.exec(name || '');
-  if (!m) return null;
-  var d = new Date(2000 + (+m[1]), (+m[2]) - 1, +m[3], +m[4], +m[5], +m[6]);
-  return isNaN(d.getTime()) ? null : d.toISOString();
+  var result = dataStorage.loadData();
+  return result.status === 'ready' ? result.data : null;
 }
 function fmtDateTime(iso) {
   if (!iso) return '—';
@@ -2363,21 +2227,58 @@ function updateLabelsWarning(data) {
     ". Les indicateurs correspondants restent à 0 — vérifie l'export Louty (libellés renommés ou export partiel).";
 }
 
-// Rend le dashboard à partir d'un objet data (issu du parser)
+function deriveDashboardCandidate(data) {
+  loadPlan(data);
+  applyPlanToCharts();
+  var current = computeSnapshot(data);
+  data.snapshot = { current: current, previous: null, updated_at: data.file_mtime_iso };
+  return data;
+}
+function renderDashboardCandidate(data) {
+  showDashboard();
+  updateLabelsWarning(data);
+  render(data);
+  if (!data.sante) injectSanteUpload(data.sante_error); // pas de BAL -> zone de dépôt à la place du vide
+  updateDataStatus(data);
+}
+function captureDashboardView() {
+  return {
+    plan: PLAN && { ...PLAN }, config: { ...C }, data: DATA, lastData: LAST_DATA,
+    distributionYear: distributionYear, pilotageMetric: pilotageMetric,
+    wasWelcome: document.getElementById('welcome').style.display !== 'none'
+  };
+}
+function restoreDashboardView(snapshot, previous) {
+  if (!snapshot) return;
+  PLAN = snapshot.plan;
+  Object.assign(C, snapshot.config);
+  DATA = snapshot.data;
+  LAST_DATA = snapshot.lastData;
+  distributionYear = snapshot.distributionYear;
+  pilotageMetric = snapshot.pilotageMetric;
+  if (previous.data && previous.data.snapshot) {
+    try { renderDashboardCandidate(previous.data); }
+    catch (e) { showWelcome(); }
+    if (snapshot.wasWelcome) showWelcome();
+  } else showWelcome();
+}
+
+// Le rendu des changements de thème/réglages et la restauration passent par le même chemin.
 function renderParsed(data) {
+  var previous = dashboardStore.getState();
+  var snapshot = captureDashboardView();
   try {
+    data = assertValidDashboardData(data);
+    deriveDashboardCandidate(data);
+    renderDashboardCandidate(data);
     LAST_DATA = data;
-    loadPlan(data);
-    applyPlanToCharts();
-    var current = computeSnapshot(data);
-    data.snapshot = { current: current, previous: null, updated_at: data.file_mtime_iso };
-    showDashboard();
-    updateLabelsWarning(data);
-    render(data);
-    if (!data.sante) injectSanteUpload(data.sante_error); // pas de BAL -> zone de dépôt à la place du vide
-    updateDataStatus(data);
+    dashboardStore.replaceData(data);
     saveData(data);
-  } catch (e) { showError(e); throw e; }
+  } catch (e) {
+    restoreDashboardView(snapshot, previous);
+    showError(e);
+    throw e;
+  }
 }
 
 // Carte "Santé financière" en attente de Balance : zone de dépôt intégrée
@@ -2429,20 +2330,6 @@ function looksLikePieces(wb) {
   return false;
 }
 
-function readWorkbook(file) {
-  return new Promise(function (resolve, reject) {
-    var fr = new FileReader();
-    fr.onload = function () {
-      try {
-        var wb = XLSX.read(new Uint8Array(fr.result), { type: 'array', cellDates: true, cellStyles: true });
-        resolve({ name: file.name, wb: wb });
-      } catch (e) { reject(new Error("Impossible de lire « " + file.name + " » : fichier Excel invalide.")); }
-    };
-    fr.onerror = function () { reject(new Error("Lecture impossible de « " + file.name + " ».")); };
-    fr.readAsArrayBuffer(file);
-  });
-}
-
 var dzFiles = document.getElementById('dz-files');
 function setFileStatus(resName, balName, piecesName) {
   var lines = [];
@@ -2474,66 +2361,33 @@ function classifyBooks(books) {
   return { resBook: resBook, balBook: balBook, piecesBook: piecesBook };
 }
 
-// Un RES et ses exports complémentaires doivent toujours provenir du même instant.
-// Lors d'un nouveau RES, ne jamais conserver les données facultatives du précédent
-// import : elles seraient sinon affichées avec une période potentiellement différente.
-function resetDependentImports(data) {
-  [
-    'revenue_distribution', 'margin_distribution', 'mb_distribution',
-    'sante', 'sante_error',
-    'bal_name', 'pieces_name', 'bal_export_iso', 'pieces_export_iso'
-  ].forEach(function (key) { delete data[key]; });
-}
-
-// Point d'entrée unique : accepte RES et/ou BAL, dans n'importe quel ordre.
+// Lecture, validation et rendu d'un candidat avant publication de l'état.
+var importController = createImportController({
+  readBook: function (file) { return readStateWorkbook(file, XLSX); },
+  classifyBooks: classifyBooks,
+  parsers: {
+    parseRES: function (workbook) { return CabestanParser.parseRES(XLSX, workbook); },
+    parseBAL: function (workbook) { return CabestanParser.parseBAL(XLSX, workbook); },
+    parsePieces: function (workbook) { return CabestanParser.parsePieces(XLSX, workbook); }
+  },
+  validate: assertValidDashboardData,
+  derive: deriveDashboardCandidate,
+  render: renderDashboardCandidate,
+  capture: captureDashboardView,
+  restore: restoreDashboardView,
+  store: dashboardStore,
+  persistence: dataStorage,
+  onWarning: showStorageWarning
+});
 function ingest(fileList) {
   hideWelcomeErr();
-  var files = Array.prototype.slice.call(fileList).filter(function (f) { return /\.xlsx$/i.test(f.name); });
-  if (!files.length) { showError(new Error("Dépose un fichier .xlsx (l'export Louty).")); return; }
-  Promise.all(files.map(readWorkbook)).then(function (books) {
-    var c = classifyBooks(books);
-    if (c.resBook) {
-      // Nouveau Résultat d'Activité -> on (re)construit tout
-      var data = CabestanParser.parseRES(XLSX, c.resBook.wb);
-      resetDependentImports(data);
-      if (!Object.keys(data.years).length) {
-        throw new Error("Le fichier Résultat d'Activité ne contient aucune année exploitable (colonnes de mois introuvables dans la feuille « Rapport »).");
-      }
-      data.file_mtime_iso = new Date().toISOString();
-      data.res_name = c.resBook.name;
-      data.res_export_iso = parseExportDate(c.resBook.name);
-      if (c.balBook) {
-        try { data.sante = CabestanParser.parseBAL(XLSX, c.balBook.wb); data.bal_name = c.balBook.name; data.bal_export_iso = parseExportDate(c.balBook.name); }
-        catch (e) { data.sante_error = e.message; }
-      }
-      if (c.piecesBook) {
-        data.revenue_distribution = CabestanParser.parsePieces(XLSX, c.piecesBook.wb);
-        data.pieces_name = c.piecesBook.name;
-        data.pieces_export_iso = parseExportDate(c.piecesBook.name);
-      }
-      setFileStatus(c.resBook.name, c.balBook ? c.balBook.name : null, c.piecesBook ? c.piecesBook.name : null);
-      renderParsed(data);
-    } else if ((c.balBook || c.piecesBook) && LAST_DATA) {
-      // Balance ou Pièces seul + un Résultat déjà chargé -> on enrichit les données existantes
-      if (c.balBook) {
-        try {
-          LAST_DATA.sante = CabestanParser.parseBAL(XLSX, c.balBook.wb);
-          LAST_DATA.bal_name = c.balBook.name;
-          LAST_DATA.bal_export_iso = parseExportDate(c.balBook.name);
-          delete LAST_DATA.sante_error;
-        } catch (e) { throw new Error("Balance illisible : " + e.message); }
-      }
-      if (c.piecesBook) {
-        LAST_DATA.revenue_distribution = CabestanParser.parsePieces(XLSX, c.piecesBook.wb);
-        LAST_DATA.pieces_name = c.piecesBook.name;
-        LAST_DATA.pieces_export_iso = parseExportDate(c.piecesBook.name);
-      }
-      setFileStatus(LAST_DATA.res_name || null, LAST_DATA.bal_name || null, LAST_DATA.pieces_name || null);
-      renderParsed(LAST_DATA);
-    } else {
-      throw new Error("Commence par déposer le fichier Résultat d'Activité (RES_U_Résultat d'Activité). La Balance ou les Pièces seules ne suffisent pas à générer le tableau de bord.");
-    }
-  }).catch(function (e) { showError(e); });
+  importController.ingest(fileList).then(function (outcome) {
+    if (outcome.superseded) return;
+    if (!outcome.ok) { showError(outcome.error); return; }
+    LAST_DATA = dashboardStore.getState().data;
+    if (outcome.persisted) showStorageWarning(null);
+    setFileStatus(LAST_DATA.res_name || null, LAST_DATA.bal_name || null, LAST_DATA.pieces_name || null);
+  }).catch(showError);
 }
 
 // Drag & drop + parcourir (écran d'accueil)
@@ -2641,7 +2495,6 @@ if (lsGet(SETTINGS_KEY) === null) {
   var saved = loadSavedData();
   if (saved) {
     try { renderParsed(saved); }
-    catch (e) { clearSavedData(); showWelcome(); }
+    catch (e) { showWelcome(); }
   }
 })();
-
