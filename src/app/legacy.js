@@ -11,6 +11,14 @@ import {
   parseExportDate,
   readWorkbook as readStateWorkbook,
 } from './state/import.js';
+import {
+  chartInstances as charts,
+  disposeChart,
+  disposeEChart as _disposeEChart,
+  makeChart,
+  makeEChart as _makeEChart,
+  setChartTheme as setChartThemeDefaults,
+} from './chart-lifecycle.js';
 
 
 const MONTH_NAMES = ['Janv','Févr','Mars','Avr','Mai','Juin','Juil','Août','Sept','Oct','Nov','Déc'];
@@ -26,48 +34,7 @@ var CHART_TEXT = DARK ? '#9d97a9' : '#6d6779';
 var CHART_GRID = DARK ? 'rgba(255,255,255,0.05)' : 'rgba(40,30,60,0.06)';
 var CHART_TOOLTIP_BG = DARK ? '#2a2536' : '#2b2536';
 const CHART_FONT = "'Nunito', ui-rounded, -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif";
-if (window.Chart) {
-  Chart.defaults.font.family = CHART_FONT;
-  Chart.defaults.font.size = 12;
-  Chart.defaults.font.weight = '600';
-  Chart.defaults.color = CHART_TEXT;
-  Chart.defaults.borderColor = CHART_GRID;
-  Chart.defaults.plugins.legend.labels.usePointStyle = true;
-  Chart.defaults.plugins.legend.labels.pointStyle = 'circle';
-  Chart.defaults.plugins.legend.labels.boxWidth = 8;
-  Chart.defaults.plugins.legend.labels.boxHeight = 8;
-  Chart.defaults.plugins.legend.labels.padding = 18;
-  Chart.defaults.plugins.legend.labels.font = { size: 12, weight: '700' };
-  Chart.defaults.plugins.tooltip.backgroundColor = CHART_TOOLTIP_BG;
-  Chart.defaults.plugins.tooltip.padding = 12;
-  Chart.defaults.plugins.tooltip.cornerRadius = 10;
-  Chart.defaults.plugins.tooltip.titleColor = '#ffffff';
-  Chart.defaults.plugins.tooltip.bodyColor = 'rgba(255,255,255,0.85)';
-  Chart.defaults.plugins.tooltip.titleFont = { size: 12.5, weight: '800', family: CHART_FONT };
-  Chart.defaults.plugins.tooltip.bodyFont = { size: 12, weight: '600', family: CHART_FONT };
-  Chart.defaults.plugins.tooltip.boxPadding = 6;
-  Chart.defaults.plugins.tooltip.usePointStyle = true;
-  Chart.defaults.animation.duration = 700;
-  Chart.defaults.animation.easing = 'easeOutQuart';
-  Chart.defaults.elements.bar.borderRadius = 7;
-  Chart.defaults.elements.bar.borderSkipped = false;
-  Chart.defaults.elements.point.radius = 2.5;
-  Chart.defaults.elements.point.hoverRadius = 6;
-  Chart.defaults.elements.line.tension = 0.4;
-  Chart.defaults.elements.line.borderJoinStyle = 'round';
-  Chart.defaults.elements.line.capBezierPoints = true;
-  try {
-    if (Chart.defaults.scale) {
-      if (Chart.defaults.scale.grid) {
-        Chart.defaults.scale.grid.color = CHART_GRID;
-        Chart.defaults.scale.grid.drawTicks = false;
-        Chart.defaults.scale.grid.tickLength = 8;
-      }
-      if (Chart.defaults.scale.ticks) Chart.defaults.scale.ticks.padding = 8;
-      if (Chart.defaults.scale.border) Chart.defaults.scale.border.display = false;
-    }
-  } catch (e) { /* défauts d'échelle indisponibles */ }
-}
+setChartThemeDefaults({ font:CHART_FONT, text:CHART_TEXT, grid:CHART_GRID, tooltip:CHART_TOOLTIP_BG });
 
 // --- Icônes (pastilles KPI) ---
 const _ic = (inner) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + inner + '</svg>';
@@ -156,7 +123,6 @@ function computeSnapshot(data) { return computeDomainSnapshot(data, C); }
 
 
 let DATA = null;
-let charts = {};
 let distributionYear = null;
 let pilotageMetric = 'mb';
 
@@ -202,12 +168,6 @@ function render(data) {
   decorateKpis();
 }
 
-function makeChart(canvasId, config) {
-  if (charts[canvasId]) { charts[canvasId].destroy(); }
-  const ctx = document.getElementById(canvasId).getContext('2d');
-  charts[canvasId] = new Chart(ctx, config);
-}
-
 // Répartition optionnelle de CA. Le Résultat d'Activité Louty est agrégé par
 // mois ; les deux séries ci-dessous proviennent de l'export détaillé « Pièces ».
 // { revenue_distribution: { quote_brackets: [{ label, amount }], clients: [{ label, amount }] } }
@@ -238,12 +198,8 @@ function _hexAlpha(hex, alpha) {
 function _distributionEmpty(id) {
   var host = document.getElementById(id);
   if (!host) return;
-  if (id === 'quote-margin-distribution' && charts['chart-margin-by-quote']) {
-    charts['chart-margin-by-quote'].destroy(); delete charts['chart-margin-by-quote'];
-  }
-  if (id === 'client-margin-distribution' && charts['chart-margin-by-client']) {
-    charts['chart-margin-by-client'].destroy(); delete charts['chart-margin-by-client'];
-  }
+  if (id === 'quote-margin-distribution') disposeChart('chart-margin-by-quote');
+  if (id === 'client-margin-distribution') disposeChart('chart-margin-by-client');
   host.innerHTML = '<div class="distribution-empty">Ajoute l’export détaillé « Pièces » pour afficher cette répartition.</div>';
 }
 function _distributionPeriodLabel(year, currentYear) {
@@ -282,7 +238,12 @@ function renderMarginDistributions(data) {
   var hasData = quoteByYear.length || clientRows.length;
   if (section) section.style.display = hasData ? '' : 'none';
   if (upload) upload.style.display = hasData ? 'none' : '';
-  if (!hasData) { _wirePiecesUpload(); return; }
+  if (!hasData) {
+    _distributionEmpty('quote-margin-distribution');
+    _distributionEmpty('client-margin-distribution');
+    _wirePiecesUpload();
+    return;
+  }
   var period = document.getElementById('client-distribution-period');
   if (period) {
     var options = availableYears.map(function (year) { return '<option value="' + esc(year) + '"' + (year === distributionYear ? ' selected' : '') + '>' + esc(_distributionPeriodLabel(year, currentYear)) + '</option>'; }).join('');
@@ -434,94 +395,6 @@ function renderClientMarginDistribution(rows) {
   });
 }
 
-function renderMonthlyChart(cy, years, curYear) {
-  const labels = MONTH_NAMES;
-  const mbCyOriginal = cy.monthly.marge_brute;
-  const mbCy = mbCyOriginal.map(v => v === null ? 0 : v);
-  const ca = cy.monthly.ca;
-  const colors = mbCyOriginal.map(v => {
-    if (v === null) return COLORS.gray;
-    if (v < 0) return COLORS.red;
-    if (v < C.MB_MIN) return COLORS.orange;
-    return COLORS.green;
-  });
-  // Moyenne des années précédentes, mois par mois (sur les valeurs disponibles)
-  const prevYears = Object.keys(years).filter(y => parseInt(y) < parseInt(curYear)).sort();
-  const avgPrev = [];
-  for (let m = 0; m < 12; m++) {
-    const vals = prevYears.map(y => years[y].monthly.marge_brute[m]).filter(v => v !== null && v !== undefined);
-    avgPrev.push(vals.length ? vals.reduce((a, v) => a + v, 0) / vals.length : null);
-  }
-  const avgLabel = prevYears.length > 1
-    ? 'Moyenne ' + prevYears[0] + '–' + prevYears[prevYears.length - 1]
-    : (prevYears.length === 1 ? 'Marge brute ' + prevYears[0] : '');
-  const datasets = [
-    { type: 'bar', label: 'Marge brute ' + curYear, data: mbCy, backgroundColor: colors, borderColor: colors, borderWidth: 1, order: 2 }
-  ];
-  if (prevYears.length) {
-    datasets.push({
-      type: 'line', label: avgLabel, data: avgPrev,
-      borderColor: COLORS.gray, backgroundColor: 'transparent',
-      borderWidth: 2, pointRadius: 0, pointHoverRadius: 6, tension: 0.4, order: 1, spanGaps: true,
-    });
-  }
-  makeChart('chart-mb', {
-    data: { labels, datasets },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
-      scales: { y: { beginAtZero: true, ticks: { callback: v => fmtEUR(v) } } },
-      plugins: {
-        legend: {
-          position: 'bottom',
-          labels: {
-            font: { size: 11 },
-            generateLabels: function (chart) {
-              var base = Chart.defaults.plugins.legend.labels.generateLabels(chart);
-              var extra = [
-                { text: 'Seuil salaire brut ' + fmtEUR(C.MB_MIN), strokeStyle: COLORS.black, fillStyle: 'transparent', lineWidth: 2, pointStyle: 'circle', hidden: false, datasetIndex: -1 }
-              ];
-              return extra.concat(base);
-            }
-          },
-          onClick: function (e, item, legend) {
-            if (item.datasetIndex === -1 || item.datasetIndex == null) return;
-            var ci = legend.chart, idx = item.datasetIndex;
-            if (ci.isDatasetVisible(idx)) ci.hide(idx); else ci.show(idx);
-          }
-        },
-        tooltip: {
-          callbacks: {
-            afterLabel: (ctx) => {
-              if (ctx.datasetIndex !== 0) return '';
-              const m = ctx.dataIndex;
-              const caVal = ca[m];
-              const mbVal = mbCyOriginal[m];
-              const taux = (caVal && mbVal) ? (mbVal / caVal) : null;
-              const lines = [];
-              lines.push('CA: ' + fmtEUR(caVal));
-              lines.push('Taux MB: ' + fmtPct(taux));
-              if (avgPrev[m] !== null && avgPrev[m] !== undefined) lines.push(avgLabel + ': ' + fmtEUR(avgPrev[m]));
-              return lines;
-            }
-          }
-        },
-      },
-    },
-    plugins: [{
-      id: 'thresholdLines',
-      afterDatasetsDraw(chart) {
-        const { ctx, chartArea: { left, right }, scales: { y } } = chart;
-        ctx.save();
-        ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]); ctx.font = '10px sans-serif';
-        ctx.strokeStyle = COLORS.black;
-        let yMin = y.getPixelForValue(C.MB_MIN);
-        ctx.beginPath(); ctx.moveTo(left, yMin); ctx.lineTo(right, yMin); ctx.stroke();
-        ctx.restore();
-      }
-    }],
-  });
-}
 // Graphe fusionné : CA mensuel en barres empilées avec repères historiques discrets en arrière-plan.
 function renderCAMB(cy, curYear, years) {
   const labels = MONTH_NAMES;
@@ -1179,39 +1052,6 @@ document.getElementById('settings-reset').addEventListener('click', function () 
   if (LAST_DATA) renderParsed(LAST_DATA);
 });
 
-// ---- Mini-graphe barres mensuel (12 mois, simple, épuré) ----
-function _miniBars(monthly, color, caption) {
-  if (!monthly) return '';
-  var present = [];
-  for (var i = 0; i < 12; i++) if (monthly[i] != null) present.push(i);
-  if (!present.length) return '';
-  var nums = present.map(function (i) { return monthly[i] || 0; });
-  var posMax = Math.max.apply(null, nums.concat([0]));
-  var negMax = Math.max.apply(null, nums.map(function (v) { return -v; }).concat([0]));
-  var range = (posMax + negMax) || 1;
-  var basePct = negMax / range * 100;
-  var cols = '';
-  for (var m = 0; m < 12; m++) {
-    var v = monthly[m];
-    if (v == null) {
-      // mois vide (à venir) : simple repère au niveau du zéro
-      cols += '<div class="mbc-col empty" data-tip="' + MONTH_NAMES[m] + ' : à venir">' +
-        '<div class="mbc-ph" style="bottom:' + basePct + '%"></div></div>';
-    } else {
-      var hp = Math.abs(v) / range * 100, bottom, height;
-      if (v >= 0) { bottom = basePct; height = Math.max(hp, 1.5); }
-      else { height = Math.max(hp, 1.5); bottom = basePct - hp; }
-      cols += '<div class="mbc-col" data-tip="' + MONTH_NAMES[m] + ' : ' + fmtEUR(v) + '">' +
-        '<div class="mbc-bar' + (v < 0 ? ' neg' : '') + '" style="bottom:' + bottom + '%; height:' + height + '%; background:' + (v < 0 ? 'var(--red)' : color) + '"></div></div>';
-    }
-  }
-  var zero = negMax > 0 ? '<div class="mbc-zero" style="bottom:' + basePct + '%"></div>' : '';
-  return '<div class="mbc"><div class="mbc-bars">' + zero + cols + '</div>' +
-    '<div class="mbc-x"><span>' + MONTH_NAMES[0].toUpperCase() + '</span>' +
-    '<span class="mbc-cap">' + caption + '</span>' +
-    '<span>' + MONTH_NAMES[11].toUpperCase() + '</span></div></div>';
-}
-
 // ---- Carte statistique : deux jauges absolues, année en cours et N-1 ----
 function _actualPerformanceCardHTML(cfg) {
   var value = cfg.value || 0, goal = cfg.goal || 0, refSame = cfg.refSame;
@@ -1276,7 +1116,7 @@ function _renderActualPerformanceCharts() {
           '<br>Objectif annuel : ' + fmtEUR(data.goal) + '<br>Attendu à date : ' + fmtEUR(target) +
           '<br>' + (ahead ? 'Avance : ' : 'Retard : ') + fmtEUR(Math.abs(data.value - target));
       } }, series:series
-    }; });
+    }; }, CHART_FONT);
   });
 }
 
@@ -1347,7 +1187,7 @@ function _renderAnnualProgressChart() {
           } }; }) }
       ]
     };
-  });
+  }, CHART_FONT);
 }
 
 function _statCardHTML(cfg) {
@@ -1649,48 +1489,11 @@ function renderAchats(cy, cur) {
 
 };
 
-// Shared SVG renderer and lifecycle for all migrated ECharts visualizations.
-var echartInstances = {};
-function _disposeEChart(id) {
-  var entry = echartInstances[id];
-  if (!entry) return;
-  entry.observer.disconnect(); entry.chart.dispose(); delete echartInstances[id];
-}
-function _makeEChart(id, buildOption) {
-  Object.keys(echartInstances).forEach(function (key) {
-    if (echartInstances[key].chart.getDom() !== document.getElementById(key)) _disposeEChart(key);
-  });
-  var host = document.getElementById(id);
-  if (!host) return;
-  var entry = echartInstances[id];
-  if (!entry) {
-    var chart = LoutyECharts.init(host, null, { renderer:'svg', width:host.clientWidth || 220, height:host.clientHeight || 140 });
-    entry = { chart:chart, buildOption:buildOption };
-    entry.observer = new ResizeObserver(function () {
-      // The initial observer notification must not finish the entry animation.
-      if (host.clientWidth && host.clientHeight &&
-          (chart.getWidth() !== host.clientWidth || chart.getHeight() !== host.clientHeight)) {
-        chart.resize({ width:host.clientWidth, height:host.clientHeight });
-        chart.setOption(entry.buildOption());
-      }
-    });
-    entry.observer.observe(host);
-    echartInstances[id] = entry;
-  }
-  entry.buildOption = buildOption;
-  entry.chart.setOption(Object.assign({
-    animation:!window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-    animationDuration:900, animationEasing:'cubicOut', animationDurationUpdate:600, animationEasingUpdate:'cubicOut',
-    textStyle:{ fontFamily:CHART_FONT }
-  }, buildOption()), { notMerge:true });
-}
 function _makeEChartGauge(id, series, tooltipText, displayRate) {
   _makeEChart(id, function () {
     var style = getComputedStyle(document.getElementById(id));
     var animate = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     return {
-      animation:animate, animationDuration:1800, animationEasing:'quarticOut',
-      animationDurationUpdate:1800, animationEasingUpdate:'quarticOut',
       tooltip:{ trigger:'item', confine:true, formatter:function () { return tooltipText; } },
       series:[Object.assign({ type:'gauge', startAngle:180, endAngle:0, center:['50%', '80%'], radius:'140%',
         axisTick:{ show:false }, splitLine:{ show:false }, axisLabel:{ show:false }, anchor:{ show:false },
@@ -1707,7 +1510,7 @@ function _makeEChartGauge(id, series, tooltipText, displayRate) {
         data:[{ value:displayRate * 100 }]
       }]
     };
-  });
+  }, CHART_FONT);
 }
 function _renderPurchaseRatioChart(ratio, fraction, label, topThreshold) {
   var style = getComputedStyle(document.getElementById('chart-purchase-ratio'));
@@ -1770,7 +1573,7 @@ function renderSante(data, cur) {
   var wrap = document.getElementById('bloc-sante');
   var sante = data.sante;
   if (!sante) {
-    if (charts['chart-financial-health']) { charts['chart-financial-health'].destroy(); delete charts['chart-financial-health']; }
+    disposeChart('chart-financial-health');
     wrap.innerHTML = ''; return;
   }
   var cy = data.years[cur.year];
@@ -2111,12 +1914,7 @@ function applyChartTheme() {
   CHART_TEXT = DARK ? '#9d97a9' : '#6d6779';
   CHART_GRID = DARK ? 'rgba(255,255,255,0.05)' : 'rgba(40,30,60,0.06)';
   CHART_TOOLTIP_BG = DARK ? '#2a2536' : '#2b2536';
-  if (window.Chart) {
-    Chart.defaults.color = CHART_TEXT;
-    Chart.defaults.borderColor = CHART_GRID;
-    Chart.defaults.plugins.tooltip.backgroundColor = CHART_TOOLTIP_BG;
-    try { if (Chart.defaults.scale && Chart.defaults.scale.grid) Chart.defaults.scale.grid.color = CHART_GRID; } catch (e) {}
-  }
+  setChartThemeDefaults({ font:CHART_FONT, text:CHART_TEXT, grid:CHART_GRID, tooltip:CHART_TOOLTIP_BG });
 }
 function updateThemeIcon() {
   var btn = document.getElementById('toggle-theme');
