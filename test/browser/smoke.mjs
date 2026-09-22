@@ -169,6 +169,19 @@ try {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(100);
   state = await dashboardState(page);
+  const mobileStacks = await page.evaluate(() => {
+    const boxes = (selector) => [...document.querySelectorAll(selector)].map((element) => {
+      const rect = element.getBoundingClientRect();
+      return { top: Math.round(rect.top), bottom: Math.round(rect.bottom), width: Math.round(rect.width) };
+    });
+    return {
+      monthly: boxes('#tab-general > .grid[style*="grid-template-columns"] > .card'),
+      distribution: boxes('.performance-distribution-row > .distribution-column > .card, #margin-distribution-row > .distribution-card'),
+    };
+  });
+  const isStacked = (boxes) => boxes.length > 1 && boxes.every((box, index) => index === 0 || box.top >= boxes[index - 1].bottom - 1);
+  assert.ok(isStacked(mobileStacks.monthly), `les cartes CA/MB et taux doivent être empilées sur mobile (${JSON.stringify(mobileStacks.monthly)})`);
+  assert.ok(isStacked(mobileStacks.distribution), `la jauge et les répartitions ne doivent pas se chevaucher sur mobile (${JSON.stringify(mobileStacks.distribution)})`);
   const overwide = await page.evaluate(() => [...document.querySelectorAll('body *')]
     .filter((element) => element.scrollWidth > innerWidth)
     .slice(0, 24)

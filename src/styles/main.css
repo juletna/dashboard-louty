@@ -723,7 +723,12 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .cmp .cmp-summary td:first-child { font-weight:800; }
 .cmp .cmp-summary:last-child td { border-bottom:0; }
 @media (max-width:700px) {
+  #tab-general > .grid[style*="grid-template-columns"] { grid-template-columns:minmax(0,1fr) !important; }
   .performance-distribution-row { grid-template-columns:minmax(0,1fr); }
+  .performance-distribution-row > .distribution-column,
+  #margin-distribution-row,
+  #margin-distribution-row .distribution-card,
+  #quote-margin-distribution { flex:0 0 auto; min-height:auto; }
   .performance-kpis { grid-template-columns:1fr; }
   .structure-chart { height:260px; }
   #bloc4 table.cmp { min-width:560px; }

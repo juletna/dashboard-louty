@@ -46,9 +46,12 @@ passe, sans autre point medium ou plus.
 ### Lot 4 — Finition graphique et vérification navigateur
 
 Le cycle de vie des graphiques est isolé afin de créer, redimensionner et
-détruire les instances de façon cohérente. Le smoke test Playwright utilise
+détruire les instances de façon cohérente. Cinq rendus Chart.js ont été extraits
+dans `src/app/charts/cartesian.js` avec leurs dépendances explicites ; l'ancien
+rendu Waterfall sans appel a été retiré. Le smoke test Playwright utilise
 uniquement des classeurs XLSX synthétiques et contrôle l'import, le cache local,
-le rollback, les thèmes, la réduction des mouvements et une vue mobile.
+le rollback, les thèmes, la réduction des mouvements et une vue mobile. Les 24
+tests Node passent avec le build autonome.
 
 ## Vérification avant publication
 

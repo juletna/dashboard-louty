@@ -39,7 +39,7 @@ Le code source est réparti par responsabilité :
 
 - `src/template/` contient la structure HTML et les points d'injection ; `src/styles/` contient les styles et tokens visuels.
 - `src/app/domain/` normalise les données et calcule les métriques, sans DOM ni stockage ; `src/app/parser.js` lit les exports RES, BAL et Pièces.
-- `src/app/state/` gère l'import transactionnel et le cache local versionné ; `src/app/chart-lifecycle.js` possède les instances Chart.js et ECharts.
+- `src/app/state/` gère l'import transactionnel et le cache local versionné ; `src/app/charts/cartesian.js` contient les rendus Chart.js extraits et `src/app/chart-lifecycle.js` possède les instances Chart.js et ECharts.
 - `src/app/entry.js` compose l'application, tandis que `src/app/legacy.js` conserve le rendu et les interactions pendant leur extraction progressive.
 - `scripts/` produit et vérifie l'artefact ; `test/` contient les tests unitaires et le scénario navigateur sur des exports synthétiques.
 
