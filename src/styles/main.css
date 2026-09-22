@@ -1078,3 +1078,40 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 @media(max-width:1150px) { .cap-summary { grid-template-columns:1fr 1fr; } .cap-summary > .cap-need-wrap:last-child { grid-column:1 / -1; } }
 @media(max-width:800px) { .cap-summary { grid-template-columns:1fr; grid-template-rows:none; } .cap-aims,.cap-need-wrap { grid-row:auto; grid-template-rows:auto repeat(2,minmax(146px,auto)); gap:10px; } #cap-actual .mbx-progress-summary { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media(max-width:420px) { .cap-stat,.cap-need,#cap-actual .mbx-main,#cap-actual .mbx-objective { padding:16px; } #cap-actual .mbx-progress-summary { gap:12px 8px; } #cap-actual .mbx-progress-line strong,#cap-actual .mbx-progress-pace strong { font-size:20px; } #cap-actual .mbx-progress-summary { grid-template-columns:1fr 1fr; } }
+
+/* Annual overview: projections first, then the two actual performance cards. */
+.cap-overview { padding:12px 26px 24px; }
+.cap-section-heading { display:flex; align-items:center; gap:9px; margin:14px 0 20px; color:var(--text-dim); font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; }
+.cap-projections { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; margin-bottom:32px; }
+.cap-projection { min-width:0; padding:22px; border-radius:14px; background:light-dark(#f6f5f9,#282530); }
+.cap-projection h4 { color:var(--text); margin:0 0 18px; font-size:14px; font-weight:800; line-height:1.4; }
+.cap-projection-value { display:block; color:var(--text); font-size:30px; font-weight:900; line-height:1.2; letter-spacing:-.035em; font-variant-numeric:tabular-nums; }
+.cap-projection-unit { font-size:12px; color:var(--text-dim); font-weight:600; letter-spacing:0; white-space:nowrap; }
+.cap-projection-delta { display:block; margin-top:4px; font-size:12px; font-weight:800; }
+.cap-projection-delta.positive { color:var(--green); }
+.cap-projection-delta.negative { color:var(--orange); }
+.cap-projection-delta.unavailable { color:var(--text-dim); }
+.cap-projection-goal { display:block; margin-top:8px; color:var(--text-dim); font-size:13px; }
+.cap-projection-goal b { color:var(--text); }
+.cap-overview #cap-actual { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; padding:0; background:none; }
+.cap-overview .actual-performance-card { padding:24px; border:0; border-radius:14px; background:light-dark(#f8f3ff,#2b243b); --actual-rest:light-dark(#e9e4ef,#403849); }
+.cap-overview .actual-performance-card--ca { background:light-dark(#f0f7ff,#202e3d); }
+.cap-overview .actual-gauge-summary { align-items:flex-end; padding-top:22px; }
+.cap-overview .actual-gauge-summary .actual-gauge-realized strong { font-size:36px; }
+.cap-overview .actual-gauge-summary .actual-gauge-remaining strong { color:var(--text); font-size:21px; }
+.cap-overview .actual-gauge-summary span { margin-top:8px; }
+.cap-overview .actual-gauge-chart { margin-top:18px; }
+.cap-overview .actual-performance-footer { grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-top:12px; }
+.cap-overview .actual-progress-item strong { font-size:20px; }
+.cap-overview .actual-progress-item strong.actual-status { display:block; padding:0; background:none; font-size:20px; width:auto; }
+.cap-overview .actual-status.behind { color:var(--orange); }
+.cap-overview .actual-status > span { display:none; }
+.cap-overview #cap-actual .mbx-pill { padding:0; font-size:20px; font-weight:900; background:none; }
+.cap-overview .cap-comparison,.cap-overview .actual-progress-item { font-size:12px; }
+.cap-explanation { margin-top:22px; color:var(--text-dim); font-size:12px; line-height:1.6; }
+.cap-explanation summary { color:var(--violet); cursor:pointer; width:fit-content; margin-left:auto; }
+@media(min-width:1500px) { .cap-projection-value { font-size:34px; } }
+@media(max-width:1100px) { .cap-projections { grid-template-columns:repeat(2,minmax(0,1fr)); } .cap-overview .actual-performance-footer { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:700px) { .cap-overview { padding:12px 18px 22px; } .cap-overview #cap-actual { grid-template-columns:1fr; } .cap-projection { padding:18px; } .cap-projection-value { font-size:27px; } }
+@media(max-width:460px) { .cap-projections { grid-template-columns:1fr; } .cap-overview .actual-performance-card { padding:18px; } .cap-overview .actual-gauge-summary .actual-gauge-realized strong { font-size:30px; } }
+.cap-salary-context { display:block; margin-top:8px; color:var(--text-dim); font-size:11px; }

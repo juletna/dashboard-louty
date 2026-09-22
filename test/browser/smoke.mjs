@@ -87,6 +87,12 @@ try {
   await page.locator('#file-input').setInputFiles([fixtures.res, fixtures.bal, fixtures.pieces]);
   await waitForDashboard(page, 6);
   trace('initial import');
+  assert.equal(await page.locator('.cap-projection').count(), 4);
+  assert.equal(await page.locator('#cap-actual .actual-performance-card').count(), 2);
+  await page.locator('.cap-explanation summary').click();
+  assert.equal(await page.locator('.cap-explanation').evaluate((node) => node.open), true);
+  await page.locator('.cap-explanation summary').click();
+
 
   let state = await dashboardState(page);
   assert.equal(state.welcomeVisible, false, 'un import RES/BAL/Pièces doit afficher le tableau');
@@ -198,8 +204,14 @@ try {
     mkdirSync(screenshotDirectory, { recursive: true });
     await page.screenshot({ path: resolve(screenshotDirectory, 'mobile-light.png'), fullPage: true });
     await page.setViewportSize({ width: 1280, height: 800 });
+    await page.locator('#annual-cap').screenshot({ path: resolve(screenshotDirectory, 'cap-desktop-light.png') });
     await page.locator('#toggle-theme').click();
     await page.screenshot({ path: resolve(screenshotDirectory, 'desktop-dark.png'), fullPage: true });
+    await page.locator('#annual-cap').screenshot({ path: resolve(screenshotDirectory, 'cap-desktop-dark.png') });
+    await page.setViewportSize({ width:390, height:844 });
+    await page.locator('#annual-cap').screenshot({ path: resolve(screenshotDirectory, 'cap-mobile-dark.png') });
+    await page.locator('#toggle-theme').click();
+    await page.locator('#annual-cap').screenshot({ path: resolve(screenshotDirectory, 'cap-mobile-light.png') });
   }
 
   await context.close();

@@ -1,4 +1,6 @@
 import './parser.js';
+import { salaryCapacityAtDate, projectedPlanResult } from './domain/annual-cap.js';
+import { renderCapProjections } from './views/annual-cap.js';
 import { createCartesianCharts } from './charts/cartesian.js';
 import {
   computeSnapshot as computeDomainSnapshot,
@@ -515,9 +517,6 @@ function renderAnnualCap(data) {
   if (!host) return;
   var ref = historicalPlanReference(data);
   if (!PLAN) loadPlan(data);
-  var roundedRefSalary = _planRoundedSalaryReference(ref);
-  var neededMB = PLAN.salary + PLAN.charges + PLAN.surplus;
-  var requiredCA = neededMB / PLAN.margin;
   var salaryReferenceNet = Math.ceil(ref.salary / 12 * NET_FROM_GROSS);
   var salaryChangePct = salaryReferenceNet > 0 ? (Math.round(PLAN.salary / 12 * NET_FROM_GROSS) / salaryReferenceNet - 1) * 100 : 0;
   var surplusChangePct = ref.surplus > 0 ? (PLAN.surplus / ref.surplus - 1) * 100 : 0;
@@ -527,15 +526,10 @@ function renderAnnualCap(data) {
   var chargesReferencePeriod = ref.n1 && ref.n1.year ? ref.n1.year : ref.label;
   var maxCharges = Math.max(5000, Math.ceil(Math.max(ref.charges, PLAN.charges) * 1.8 / 1000) * 1000);
   host.innerHTML =
-    '<div class="annual-cap-head"><div><h2 id="annual-cap-title">Mon cap annuel</h2><p class="annual-cap-intro">Tes objectifs personnels fixent les repères du tableau de bord.</p></div><button type="button" class="btn ghost" id="cap-edit" aria-haspopup="dialog" aria-controls="cap-drawer">Modifier mes objectifs</button></div>' +
-    '<div class="cap-summary">' +
-      '<div class="cap-need-wrap"><span class="cap-need-kicker">' + capSectionIcon('trend') + 'Où j’en suis</span><div id="cap-actual" class="cap-actual"></div></div>' +
-      '<div class="cap-aims"><span class="cap-aims-title">' + capSectionIcon('wallet') + 'Ce que je vise</span><div class="cap-personal-goals">' +
-        '<div class="cap-stat cap-salary"><span class="cap-stat-copy"><span class="cap-label">Mon salaire net mensuel</span><span class="cap-value">' + fmtEUR(PLAN.salary / 12 * NET_FROM_GROSS) + ' <span class="cap-unit">/ mois</span></span><span class="cap-note">En ' + ref.n1.year + ' : <b>' + fmtEUR(roundedRefSalary / 12 * NET_FROM_GROSS) + ' / mois</b></span></span></div>' +
-        '<div class="cap-stat"><span class="cap-stat-copy"><span class="cap-label">Mon résultat net annuel</span><span class="cap-value">' + fmtEUR(PLAN.surplus) + ' <span class="cap-unit">/ an</span></span><span class="cap-note">En ' + ref.n1.year + ' : <b>' + fmtEUR(ref.n1.netResult) + '</b></span></span></div>' +
-      '</div></div>' +
-      '<div class="cap-need-wrap"><span class="cap-need-kicker">' + capSectionIcon('compass') + 'Le cap pour y arriver</span><div class="cap-need cap-margin"><span class="cap-metric-title">Marge brute à réaliser</span><strong><span class="cap-mb">' + fmtEUR(neededMB) + '</span></strong><span class="cap-need-detail">Soit environ <b>' + fmtEUR(neededMB / 12) + ' / mois</b></span></div><div class="cap-need cap-revenue"><span class="cap-metric-title">Chiffre d’affaires à réaliser</span><strong><span class="cap-ca">' + fmtEUR(requiredCA) + '</span></strong><span class="cap-need-detail">Soit environ <b>' + fmtEUR(requiredCA / 12) + ' / mois</b></span></div></div>' +
-    '</div>' +
+    '<div class="annual-cap-head"><div><h2 id="annual-cap-title">Mon cap annuel</h2><p class="annual-cap-intro">Tes objectifs et les projections au même endroit.</p></div><button type="button" class="btn ghost" id="cap-edit" aria-haspopup="dialog" aria-controls="cap-drawer">Modifier mes objectifs</button></div>' +
+    '<div class="cap-overview"><h3 class="cap-section-heading">' + capSectionIcon('compass') + 'Ce que je vise</h3><div id="cap-projections" class="cap-projections"></div>' +
+      '<h3 class="cap-section-heading">' + capSectionIcon('trend') + 'Où j’en suis</h3><div id="cap-actual" class="cap-actual"></div>' +
+      '<details class="cap-explanation"><summary>Comprendre la projection</summary><p>Les projections de marge brute et de chiffre d’affaires additionnent le réalisé à date et la moyenne des mois restants des exercices complets de référence. Sans historique exploitable, la projection est indisponible.</p><p id="cap-projection-method"></p><p>Le salaire net est une estimation avant impôt, calculée avec le coefficient personnel de conversion du brut Louty. Ces montants annuels ne décrivent pas la trésorerie disponible ni un bulletin de paie.</p></details></div>' +
     '<div class="cap-sim" id="cap-sim" hidden>' +
       '<div class="cap-sim-head"><div><h3>Modifier mon cap et mes hypothèses</h3><p><span class="cap-origin">Référence</span> vient de tes données réelles ; <span class="cap-origin custom">Personnalisé</span> signale une valeur modifiée.</p></div><button type="button" class="btn ghost" id="cap-close">Fermer</button></div>' +
       '<div class="cap-inputs">' +
@@ -545,6 +539,19 @@ function renderAnnualCap(data) {
         '<div class="cap-field cap-slider-field"><label for="cap-charges"><span class="cap-label-copy">Charges annuelles à financer prévisionnelles <span class="sp-help" data-tip="Les charges à financer regroupent les charges de fonctionnement et la contribution coopérative. Elles s’ajoutent au salaire brut et au résultat visé pour calculer la marge brute nécessaire. N-1 (' + ref.n1.year + ') : ' + fmtEUR(ref.n1.chargesFonct) + ' de charges de fonctionnement + ' + fmtEUR(ref.n1.contribution) + ' de contribution coopérative = ' + fmtEUR(ref.n1.charges) + '." tabindex="0" aria-label="Détail des charges annuelles à financer">?</span></span></label><output class="cap-slider-value" id="cap-charges-out">' + fmtEUR(PLAN.charges) + '</output><div class="cap-control-row"><div class="cap-range"><input id="cap-charges" type="range" min="0" max="' + maxCharges + '" step="1" value="' + Math.min(maxCharges, Math.round(PLAN.charges)) + '"><span class="cap-range-marker" style="left:' + Math.max(0, Math.min(100, chargesReference / maxCharges * 100)) + '%" title="Référence : ' + fmtEUR(chargesReference) + ' · ' + chargesReferencePeriod + '"><span class="cap-range-ref-value">' + fmtEUR(chargesReference) + '</span><span class="cap-range-ref-period">' + chargesReferencePeriod + '</span></span></div><button type="button" class="cap-mini-btn" id="cap-charges-n1">N-1 : ' + fmtEUR(ref.n1.charges) + '</button></div></div>' +
       '</div><div class="cap-result" id="cap-result"></div><div class="cap-actions"><button type="button" class="btn primary" id="cap-apply">Utiliser cette trajectoire</button><button type="button" class="btn ghost" id="cap-reset">Revenir à mon historique</button></div><div class="cap-preview-status" id="cap-preview-status"></div>' +
     '</div>';
+  var cur = data.snapshot.current;
+  var capacity = salaryCapacityAtDate(data.years[cur.year], cur.year, cur.mois_renseignes, data.res_export_iso || data.file_mtime_iso, NET_FROM_GROSS);
+  renderCapProjections(document.getElementById('cap-projections'), {
+    year:cur.year, salary:capacity.monthlyNet, result:projectedPlanResult(cur.projection_mb_seasonal, PLAN),
+    margin:cur.projection_mb_seasonal, revenue:cur.projection_ca_seasonal,
+    goals:{ salary:PLAN.salary / 12 * NET_FROM_GROSS, result:PLAN.surplus,
+      margin:C.MB_AN_OBJ, revenue:C.CA_OBJ }
+  }, { money:fmtEUR, escape:esc });
+  document.getElementById('cap-projection-method').textContent =
+    'Le salaire dégageable correspond à la marge brute à date moins les charges de fonctionnement et la contribution coopérative à date, avant déduction des rémunérations déjà versées, pour un résultat à zéro. Ce disponible est converti en net et divisé par les mois couverts, le mois de l’export étant proratisé au jour inclus.' +
+    (capacity.elapsedMonths !== null ? ' Période retenue : ' + capacity.elapsedMonths.toLocaleString('fr-FR', { maximumFractionDigits:2 }) + ' mois.' : ' Calcul indisponible : date ou données de la période manquantes.') +
+    (capacity.availableGross < 0 ? ' Aucun salaire n’est finançable : déficit avant rémunération de ' + fmtEUR(-capacity.availableGross) + '.' : '') +
+    ' Le résultat annuel projeté déduit de la marge projetée le salaire brut annuel prévu et les charges annuelles prévues dans les objectifs. Références de projection : ' + (cur.reference_years.join(', ') || 'aucune') + '.';
   var capDrawer = document.getElementById('cap-drawer');
   var capDrawerBackdrop = document.getElementById('cap-drawer-backdrop');
   var capSim = host.querySelector('#cap-sim');
@@ -643,30 +650,28 @@ function _actualPerformanceCardHTML(cfg) {
   var currentTotal = Math.max(value, goal);
   var currentRest = Math.max(0, currentTotal - value);
   var ratio = currentTotal > 0 ? function (amount) { return Math.max(0, Math.min(100, amount / currentTotal * 100)); } : function () { return 0; };
-  var realizedPct = Math.round(ratio(value));
   var remainingPct = Math.round(ratio(currentRest));
   var delta = refSame != null ? value - refSame : null;
   var deltaPositive = delta != null && delta >= 0;
-  var pillHtml = delta != null ? '<span class="mbx-pill ' + (deltaPositive ? 'pos' : 'neg') + '">' + (deltaPositive ? '▲' : '▼') + ' ' + fmtEUR(Math.abs(delta)) + '</span>' : '';
-  var comparison = refSame != null ? '<div class="cap-comparison">vs même période en ' + (cfg.refYear || 'N−1') + '</div>' : '';
+  var pillHtml = delta != null ? '<span class="mbx-pill ' + (deltaPositive ? 'pos' : 'neg') + '">' + (deltaPositive ? '+' : '−') + fmtEUR(Math.abs(delta)) + '</span>' : '';
+  var comparison = refSame != null ? '<div class="cap-comparison">vs ' + (cfg.refYear || 'N−1') + ' à date' + '</div>' : '';
   var yearProgress = cfg.yearProgress || 0;
-  var attainment = goal > 0 ? Math.round(value / goal * 100) : 0;
+  var attainment = goal > 0 ? fmtPct(value / goal, 1) : '—';
   var paceGap = value - (goal * yearProgress);
   var paceClass = paceGap > 0 ? 'ahead' : (paceGap < 0 ? 'behind' : 'on-track');
-  var paceIcon = paceGap > 0 ? '▲' : (paceGap < 0 ? '▼' : '•');
   var chartId = 'chart-actual-' + cfg.shortLabel.toLowerCase();
   var chartData = { value:value, goal:goal, yearProgress:yearProgress };
   var chartLabel = cfg.title + ' : ' + fmtEUR(value) + ' réalisé, objectif annuel ' + fmtEUR(goal) + ', ' + fmtEUR(Math.abs(paceGap)) + (paceGap >= 0 ? ' d’avance' : ' de retard');
   return '<section class="actual-performance-card actual-performance-card--' + (cfg.shortLabel === 'CA' ? 'ca' : 'mb') + '">' +
     '<div class="actual-performance-main"><div class="mbx-head"><div class="mbx-title">' + cfg.title + '</div></div></div>' +
     '<div class="actual-performance-gauge"><div class="actual-gauge-summary">' +
-      '<div class="actual-gauge-realized"><strong>' + fmtEUR(value) + '</strong><span>' + realizedPct + '% Réalisé</span></div>' +
+      '<div class="actual-gauge-realized"><strong>' + fmtEUR(value) + '</strong><span>Objectif : ' + fmtEUR(goal) + '</span></div>' +
       (currentRest ? '<div class="actual-gauge-remaining"><strong>' + fmtEUR(currentRest) + '</strong><span>' + remainingPct + '% Restant</span></div>' : '') +
     '</div><div class="actual-gauge-chart"><div style="height:100%" id="' + chartId + '" role="img" aria-label="' + esc(chartLabel) + '" data-gauge="' + esc(JSON.stringify(chartData)) + '"></div></div></div>' +
     '<div class="actual-performance-footer"><div class="actual-progress-grid">' +
       '<div class="actual-progress-item"><strong>' + fmtPct(yearProgress, 1) + '</strong><span>de l’année écoulée</span></div>' +
-      '<div class="actual-progress-item"><strong class="' + paceClass + '">' + attainment + ' %</strong><span>de l’objectif atteint</span></div>' +
-      '<div class="actual-progress-item"><strong class="actual-status ' + paceClass + '"><span>' + paceIcon + '</span>' + fmtEUR(Math.abs(paceGap)) + '</strong><span>' + (paceGap >= 0 ? 'd’avance sur le rythme' : 'de retard sur le rythme') + '</span></div>' +
+      '<div class="actual-progress-item"><strong>' + attainment + '</strong><span>de l’objectif atteint</span></div>' +
+      '<div class="actual-progress-item"><strong class="actual-status ' + paceClass + '">' + fmtEUR(Math.abs(paceGap)) + '</strong><span>' + (paceGap >= 0 ? 'd’avance sur le rythme' : 'de retard sur le rythme') + '</span></div>' +
     '</div><div class="actual-performance-comparison">' + pillHtml + comparison + '</div></div></section>';
 }
 
@@ -865,11 +870,11 @@ function renderBanner(data, cur, prev) {
     var isCA = pilotageMetric === 'ca';
     var capActual = document.getElementById('cap-actual');
     if (capActual) capActual.innerHTML = _actualPerformanceCardHTML({
-      title: 'Marge brute réalisée', value: cur.ytd_mb, goal: C.MB_AN_OBJ,
+      title: 'Marge brute à date', value: cur.ytd_mb, goal: C.MB_AN_OBJ,
       refSame: sp ? sp.mb_ytd : null, refFull: sp ? sp.mb_full : null, refYear: refYear,
       currentYear: cur.year, shortLabel: 'MB', yearProgress: yearProgress
     }) + _actualPerformanceCardHTML({
-      title: "Chiffre d'affaires réalisé", value: cur.ytd_ca, goal: C.CA_OBJ,
+      title: "Chiffre d’affaires à date", value: cur.ytd_ca, goal: C.CA_OBJ,
       refSame: sp ? sp.ca_ytd : null, refFull: sp ? sp.ca_full : null, refYear: refYear,
       currentYear: cur.year, shortLabel: 'CA', yearProgress: yearProgress
     });
@@ -1697,7 +1702,7 @@ document.getElementById('welcome-back').addEventListener('click', function () {
 })();
 
 // Mise à jour automatique : si le fichier hébergé est plus récent, on recharge la dernière version
-var APP_VERSION = "20260922-023229";
+var APP_VERSION = "20260922-201023";
 function showUpdateBanner(base, v) {
   if (document.getElementById('update-banner')) return;
   var d = document.createElement('div');

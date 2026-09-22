@@ -1087,6 +1087,43 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 @media(max-width:1150px) { .cap-summary { grid-template-columns:1fr 1fr; } .cap-summary > .cap-need-wrap:last-child { grid-column:1 / -1; } }
 @media(max-width:800px) { .cap-summary { grid-template-columns:1fr; grid-template-rows:none; } .cap-aims,.cap-need-wrap { grid-row:auto; grid-template-rows:auto repeat(2,minmax(146px,auto)); gap:10px; } #cap-actual .mbx-progress-summary { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media(max-width:420px) { .cap-stat,.cap-need,#cap-actual .mbx-main,#cap-actual .mbx-objective { padding:16px; } #cap-actual .mbx-progress-summary { gap:12px 8px; } #cap-actual .mbx-progress-line strong,#cap-actual .mbx-progress-pace strong { font-size:20px; } #cap-actual .mbx-progress-summary { grid-template-columns:1fr 1fr; } }
+
+/* Annual overview: projections first, then the two actual performance cards. */
+.cap-overview { padding:12px 26px 24px; }
+.cap-section-heading { display:flex; align-items:center; gap:9px; margin:14px 0 20px; color:var(--text-dim); font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; }
+.cap-projections { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; margin-bottom:32px; }
+.cap-projection { min-width:0; padding:22px; border-radius:14px; background:light-dark(#f6f5f9,#282530); }
+.cap-projection h4 { color:var(--text); margin:0 0 18px; font-size:14px; font-weight:800; line-height:1.4; }
+.cap-projection-value { display:block; color:var(--text); font-size:30px; font-weight:900; line-height:1.2; letter-spacing:-.035em; font-variant-numeric:tabular-nums; }
+.cap-projection-unit { font-size:12px; color:var(--text-dim); font-weight:600; letter-spacing:0; white-space:nowrap; }
+.cap-projection-delta { display:block; margin-top:4px; font-size:12px; font-weight:800; }
+.cap-projection-delta.positive { color:var(--green); }
+.cap-projection-delta.negative { color:var(--orange); }
+.cap-projection-delta.unavailable { color:var(--text-dim); }
+.cap-projection-goal { display:block; margin-top:8px; color:var(--text-dim); font-size:13px; }
+.cap-projection-goal b { color:var(--text); }
+.cap-overview #cap-actual { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; padding:0; background:none; }
+.cap-overview .actual-performance-card { padding:24px; border:0; border-radius:14px; background:light-dark(#f8f3ff,#2b243b); --actual-rest:light-dark(#e9e4ef,#403849); }
+.cap-overview .actual-performance-card--ca { background:light-dark(#f0f7ff,#202e3d); }
+.cap-overview .actual-gauge-summary { align-items:flex-end; padding-top:22px; }
+.cap-overview .actual-gauge-summary .actual-gauge-realized strong { font-size:36px; }
+.cap-overview .actual-gauge-summary .actual-gauge-remaining strong { color:var(--text); font-size:21px; }
+.cap-overview .actual-gauge-summary span { margin-top:8px; }
+.cap-overview .actual-gauge-chart { margin-top:18px; }
+.cap-overview .actual-performance-footer { grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-top:12px; }
+.cap-overview .actual-progress-item strong { font-size:20px; }
+.cap-overview .actual-progress-item strong.actual-status { display:block; padding:0; background:none; font-size:20px; width:auto; }
+.cap-overview .actual-status.behind { color:var(--orange); }
+.cap-overview .actual-status > span { display:none; }
+.cap-overview #cap-actual .mbx-pill { padding:0; font-size:20px; font-weight:900; background:none; }
+.cap-overview .cap-comparison,.cap-overview .actual-progress-item { font-size:12px; }
+.cap-explanation { margin-top:22px; color:var(--text-dim); font-size:12px; line-height:1.6; }
+.cap-explanation summary { color:var(--violet); cursor:pointer; width:fit-content; margin-left:auto; }
+@media(min-width:1500px) { .cap-projection-value { font-size:34px; } }
+@media(max-width:1100px) { .cap-projections { grid-template-columns:repeat(2,minmax(0,1fr)); } .cap-overview .actual-performance-footer { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:700px) { .cap-overview { padding:12px 18px 22px; } .cap-overview #cap-actual { grid-template-columns:1fr; } .cap-projection { padding:18px; } .cap-projection-value { font-size:27px; } }
+@media(max-width:460px) { .cap-projections { grid-template-columns:1fr; } .cap-overview .actual-performance-card { padding:18px; } .cap-overview .actual-gauge-summary .actual-gauge-realized strong { font-size:30px; } }
+.cap-salary-context { display:block; margin-top:8px; color:var(--text-dim); font-size:11px; }
 </style>
 <script>try{var _t=localStorage.getItem("cabestan_dashboard_theme");if(_t==="dark"||_t==="light")document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 </head>
@@ -2084,6 +2121,190 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   var API = { TARGET_LABELS, POSITIVE_AS_ABS, sheetToMatrix, toFloat, parseRES, parseBAL, parsePieces, parsePiecesDate };
   if (typeof window !== "undefined") window.CabestanParser = API;
 
+  // src/app/domain/metrics.js
+  var round2 = (value) => value === null ? null : Math.round(value * 100) / 100;
+  var HEALTH_RESULT_KEYS = ["marge_brute", "charges_fonct", "contribution_coop", "remunerations"];
+  function sumPeriod(year, key, endMonth = 12) {
+    const series = getMetricSeries(year, key);
+    if (!hasObservedValue(series, 1, endMonth)) return null;
+    return series.slice(0, endMonth).reduce((sum, value) => sum + (isFiniteNumber(value) ? value : 0), 0);
+  }
+  function lastObservedMonth(year, key) {
+    const series = getMetricSeries(year, key);
+    if (!series) return 0;
+    let last = 0;
+    series.forEach((value, index) => {
+      if (isFiniteNumber(value)) last = index + 1;
+    });
+    return last;
+  }
+  function canComparePeriod(year, endMonth, keys) {
+    return isPeriodCovered(year, endMonth) && keys.every((key) => hasObservedValue(getMetricSeries(year, key), 1, 12));
+  }
+  function coveredPeriodTotal(year, key, endMonth) {
+    return sumPeriod(year, key, endMonth) ?? 0;
+  }
+  function samePeriodTotals(year, endMonth) {
+    const keys = ["marge_brute", "ca", "achats_matieres"];
+    if (!canComparePeriod(year, endMonth, keys)) return null;
+    return {
+      mb_ytd: coveredPeriodTotal(year, "marge_brute", endMonth),
+      mb_full: sumPeriod(year, "marge_brute"),
+      ca_ytd: coveredPeriodTotal(year, "ca", endMonth),
+      ca_full: sumPeriod(year, "ca"),
+      achats_ytd: coveredPeriodTotal(year, "achats_matieres", endMonth),
+      achats_full: sumPeriod(year, "achats_matieres")
+    };
+  }
+  function metricProjection(years, referenceKeys, key, endMonth, ytd) {
+    const usableReferences = referenceKeys.filter((yearKey) => hasObservedValue(getMetricSeries(years[yearKey], key), 1, 12));
+    if (ytd === null || !usableReferences.length) return null;
+    const remaining = usableReferences.reduce((sum, yearKey) => sum + sumPeriod(years[yearKey], key, 12) - coveredPeriodTotal(years[yearKey], key, endMonth), 0);
+    return ytd + remaining / usableReferences.length;
+  }
+  function healthResultForPeriod(year, endMonth) {
+    if (!isPeriodCovered(year, endMonth) || !HEALTH_RESULT_KEYS.every((key) => hasObservedValue(getMetricSeries(year, key), 1, 12))) return null;
+    return coveredPeriodTotal(year, "marge_brute", endMonth) - coveredPeriodTotal(year, "charges_fonct", endMonth) - coveredPeriodTotal(year, "contribution_coop", endMonth) - coveredPeriodTotal(year, "remunerations", endMonth);
+  }
+  function computeSnapshot(data, config) {
+    const years = data && data.years;
+    const yearKeys = years ? Object.keys(years).sort() : [];
+    if (!yearKeys.length) return null;
+    const currentYear = yearKeys[yearKeys.length - 1];
+    const currentIndex = yearKeys.indexOf(currentYear);
+    const current = years[currentYear];
+    const endMonth = lastObservedMonth(current, "marge_brute");
+    const ytdMB = sumPeriod(current, "marge_brute", endMonth || 12);
+    const ytdCA = sumPeriod(current, "ca", endMonth || 12);
+    const ytdPurchases = sumPeriod(current, "achats_matieres", endMonth || 12);
+    const mb = getMetricSeries(current, "marge_brute") || [];
+    const purchases = getMetricSeries(current, "achats_matieres") || [];
+    const samePeriod = {};
+    for (let index = 0; index < currentIndex; index += 1) {
+      const key = yearKeys[index];
+      const totals = samePeriodTotals(years[key], endMonth);
+      if (totals) samePeriod[key] = totals;
+    }
+    const referenceYears = yearKeys.slice(0, currentIndex).filter((yearKey) => isCompleteHistoricalYear(years[yearKey])).slice(-2);
+    const referenceYear = referenceYears[referenceYears.length - 1] || null;
+    const previousYear = currentIndex > 0 ? yearKeys[currentIndex - 1] : null;
+    const previous = referenceYear ? samePeriod[referenceYear] : null;
+    const projectionMB = endMonth ? metricProjection(years, referenceYears, "marge_brute", endMonth, ytdMB) : null;
+    const projectionCA = endMonth ? metricProjection(years, referenceYears, "ca", endMonth, ytdCA) : null;
+    const projectionPurchases = endMonth ? metricProjection(years, referenceYears, "achats_matieres", endMonth, ytdPurchases) : null;
+    return {
+      year: currentYear,
+      ytd_ca: round2(ytdCA),
+      ytd_mb: round2(ytdMB),
+      ytd_achats: round2(ytdPurchases),
+      taux_mb: ytdMB !== null && ytdCA !== null && ytdCA !== 0 ? Math.round(ytdMB / ytdCA * 1e4) / 1e4 : null,
+      mois_renseignes: endMonth,
+      mb_par_mois: mb.filter(isFiniteNumber),
+      achats_par_mois: purchases.filter(isFiniteNumber),
+      mois_alerte: mb.filter((value) => isFiniteNumber(value) && value < config.MB_MIN).length,
+      projection_mb_annuelle: endMonth && ytdMB !== null ? round2(ytdMB / endMonth * 12) : null,
+      projection_mb_seasonal: round2(projectionMB),
+      projection_ca_seasonal: round2(projectionCA),
+      projection_achats_seasonal: round2(projectionPurchases),
+      growth_rate_mb: ytdMB !== null && previous && previous.mb_ytd ? ytdMB / previous.mb_ytd : null,
+      growth_rate_ca: ytdCA !== null && previous && previous.ca_ytd ? ytdCA / previous.ca_ytd : null,
+      reference_year: referenceYear,
+      reference_years: referenceYears,
+      previous_year: previousYear,
+      same_period: samePeriod
+    };
+  }
+  function historicalReferenceKeys(years) {
+    const keys = Object.keys(years || {}).sort();
+    const currentKey = keys[keys.length - 1];
+    const prior = keys.slice(0, -1).filter((key) => isCompleteHistoricalYear(years[key]));
+    const references = prior.slice(-2);
+    if (!references.length && currentKey && isCompleteHistoricalYear(years[currentKey])) return [currentKey];
+    return references;
+  }
+  function historicalPlanReference(data, config) {
+    const years = data && data.years ? data.years : {};
+    const references = historicalReferenceKeys(years);
+    const hasHistoricalReference = references.length > 0;
+    const totals = { ca: 0, mb: 0, achats: 0, remuneration: 0, charges: 0, contribution: 0 };
+    references.forEach((key) => {
+      const year = years[key];
+      totals.ca += sumPeriod(year, "ca") ?? 0;
+      totals.mb += sumPeriod(year, "marge_brute") ?? 0;
+      totals.achats += sumPeriod(year, "achats_matieres") ?? 0;
+      totals.remuneration += sumPeriod(year, "remunerations") ?? 0;
+      totals.charges += sumPeriod(year, "charges_fonct") ?? 0;
+      totals.contribution += sumPeriod(year, "contribution_coop") ?? 0;
+    });
+    const count = references.length || 1;
+    const annualCharges = (totals.charges + totals.contribution) / count;
+    const annualSalary = totals.remuneration / count;
+    const annualMB = totals.mb / count;
+    const latestKey = references[references.length - 1] || null;
+    const latest = latestKey ? years[latestKey] : null;
+    const n1ChargesFonct = sumPeriod(latest, "charges_fonct") ?? 0;
+    const n1Contribution = sumPeriod(latest, "contribution_coop") ?? 0;
+    const n1CA = sumPeriod(latest, "ca") ?? 0;
+    const n1MB = sumPeriod(latest, "marge_brute") ?? 0;
+    const n1Salary = sumPeriod(latest, "remunerations") ?? 0;
+    const n1Charges = n1ChargesFonct + n1Contribution;
+    const n1NetResult = n1MB - n1Salary - n1Charges;
+    return {
+      years: references,
+      label: references.length > 1 ? `${references[0]}\u2013${references[references.length - 1]}` : references[0] || "historique indisponible",
+      salary: hasHistoricalReference ? n1Salary : config.MB_MIN * 12,
+      surplus: Math.max(0, n1NetResult),
+      ca: hasHistoricalReference ? totals.ca / count : config.CA_OBJ,
+      margin: hasHistoricalReference && totals.ca !== 0 ? totals.mb / totals.ca : config.TAUX_OBJ,
+      purchases: hasHistoricalReference && totals.ca !== 0 ? totals.achats / totals.ca : config.RATIO_CIBLE,
+      charges: hasHistoricalReference ? annualCharges : Math.max(0, config.MB_AN_OBJ - config.MB_MIN * 12),
+      n1: {
+        year: latestKey || "N-1",
+        charges: n1Charges,
+        chargesFonct: n1ChargesFonct,
+        contribution: n1Contribution,
+        salary: n1Salary,
+        netResult: n1NetResult,
+        surplus: Math.max(0, n1NetResult),
+        margin: n1CA > 0 ? n1MB / n1CA : totals.ca > 0 ? totals.mb / totals.ca : config.TAUX_OBJ
+      }
+    };
+  }
+
+  // src/app/domain/annual-cap.js
+  function salaryCapacityAtDate(year, yearKey, endMonth, exportISO, netCoefficient) {
+    const unavailable = { monthlyNet: null, availableGross: null, elapsedMonths: null };
+    if (!exportISO || !Number.isFinite(netCoefficient) || netCoefficient <= 0 || !endMonth) return unavailable;
+    const date = new Date(exportISO);
+    if (!Number.isFinite(date.getTime()) || date.getFullYear() < Number(yearKey)) return unavailable;
+    const sameYear = date.getFullYear() === Number(yearKey);
+    const month = sameYear ? Math.min(endMonth, date.getMonth() + 1) : endMonth;
+    const keys = ["marge_brute", "charges_fonct", "contribution_coop"];
+    if (!isPeriodCovered(year, month) || !keys.every((key) => hasObservedValue(getMetricSeries(year, key), 1, 12))) return unavailable;
+    const partial = sameYear && month === date.getMonth() + 1;
+    const elapsedMonths = partial ? month - 1 + date.getDate() / new Date(date.getFullYear(), month, 0).getDate() : month;
+    const availableGross = (sumPeriod(year, "marge_brute", month) ?? 0) - (sumPeriod(year, "charges_fonct", month) ?? 0) - (sumPeriod(year, "contribution_coop", month) ?? 0);
+    return { monthlyNet: Math.max(0, availableGross) * netCoefficient / elapsedMonths, availableGross, elapsedMonths };
+  }
+  function projectedPlanResult(projectedMargin, plan) {
+    return Number.isFinite(projectedMargin) && Number.isFinite(plan.salary) && Number.isFinite(plan.charges) ? projectedMargin - plan.salary - plan.charges : null;
+  }
+
+  // src/app/views/annual-cap.js
+  function renderCapProjections(host, { year, salary, result, margin, revenue, goals }, { money, escape }) {
+    const cards = [
+      ["Salaire net d\xE9gageable", salary, goals.salary, true],
+      ["Projection r\xE9sultat " + year, result, goals.result],
+      ["Projection marge brute " + year, margin, goals.margin],
+      ["Projection chiffre d\u2019affaires " + year, revenue, goals.revenue]
+    ];
+    host.innerHTML = cards.map(([title, value, goal, monthly]) => {
+      const available = Number.isFinite(value);
+      const delta = available ? Math.round(value - goal) : null;
+      return '<article class="cap-projection"><h4>' + escape(title) + '</h4><strong class="cap-projection-value">' + (available ? "\u2248 " + money(value) : "\u2014") + (monthly ? ' <span class="cap-projection-unit">/ mois</span>' : "") + '</strong><span class="cap-projection-delta ' + (available ? delta >= 0 ? "positive" : "negative" : "unavailable") + '">' + (available ? (delta > 0 ? "+" : "") + money(delta) + " vs objectif" : "Projection indisponible") + '</span><span class="cap-projection-goal">Objectif : <b>' + money(goal) + "</b></span>" + (monthly ? '<span class="cap-salary-context">\xC0 date \xB7 r\xE9sultat \xE0 l\u2019\xE9quilibre</span>' : "") + "</article>";
+    }).join("");
+  }
+
   // src/app/charts/cartesian.js
   function createCartesianCharts({
     MONTH_NAMES: MONTH_NAMES2,
@@ -2649,156 +2870,6 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       });
     }
     return { renderCAMB: renderCAMB2, renderTauxAnnuel: renderTauxAnnuel2, renderCumulChart: renderCumulChart2, renderAchatsCAChart: renderAchatsCAChart2, renderRepartYears: renderRepartYears2 };
-  }
-
-  // src/app/domain/metrics.js
-  var round2 = (value) => value === null ? null : Math.round(value * 100) / 100;
-  var HEALTH_RESULT_KEYS = ["marge_brute", "charges_fonct", "contribution_coop", "remunerations"];
-  function sumPeriod(year, key, endMonth = 12) {
-    const series = getMetricSeries(year, key);
-    if (!hasObservedValue(series, 1, endMonth)) return null;
-    return series.slice(0, endMonth).reduce((sum, value) => sum + (isFiniteNumber(value) ? value : 0), 0);
-  }
-  function lastObservedMonth(year, key) {
-    const series = getMetricSeries(year, key);
-    if (!series) return 0;
-    let last = 0;
-    series.forEach((value, index) => {
-      if (isFiniteNumber(value)) last = index + 1;
-    });
-    return last;
-  }
-  function canComparePeriod(year, endMonth, keys) {
-    return isPeriodCovered(year, endMonth) && keys.every((key) => hasObservedValue(getMetricSeries(year, key), 1, 12));
-  }
-  function coveredPeriodTotal(year, key, endMonth) {
-    return sumPeriod(year, key, endMonth) ?? 0;
-  }
-  function samePeriodTotals(year, endMonth) {
-    const keys = ["marge_brute", "ca", "achats_matieres"];
-    if (!canComparePeriod(year, endMonth, keys)) return null;
-    return {
-      mb_ytd: coveredPeriodTotal(year, "marge_brute", endMonth),
-      mb_full: sumPeriod(year, "marge_brute"),
-      ca_ytd: coveredPeriodTotal(year, "ca", endMonth),
-      ca_full: sumPeriod(year, "ca"),
-      achats_ytd: coveredPeriodTotal(year, "achats_matieres", endMonth),
-      achats_full: sumPeriod(year, "achats_matieres")
-    };
-  }
-  function metricProjection(years, referenceKeys, key, endMonth, ytd) {
-    const usableReferences = referenceKeys.filter((yearKey) => hasObservedValue(getMetricSeries(years[yearKey], key), 1, 12));
-    if (ytd === null || !usableReferences.length) return null;
-    const remaining = usableReferences.reduce((sum, yearKey) => sum + sumPeriod(years[yearKey], key, 12) - coveredPeriodTotal(years[yearKey], key, endMonth), 0);
-    return ytd + remaining / usableReferences.length;
-  }
-  function healthResultForPeriod(year, endMonth) {
-    if (!isPeriodCovered(year, endMonth) || !HEALTH_RESULT_KEYS.every((key) => hasObservedValue(getMetricSeries(year, key), 1, 12))) return null;
-    return coveredPeriodTotal(year, "marge_brute", endMonth) - coveredPeriodTotal(year, "charges_fonct", endMonth) - coveredPeriodTotal(year, "contribution_coop", endMonth) - coveredPeriodTotal(year, "remunerations", endMonth);
-  }
-  function computeSnapshot(data, config) {
-    const years = data && data.years;
-    const yearKeys = years ? Object.keys(years).sort() : [];
-    if (!yearKeys.length) return null;
-    const currentYear = yearKeys[yearKeys.length - 1];
-    const currentIndex = yearKeys.indexOf(currentYear);
-    const current = years[currentYear];
-    const endMonth = lastObservedMonth(current, "marge_brute");
-    const ytdMB = sumPeriod(current, "marge_brute", endMonth || 12);
-    const ytdCA = sumPeriod(current, "ca", endMonth || 12);
-    const ytdPurchases = sumPeriod(current, "achats_matieres", endMonth || 12);
-    const mb = getMetricSeries(current, "marge_brute") || [];
-    const purchases = getMetricSeries(current, "achats_matieres") || [];
-    const samePeriod = {};
-    for (let index = 0; index < currentIndex; index += 1) {
-      const key = yearKeys[index];
-      const totals = samePeriodTotals(years[key], endMonth);
-      if (totals) samePeriod[key] = totals;
-    }
-    const referenceYears = yearKeys.slice(0, currentIndex).filter((yearKey) => isCompleteHistoricalYear(years[yearKey])).slice(-2);
-    const referenceYear = referenceYears[referenceYears.length - 1] || null;
-    const previousYear = currentIndex > 0 ? yearKeys[currentIndex - 1] : null;
-    const previous = referenceYear ? samePeriod[referenceYear] : null;
-    const projectionMB = endMonth ? metricProjection(years, referenceYears, "marge_brute", endMonth, ytdMB) : null;
-    const projectionCA = endMonth ? metricProjection(years, referenceYears, "ca", endMonth, ytdCA) : null;
-    const projectionPurchases = endMonth ? metricProjection(years, referenceYears, "achats_matieres", endMonth, ytdPurchases) : null;
-    return {
-      year: currentYear,
-      ytd_ca: round2(ytdCA),
-      ytd_mb: round2(ytdMB),
-      ytd_achats: round2(ytdPurchases),
-      taux_mb: ytdMB !== null && ytdCA !== null && ytdCA !== 0 ? Math.round(ytdMB / ytdCA * 1e4) / 1e4 : null,
-      mois_renseignes: endMonth,
-      mb_par_mois: mb.filter(isFiniteNumber),
-      achats_par_mois: purchases.filter(isFiniteNumber),
-      mois_alerte: mb.filter((value) => isFiniteNumber(value) && value < config.MB_MIN).length,
-      projection_mb_annuelle: endMonth && ytdMB !== null ? round2(ytdMB / endMonth * 12) : null,
-      projection_mb_seasonal: round2(projectionMB),
-      projection_ca_seasonal: round2(projectionCA),
-      projection_achats_seasonal: round2(projectionPurchases),
-      growth_rate_mb: ytdMB !== null && previous && previous.mb_ytd ? ytdMB / previous.mb_ytd : null,
-      growth_rate_ca: ytdCA !== null && previous && previous.ca_ytd ? ytdCA / previous.ca_ytd : null,
-      reference_year: referenceYear,
-      reference_years: referenceYears,
-      previous_year: previousYear,
-      same_period: samePeriod
-    };
-  }
-  function historicalReferenceKeys(years) {
-    const keys = Object.keys(years || {}).sort();
-    const currentKey = keys[keys.length - 1];
-    const prior = keys.slice(0, -1).filter((key) => isCompleteHistoricalYear(years[key]));
-    const references = prior.slice(-2);
-    if (!references.length && currentKey && isCompleteHistoricalYear(years[currentKey])) return [currentKey];
-    return references;
-  }
-  function historicalPlanReference(data, config) {
-    const years = data && data.years ? data.years : {};
-    const references = historicalReferenceKeys(years);
-    const hasHistoricalReference = references.length > 0;
-    const totals = { ca: 0, mb: 0, achats: 0, remuneration: 0, charges: 0, contribution: 0 };
-    references.forEach((key) => {
-      const year = years[key];
-      totals.ca += sumPeriod(year, "ca") ?? 0;
-      totals.mb += sumPeriod(year, "marge_brute") ?? 0;
-      totals.achats += sumPeriod(year, "achats_matieres") ?? 0;
-      totals.remuneration += sumPeriod(year, "remunerations") ?? 0;
-      totals.charges += sumPeriod(year, "charges_fonct") ?? 0;
-      totals.contribution += sumPeriod(year, "contribution_coop") ?? 0;
-    });
-    const count = references.length || 1;
-    const annualCharges = (totals.charges + totals.contribution) / count;
-    const annualSalary = totals.remuneration / count;
-    const annualMB = totals.mb / count;
-    const latestKey = references[references.length - 1] || null;
-    const latest = latestKey ? years[latestKey] : null;
-    const n1ChargesFonct = sumPeriod(latest, "charges_fonct") ?? 0;
-    const n1Contribution = sumPeriod(latest, "contribution_coop") ?? 0;
-    const n1CA = sumPeriod(latest, "ca") ?? 0;
-    const n1MB = sumPeriod(latest, "marge_brute") ?? 0;
-    const n1Salary = sumPeriod(latest, "remunerations") ?? 0;
-    const n1Charges = n1ChargesFonct + n1Contribution;
-    const n1NetResult = n1MB - n1Salary - n1Charges;
-    return {
-      years: references,
-      label: references.length > 1 ? `${references[0]}\u2013${references[references.length - 1]}` : references[0] || "historique indisponible",
-      salary: hasHistoricalReference ? n1Salary : config.MB_MIN * 12,
-      surplus: Math.max(0, n1NetResult),
-      ca: hasHistoricalReference ? totals.ca / count : config.CA_OBJ,
-      margin: hasHistoricalReference && totals.ca !== 0 ? totals.mb / totals.ca : config.TAUX_OBJ,
-      purchases: hasHistoricalReference && totals.ca !== 0 ? totals.achats / totals.ca : config.RATIO_CIBLE,
-      charges: hasHistoricalReference ? annualCharges : Math.max(0, config.MB_AN_OBJ - config.MB_MIN * 12),
-      n1: {
-        year: latestKey || "N-1",
-        charges: n1Charges,
-        chargesFonct: n1ChargesFonct,
-        contribution: n1Contribution,
-        salary: n1Salary,
-        netResult: n1NetResult,
-        surplus: Math.max(0, n1NetResult),
-        margin: n1CA > 0 ? n1MB / n1CA : totals.ca > 0 ? totals.mb / totals.ca : config.TAUX_OBJ
-      }
-    };
   }
 
   // src/app/state/store.js
@@ -3756,9 +3827,6 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     if (!host) return;
     var ref = historicalPlanReference2(data);
     if (!PLAN) loadPlan(data);
-    var roundedRefSalary = _planRoundedSalaryReference(ref);
-    var neededMB = PLAN.salary + PLAN.charges + PLAN.surplus;
-    var requiredCA = neededMB / PLAN.margin;
     var salaryReferenceNet = Math.ceil(ref.salary / 12 * NET_FROM_GROSS);
     var salaryChangePct = salaryReferenceNet > 0 ? (Math.round(PLAN.salary / 12 * NET_FROM_GROSS) / salaryReferenceNet - 1) * 100 : 0;
     var surplusChangePct = ref.surplus > 0 ? (PLAN.surplus / ref.surplus - 1) * 100 : 0;
@@ -3767,7 +3835,23 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var chargesReference = ref.n1 && isFinite(ref.n1.charges) ? ref.n1.charges : ref.charges;
     var chargesReferencePeriod = ref.n1 && ref.n1.year ? ref.n1.year : ref.label;
     var maxCharges = Math.max(5e3, Math.ceil(Math.max(ref.charges, PLAN.charges) * 1.8 / 1e3) * 1e3);
-    host.innerHTML = '<div class="annual-cap-head"><div><h2 id="annual-cap-title">Mon cap annuel</h2><p class="annual-cap-intro">Tes objectifs personnels fixent les rep\xE8res du tableau de bord.</p></div><button type="button" class="btn ghost" id="cap-edit" aria-haspopup="dialog" aria-controls="cap-drawer">Modifier mes objectifs</button></div><div class="cap-summary"><div class="cap-need-wrap"><span class="cap-need-kicker">' + capSectionIcon("trend") + 'O\xF9 j\u2019en suis</span><div id="cap-actual" class="cap-actual"></div></div><div class="cap-aims"><span class="cap-aims-title">' + capSectionIcon("wallet") + 'Ce que je vise</span><div class="cap-personal-goals"><div class="cap-stat cap-salary"><span class="cap-stat-copy"><span class="cap-label">Mon salaire net mensuel</span><span class="cap-value">' + fmtEUR(PLAN.salary / 12 * NET_FROM_GROSS) + ' <span class="cap-unit">/ mois</span></span><span class="cap-note">En ' + ref.n1.year + " : <b>" + fmtEUR(roundedRefSalary / 12 * NET_FROM_GROSS) + ' / mois</b></span></span></div><div class="cap-stat"><span class="cap-stat-copy"><span class="cap-label">Mon r\xE9sultat net annuel</span><span class="cap-value">' + fmtEUR(PLAN.surplus) + ' <span class="cap-unit">/ an</span></span><span class="cap-note">En ' + ref.n1.year + " : <b>" + fmtEUR(ref.n1.netResult) + '</b></span></span></div></div></div><div class="cap-need-wrap"><span class="cap-need-kicker">' + capSectionIcon("compass") + 'Le cap pour y arriver</span><div class="cap-need cap-margin"><span class="cap-metric-title">Marge brute \xE0 r\xE9aliser</span><strong><span class="cap-mb">' + fmtEUR(neededMB) + '</span></strong><span class="cap-need-detail">Soit environ <b>' + fmtEUR(neededMB / 12) + ' / mois</b></span></div><div class="cap-need cap-revenue"><span class="cap-metric-title">Chiffre d\u2019affaires \xE0 r\xE9aliser</span><strong><span class="cap-ca">' + fmtEUR(requiredCA) + '</span></strong><span class="cap-need-detail">Soit environ <b>' + fmtEUR(requiredCA / 12) + ' / mois</b></span></div></div></div><div class="cap-sim" id="cap-sim" hidden><div class="cap-sim-head"><div><h3>Modifier mon cap et mes hypoth\xE8ses</h3><p><span class="cap-origin">R\xE9f\xE9rence</span> vient de tes donn\xE9es r\xE9elles ; <span class="cap-origin custom">Personnalis\xE9</span> signale une valeur modifi\xE9e.</p></div><button type="button" class="btn ghost" id="cap-close">Fermer</button></div><div class="cap-inputs"><div class="cap-field"><label for="cap-salary">Salaire net mensuel \xE0 financer</label><div class="cap-control-row"><div class="cap-linked-inputs"><input id="cap-salary" type="number" min="0" step="1" value="' + Math.round(PLAN.salary / 12 * NET_FROM_GROSS) + '"><span class="cap-percent-input"><input id="cap-salary-change" type="number" step="0.1" value="' + Math.round(salaryChangePct * 10) / 10 + '" aria-label="\xC9volution du salaire par rapport \xE0 N-1"><span>%</span></span></div><button type="button" class="cap-mini-btn" id="cap-salary-ref">N-1 : ' + fmtEUR(salaryReferenceNet) + '</button></div><div class="cap-source">Salaire net moyen en ' + ref.n1.year + " : <strong>" + fmtEUR(salaryReferenceNet) + '/mois</strong></div></div><div class="cap-field"><label for="cap-surplus">R\xE9sultat annuel vis\xE9</label><div class="cap-control-row"><div class="cap-linked-inputs"><input id="cap-surplus" type="number" min="0" step="1" value="' + Math.round(PLAN.surplus) + '"><span class="cap-percent-input"><input id="cap-surplus-change" type="number" step="0.1" value="' + (ref.surplus > 0 ? Math.round(surplusChangePct * 10) / 10 : "") + '" placeholder="\u2014" aria-label="\xC9volution du r\xE9sultat par rapport \xE0 N-1"' + (ref.surplus > 0 ? "" : ' disabled title="Impossible \xE0 calculer : le r\xE9sultat N-1 est nul ou n\xE9gatif"') + '><span>%</span></span></div><button type="button" class="cap-mini-btn" id="cap-surplus-ref">N-1 : ' + fmtEUR(ref.surplus) + '</button></div><div class="cap-source">R\xE9sultat net N-1 (' + ref.n1.year + ") : <strong>" + fmtEUR(ref.n1.netResult) + '</strong></div></div><div class="cap-field cap-slider-field"><label for="cap-margin"><span class="cap-label-copy">Taux de marge brute sur CA pr\xE9visionnel <span class="sp-help" data-tip="Taux de marge brute = marge brute \xF7 chiffre d\u2019affaires. La marge brute est ce qui reste du CA apr\xE8s les achats mati\xE8res ; elle sert ensuite \xE0 financer salaires, charges, contribution coop\xE9rative et r\xE9sultat vis\xE9." tabindex="0" aria-label="Explication du taux de marge brute">?</span></span></label><output class="cap-slider-value" id="cap-margin-out">' + fmtPct(PLAN.margin, 1) + '</output><div class="cap-control-row"><div class="cap-range"><input id="cap-margin" type="range" min="0.2" max="0.9" step="0.005" value="' + PLAN.margin + '"><span class="cap-range-marker" style="left:' + Math.max(0, Math.min(100, (marginReference - 0.2) / 0.7 * 100)) + '%" title="R\xE9f\xE9rence : ' + fmtPct(marginReference, 1) + " \xB7 " + marginReferencePeriod + '"><span class="cap-range-ref-value">' + fmtPct(marginReference, 1) + '</span><span class="cap-range-ref-period">' + marginReferencePeriod + '</span></span></div><button type="button" class="cap-mini-btn" id="cap-margin-n1">N-1 : ' + fmtPct(ref.n1.margin, 1) + '</button></div></div><div class="cap-field cap-slider-field"><label for="cap-charges"><span class="cap-label-copy">Charges annuelles \xE0 financer pr\xE9visionnelles <span class="sp-help" data-tip="Les charges \xE0 financer regroupent les charges de fonctionnement et la contribution coop\xE9rative. Elles s\u2019ajoutent au salaire brut et au r\xE9sultat vis\xE9 pour calculer la marge brute n\xE9cessaire. N-1 (' + ref.n1.year + ") : " + fmtEUR(ref.n1.chargesFonct) + " de charges de fonctionnement + " + fmtEUR(ref.n1.contribution) + " de contribution coop\xE9rative = " + fmtEUR(ref.n1.charges) + '." tabindex="0" aria-label="D\xE9tail des charges annuelles \xE0 financer">?</span></span></label><output class="cap-slider-value" id="cap-charges-out">' + fmtEUR(PLAN.charges) + '</output><div class="cap-control-row"><div class="cap-range"><input id="cap-charges" type="range" min="0" max="' + maxCharges + '" step="1" value="' + Math.min(maxCharges, Math.round(PLAN.charges)) + '"><span class="cap-range-marker" style="left:' + Math.max(0, Math.min(100, chargesReference / maxCharges * 100)) + '%" title="R\xE9f\xE9rence : ' + fmtEUR(chargesReference) + " \xB7 " + chargesReferencePeriod + '"><span class="cap-range-ref-value">' + fmtEUR(chargesReference) + '</span><span class="cap-range-ref-period">' + chargesReferencePeriod + '</span></span></div><button type="button" class="cap-mini-btn" id="cap-charges-n1">N-1 : ' + fmtEUR(ref.n1.charges) + '</button></div></div></div><div class="cap-result" id="cap-result"></div><div class="cap-actions"><button type="button" class="btn primary" id="cap-apply">Utiliser cette trajectoire</button><button type="button" class="btn ghost" id="cap-reset">Revenir \xE0 mon historique</button></div><div class="cap-preview-status" id="cap-preview-status"></div></div>';
+    host.innerHTML = '<div class="annual-cap-head"><div><h2 id="annual-cap-title">Mon cap annuel</h2><p class="annual-cap-intro">Tes objectifs et les projections au m\xEAme endroit.</p></div><button type="button" class="btn ghost" id="cap-edit" aria-haspopup="dialog" aria-controls="cap-drawer">Modifier mes objectifs</button></div><div class="cap-overview"><h3 class="cap-section-heading">' + capSectionIcon("compass") + 'Ce que je vise</h3><div id="cap-projections" class="cap-projections"></div><h3 class="cap-section-heading">' + capSectionIcon("trend") + 'O\xF9 j\u2019en suis</h3><div id="cap-actual" class="cap-actual"></div><details class="cap-explanation"><summary>Comprendre la projection</summary><p>Les projections de marge brute et de chiffre d\u2019affaires additionnent le r\xE9alis\xE9 \xE0 date et la moyenne des mois restants des exercices complets de r\xE9f\xE9rence. Sans historique exploitable, la projection est indisponible.</p><p id="cap-projection-method"></p><p>Le salaire net est une estimation avant imp\xF4t, calcul\xE9e avec le coefficient personnel de conversion du brut Louty. Ces montants annuels ne d\xE9crivent pas la tr\xE9sorerie disponible ni un bulletin de paie.</p></details></div><div class="cap-sim" id="cap-sim" hidden><div class="cap-sim-head"><div><h3>Modifier mon cap et mes hypoth\xE8ses</h3><p><span class="cap-origin">R\xE9f\xE9rence</span> vient de tes donn\xE9es r\xE9elles ; <span class="cap-origin custom">Personnalis\xE9</span> signale une valeur modifi\xE9e.</p></div><button type="button" class="btn ghost" id="cap-close">Fermer</button></div><div class="cap-inputs"><div class="cap-field"><label for="cap-salary">Salaire net mensuel \xE0 financer</label><div class="cap-control-row"><div class="cap-linked-inputs"><input id="cap-salary" type="number" min="0" step="1" value="' + Math.round(PLAN.salary / 12 * NET_FROM_GROSS) + '"><span class="cap-percent-input"><input id="cap-salary-change" type="number" step="0.1" value="' + Math.round(salaryChangePct * 10) / 10 + '" aria-label="\xC9volution du salaire par rapport \xE0 N-1"><span>%</span></span></div><button type="button" class="cap-mini-btn" id="cap-salary-ref">N-1 : ' + fmtEUR(salaryReferenceNet) + '</button></div><div class="cap-source">Salaire net moyen en ' + ref.n1.year + " : <strong>" + fmtEUR(salaryReferenceNet) + '/mois</strong></div></div><div class="cap-field"><label for="cap-surplus">R\xE9sultat annuel vis\xE9</label><div class="cap-control-row"><div class="cap-linked-inputs"><input id="cap-surplus" type="number" min="0" step="1" value="' + Math.round(PLAN.surplus) + '"><span class="cap-percent-input"><input id="cap-surplus-change" type="number" step="0.1" value="' + (ref.surplus > 0 ? Math.round(surplusChangePct * 10) / 10 : "") + '" placeholder="\u2014" aria-label="\xC9volution du r\xE9sultat par rapport \xE0 N-1"' + (ref.surplus > 0 ? "" : ' disabled title="Impossible \xE0 calculer : le r\xE9sultat N-1 est nul ou n\xE9gatif"') + '><span>%</span></span></div><button type="button" class="cap-mini-btn" id="cap-surplus-ref">N-1 : ' + fmtEUR(ref.surplus) + '</button></div><div class="cap-source">R\xE9sultat net N-1 (' + ref.n1.year + ") : <strong>" + fmtEUR(ref.n1.netResult) + '</strong></div></div><div class="cap-field cap-slider-field"><label for="cap-margin"><span class="cap-label-copy">Taux de marge brute sur CA pr\xE9visionnel <span class="sp-help" data-tip="Taux de marge brute = marge brute \xF7 chiffre d\u2019affaires. La marge brute est ce qui reste du CA apr\xE8s les achats mati\xE8res ; elle sert ensuite \xE0 financer salaires, charges, contribution coop\xE9rative et r\xE9sultat vis\xE9." tabindex="0" aria-label="Explication du taux de marge brute">?</span></span></label><output class="cap-slider-value" id="cap-margin-out">' + fmtPct(PLAN.margin, 1) + '</output><div class="cap-control-row"><div class="cap-range"><input id="cap-margin" type="range" min="0.2" max="0.9" step="0.005" value="' + PLAN.margin + '"><span class="cap-range-marker" style="left:' + Math.max(0, Math.min(100, (marginReference - 0.2) / 0.7 * 100)) + '%" title="R\xE9f\xE9rence : ' + fmtPct(marginReference, 1) + " \xB7 " + marginReferencePeriod + '"><span class="cap-range-ref-value">' + fmtPct(marginReference, 1) + '</span><span class="cap-range-ref-period">' + marginReferencePeriod + '</span></span></div><button type="button" class="cap-mini-btn" id="cap-margin-n1">N-1 : ' + fmtPct(ref.n1.margin, 1) + '</button></div></div><div class="cap-field cap-slider-field"><label for="cap-charges"><span class="cap-label-copy">Charges annuelles \xE0 financer pr\xE9visionnelles <span class="sp-help" data-tip="Les charges \xE0 financer regroupent les charges de fonctionnement et la contribution coop\xE9rative. Elles s\u2019ajoutent au salaire brut et au r\xE9sultat vis\xE9 pour calculer la marge brute n\xE9cessaire. N-1 (' + ref.n1.year + ") : " + fmtEUR(ref.n1.chargesFonct) + " de charges de fonctionnement + " + fmtEUR(ref.n1.contribution) + " de contribution coop\xE9rative = " + fmtEUR(ref.n1.charges) + '." tabindex="0" aria-label="D\xE9tail des charges annuelles \xE0 financer">?</span></span></label><output class="cap-slider-value" id="cap-charges-out">' + fmtEUR(PLAN.charges) + '</output><div class="cap-control-row"><div class="cap-range"><input id="cap-charges" type="range" min="0" max="' + maxCharges + '" step="1" value="' + Math.min(maxCharges, Math.round(PLAN.charges)) + '"><span class="cap-range-marker" style="left:' + Math.max(0, Math.min(100, chargesReference / maxCharges * 100)) + '%" title="R\xE9f\xE9rence : ' + fmtEUR(chargesReference) + " \xB7 " + chargesReferencePeriod + '"><span class="cap-range-ref-value">' + fmtEUR(chargesReference) + '</span><span class="cap-range-ref-period">' + chargesReferencePeriod + '</span></span></div><button type="button" class="cap-mini-btn" id="cap-charges-n1">N-1 : ' + fmtEUR(ref.n1.charges) + '</button></div></div></div><div class="cap-result" id="cap-result"></div><div class="cap-actions"><button type="button" class="btn primary" id="cap-apply">Utiliser cette trajectoire</button><button type="button" class="btn ghost" id="cap-reset">Revenir \xE0 mon historique</button></div><div class="cap-preview-status" id="cap-preview-status"></div></div>';
+    var cur = data.snapshot.current;
+    var capacity = salaryCapacityAtDate(data.years[cur.year], cur.year, cur.mois_renseignes, data.res_export_iso || data.file_mtime_iso, NET_FROM_GROSS);
+    renderCapProjections(document.getElementById("cap-projections"), {
+      year: cur.year,
+      salary: capacity.monthlyNet,
+      result: projectedPlanResult(cur.projection_mb_seasonal, PLAN),
+      margin: cur.projection_mb_seasonal,
+      revenue: cur.projection_ca_seasonal,
+      goals: {
+        salary: PLAN.salary / 12 * NET_FROM_GROSS,
+        result: PLAN.surplus,
+        margin: C.MB_AN_OBJ,
+        revenue: C.CA_OBJ
+      }
+    }, { money: fmtEUR, escape: esc });
+    document.getElementById("cap-projection-method").textContent = "Le salaire d\xE9gageable correspond \xE0 la marge brute \xE0 date moins les charges de fonctionnement et la contribution coop\xE9rative \xE0 date, avant d\xE9duction des r\xE9mun\xE9rations d\xE9j\xE0 vers\xE9es, pour un r\xE9sultat \xE0 z\xE9ro. Ce disponible est converti en net et divis\xE9 par les mois couverts, le mois de l\u2019export \xE9tant proratis\xE9 au jour inclus." + (capacity.elapsedMonths !== null ? " P\xE9riode retenue : " + capacity.elapsedMonths.toLocaleString("fr-FR", { maximumFractionDigits: 2 }) + " mois." : " Calcul indisponible : date ou donn\xE9es de la p\xE9riode manquantes.") + (capacity.availableGross < 0 ? " Aucun salaire n\u2019est finan\xE7able : d\xE9ficit avant r\xE9mun\xE9ration de " + fmtEUR(-capacity.availableGross) + "." : "") + " Le r\xE9sultat annuel projet\xE9 d\xE9duit de la marge projet\xE9e le salaire brut annuel pr\xE9vu et les charges annuelles pr\xE9vues dans les objectifs. R\xE9f\xE9rences de projection : " + (cur.reference_years.join(", ") || "aucune") + ".";
     var capDrawer = document.getElementById("cap-drawer");
     var capDrawerBackdrop = document.getElementById("cap-drawer-backdrop");
     var capSim = host.querySelector("#cap-sim");
@@ -3937,21 +4021,19 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     } : function() {
       return 0;
     };
-    var realizedPct = Math.round(ratio(value));
     var remainingPct = Math.round(ratio(currentRest));
     var delta = refSame != null ? value - refSame : null;
     var deltaPositive = delta != null && delta >= 0;
-    var pillHtml = delta != null ? '<span class="mbx-pill ' + (deltaPositive ? "pos" : "neg") + '">' + (deltaPositive ? "\u25B2" : "\u25BC") + " " + fmtEUR(Math.abs(delta)) + "</span>" : "";
-    var comparison = refSame != null ? '<div class="cap-comparison">vs m\xEAme p\xE9riode en ' + (cfg.refYear || "N\u22121") + "</div>" : "";
+    var pillHtml = delta != null ? '<span class="mbx-pill ' + (deltaPositive ? "pos" : "neg") + '">' + (deltaPositive ? "+" : "\u2212") + fmtEUR(Math.abs(delta)) + "</span>" : "";
+    var comparison = refSame != null ? '<div class="cap-comparison">vs ' + (cfg.refYear || "N\u22121") + " \xE0 date</div>" : "";
     var yearProgress = cfg.yearProgress || 0;
-    var attainment = goal > 0 ? Math.round(value / goal * 100) : 0;
+    var attainment = goal > 0 ? fmtPct(value / goal, 1) : "\u2014";
     var paceGap = value - goal * yearProgress;
     var paceClass = paceGap > 0 ? "ahead" : paceGap < 0 ? "behind" : "on-track";
-    var paceIcon = paceGap > 0 ? "\u25B2" : paceGap < 0 ? "\u25BC" : "\u2022";
     var chartId = "chart-actual-" + cfg.shortLabel.toLowerCase();
     var chartData = { value, goal, yearProgress };
     var chartLabel = cfg.title + " : " + fmtEUR(value) + " r\xE9alis\xE9, objectif annuel " + fmtEUR(goal) + ", " + fmtEUR(Math.abs(paceGap)) + (paceGap >= 0 ? " d\u2019avance" : " de retard");
-    return '<section class="actual-performance-card actual-performance-card--' + (cfg.shortLabel === "CA" ? "ca" : "mb") + '"><div class="actual-performance-main"><div class="mbx-head"><div class="mbx-title">' + cfg.title + '</div></div></div><div class="actual-performance-gauge"><div class="actual-gauge-summary"><div class="actual-gauge-realized"><strong>' + fmtEUR(value) + "</strong><span>" + realizedPct + "% R\xE9alis\xE9</span></div>" + (currentRest ? '<div class="actual-gauge-remaining"><strong>' + fmtEUR(currentRest) + "</strong><span>" + remainingPct + "% Restant</span></div>" : "") + '</div><div class="actual-gauge-chart"><div style="height:100%" id="' + chartId + '" role="img" aria-label="' + esc(chartLabel) + '" data-gauge="' + esc(JSON.stringify(chartData)) + '"></div></div></div><div class="actual-performance-footer"><div class="actual-progress-grid"><div class="actual-progress-item"><strong>' + fmtPct(yearProgress, 1) + '</strong><span>de l\u2019ann\xE9e \xE9coul\xE9e</span></div><div class="actual-progress-item"><strong class="' + paceClass + '">' + attainment + ' %</strong><span>de l\u2019objectif atteint</span></div><div class="actual-progress-item"><strong class="actual-status ' + paceClass + '"><span>' + paceIcon + "</span>" + fmtEUR(Math.abs(paceGap)) + "</strong><span>" + (paceGap >= 0 ? "d\u2019avance sur le rythme" : "de retard sur le rythme") + '</span></div></div><div class="actual-performance-comparison">' + pillHtml + comparison + "</div></div></section>";
+    return '<section class="actual-performance-card actual-performance-card--' + (cfg.shortLabel === "CA" ? "ca" : "mb") + '"><div class="actual-performance-main"><div class="mbx-head"><div class="mbx-title">' + cfg.title + '</div></div></div><div class="actual-performance-gauge"><div class="actual-gauge-summary"><div class="actual-gauge-realized"><strong>' + fmtEUR(value) + "</strong><span>Objectif : " + fmtEUR(goal) + "</span></div>" + (currentRest ? '<div class="actual-gauge-remaining"><strong>' + fmtEUR(currentRest) + "</strong><span>" + remainingPct + "% Restant</span></div>" : "") + '</div><div class="actual-gauge-chart"><div style="height:100%" id="' + chartId + '" role="img" aria-label="' + esc(chartLabel) + '" data-gauge="' + esc(JSON.stringify(chartData)) + '"></div></div></div><div class="actual-performance-footer"><div class="actual-progress-grid"><div class="actual-progress-item"><strong>' + fmtPct(yearProgress, 1) + '</strong><span>de l\u2019ann\xE9e \xE9coul\xE9e</span></div><div class="actual-progress-item"><strong>' + attainment + '</strong><span>de l\u2019objectif atteint</span></div><div class="actual-progress-item"><strong class="actual-status ' + paceClass + '">' + fmtEUR(Math.abs(paceGap)) + "</strong><span>" + (paceGap >= 0 ? "d\u2019avance sur le rythme" : "de retard sur le rythme") + '</span></div></div><div class="actual-performance-comparison">' + pillHtml + comparison + "</div></div></section>";
   }
   function _renderActualPerformanceCharts() {
     ["mb", "ca"].forEach(function(metric) {
@@ -4144,7 +4226,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       var isCA = pilotageMetric === "ca";
       var capActual = document.getElementById("cap-actual");
       if (capActual) capActual.innerHTML = _actualPerformanceCardHTML({
-        title: "Marge brute r\xE9alis\xE9e",
+        title: "Marge brute \xE0 date",
         value: cur.ytd_mb,
         goal: C.MB_AN_OBJ,
         refSame: sp ? sp.mb_ytd : null,
@@ -4154,7 +4236,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         shortLabel: "MB",
         yearProgress
       }) + _actualPerformanceCardHTML({
-        title: "Chiffre d'affaires r\xE9alis\xE9",
+        title: "Chiffre d\u2019affaires \xE0 date",
         value: cur.ytd_ca,
         goal: C.CA_OBJ,
         refSame: sp ? sp.ca_ytd : null,
@@ -5093,7 +5175,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var spb = document.querySelector(".sp-body");
     if (spb) spb.addEventListener("scroll", hide);
   })();
-  var APP_VERSION = "20260922-023229";
+  var APP_VERSION = "20260922-201023";
   function showUpdateBanner(base, v) {
     if (document.getElementById("update-banner")) return;
     var d = document.createElement("div");

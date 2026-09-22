@@ -23,6 +23,8 @@ Les deux fichiers se téléchargent dans Louty, rubrique **Rapports de gestion**
 
 En tête du tableau de bord, définis ton **revenu annuel à financer** et le **surplus annuel** que tu souhaites dégager après rémunérations et charges. Le dashboard en déduit la marge brute à produire et reporte cette trajectoire sur les graphiques.
 
+Le premier bloc réunit les projections annuelles et les avancements à date. Le **salaire net dégageable** représente la capacité moyenne de rémunération créée à date : marge brute moins charges de fonctionnement et contribution coopérative, sans déduire les salaires déjà versés, convertie en net avec le coefficient personnel existant. Le mois de l’export est compté au prorata des jours écoulés, jour de l’export inclus ; les mois couverts antérieurs sont complets. Un déficit donne une capacité nulle et reste signalé dans « Comprendre la projection ». Les données ou dates manquantes donnent une valeur indisponible. Le résultat annuel projeté utilise, lui, les rémunérations et charges annuelles prévues dans les objectifs.
+
 Le simulateur de trajectoire (taux de marge et charges) est initialisé à partir des données réelles des deux derniers exercices complets, puis mémorisé sur ton poste. Le CA nécessaire est calculé automatiquement à partir du cap et du taux de marge choisi. Tu peux à tout moment revenir à cette référence historique. Les seuils de lecture des graphiques restent accessibles via la roue crantée.
 
 ## Bibliothèques graphiques
