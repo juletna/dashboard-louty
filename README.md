@@ -33,6 +33,11 @@ Le fichier HTML embarque uniquement les modules ECharts nécessaires (GaugeChart
 
 ## Développement
 
+Avant de contribuer, lire les [règles de développement communes](docs/development-rules.md).
+Elles s'appliquent aux humains et aux agents, indépendamment de l'outil.
+[`AGENTS.md`](AGENTS.md) et [`CLAUDE.md`](CLAUDE.md) sont des passerelles vers cette
+source unique ; ne pas y recopier les règles.
+
 `index.html` à la racine est l'artefact publié par GitHub Pages depuis `main/`. Le build assemble le template, le CSS, les bibliothèques hors ligne et le bundle applicatif. Son autonomie hors ligne est contrôlée statiquement et ne dépend pas d'un CDN ; la validation visuelle s'exécute en HTTP local, pas avec `file://`.
 
 Le code source est réparti par responsabilité :
