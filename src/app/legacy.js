@@ -1697,7 +1697,7 @@ document.getElementById('welcome-back').addEventListener('click', function () {
 })();
 
 // Mise à jour automatique : si le fichier hébergé est plus récent, on recharge la dernière version
-var APP_VERSION = "20260722-191051";
+var APP_VERSION = "20260922-023229";
 function showUpdateBanner(base, v) {
   if (document.getElementById('update-banner')) return;
   var d = document.createElement('div');
