@@ -35,6 +35,36 @@ test('legacy cache with nulls and missing labels remains structurally valid', ()
   assert.throws(() => assertValidDashboardData({ years: { '2025': { monthly: { ca: 'invalid' } } } }));
 });
 
+test('rejects every malformed year without dropping it while keeping partial years valid', () => {
+  const mixed = normalizeDashboardData({
+    years: {
+      '2025': { monthly: { ca: [100] }, months_present: [1] },
+      '2026': { monthly: { ca: 'invalid' }, months_present: [1] },
+    },
+  });
+  assert.equal(mixed.valid, false);
+  assert.deepEqual(mixed.errors, ['invalid_series:2026:ca']);
+  assert.throws(() => assertValidDashboardData({
+    years: {
+      '2025': { monthly: { ca: [100] }, months_present: [1] },
+      '2026': { monthly: { ca: 'invalid' }, months_present: [1] },
+    },
+  }));
+
+  const partial = normalizeDashboardData({
+    years: { '2025': { monthly: { ca: [100] }, months_present: [1] } },
+  });
+  assert.equal(partial.valid, true);
+  assert.equal(partial.data.years['2025'].monthly.ca[0], 100);
+});
+
+test('rejects a null monthly structure without throwing during normalization', () => {
+  const result = normalizeDashboardData({ years: { '2025': { monthly: null } } });
+  assert.equal(result.valid, false);
+  assert.deepEqual(result.errors, ['invalid_year:2025', 'no_valid_year']);
+  assert.throws(() => assertValidDashboardData({ years: { '2025': { monthly: null } } }));
+});
+
 test('complete historical year requires all months and all reference metrics', () => {
   const full = completeYear();
   assert.equal(isCompleteHistoricalYear(full), true);

@@ -53,7 +53,7 @@ export function normalizeDashboardData(data) {
   const errors = [];
   Object.keys(data.years).sort().forEach((yearKey) => {
     const sourceYear = data.years[yearKey];
-    if (!/^\d{4}$/.test(yearKey) || !sourceYear || typeof sourceYear.monthly !== 'object') {
+    if (!/^\d{4}$/.test(yearKey) || !sourceYear || !sourceYear.monthly || typeof sourceYear.monthly !== 'object') {
       errors.push(`invalid_year:${yearKey}`);
       return;
     }
@@ -74,7 +74,10 @@ export function normalizeDashboardData(data) {
   const hasValidYear = Object.keys(years).length > 0;
   if (!hasValidYear) errors.push('no_valid_year');
   return {
-    valid: hasValidYear,
+    // A normalized cache must never silently omit a malformed year.  Partial
+    // years are accepted above; malformed years and series invalidate the
+    // complete candidate so the caller can retain its previous cache.
+    valid: hasValidYear && errors.length === 0,
     errors,
     data: { ...data, years, labels_missing: Array.isArray(data.labels_missing) ? data.labels_missing.slice() : [] },
   };
