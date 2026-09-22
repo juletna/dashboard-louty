@@ -526,8 +526,8 @@ function renderAnnualCap(data) {
   var chargesReferencePeriod = ref.n1 && ref.n1.year ? ref.n1.year : ref.label;
   var maxCharges = Math.max(5000, Math.ceil(Math.max(ref.charges, PLAN.charges) * 1.8 / 1000) * 1000);
   host.innerHTML =
-    '<div class="annual-cap-head"><div><h2 id="annual-cap-title">Mon cap annuel</h2><p class="annual-cap-intro">Tes objectifs et les projections au même endroit.</p></div><button type="button" class="btn ghost" id="cap-edit" aria-haspopup="dialog" aria-controls="cap-drawer">Modifier mes objectifs</button></div>' +
-    '<div class="cap-overview"><h3 class="cap-section-heading">' + capSectionIcon('compass') + 'Ce que je vise</h3><div id="cap-projections" class="cap-projections"></div>' +
+    '<div class="annual-cap-head"><div><h2 id="annual-cap-title">Mon cap annuel</h2><p class="annual-cap-intro">Tes objectifs et les projections au même endroit.</p></div></div>' +
+    '<div class="cap-overview"><div class="cap-section-head"><h3 class="cap-section-heading">' + capSectionIcon('compass') + 'Ce que je vise</h3><button type="button" class="btn ghost" id="cap-edit" aria-haspopup="dialog" aria-controls="cap-drawer">Modifier mes objectifs</button></div><div id="cap-projections" class="cap-projections"></div>' +
       '<h3 class="cap-section-heading">' + capSectionIcon('trend') + 'Où j’en suis</h3><div id="cap-actual" class="cap-actual"></div>' +
       '<details class="cap-explanation"><summary>Comprendre la projection</summary><p>Les projections de marge brute et de chiffre d’affaires additionnent le réalisé à date et la moyenne des mois restants des exercices complets de référence. Sans historique exploitable, la projection est indisponible.</p><p id="cap-projection-method"></p><p>Le salaire net est une estimation avant impôt, calculée avec le coefficient personnel de conversion du brut Louty. Ces montants annuels ne décrivent pas la trésorerie disponible ni un bulletin de paie.</p></details></div>' +
     '<div class="cap-sim" id="cap-sim" hidden>' +
@@ -1702,7 +1702,7 @@ document.getElementById('welcome-back').addEventListener('click', function () {
 })();
 
 // Mise à jour automatique : si le fichier hébergé est plus récent, on recharge la dernière version
-var APP_VERSION = "20260922-201023";
+var APP_VERSION = "20260922-201629";
 function showUpdateBanner(base, v) {
   if (document.getElementById('update-banner')) return;
   var d = document.createElement('div');

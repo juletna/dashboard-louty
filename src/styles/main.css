@@ -1115,3 +1115,8 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 @media(max-width:700px) { .cap-overview { padding:12px 18px 22px; } .cap-overview #cap-actual { grid-template-columns:1fr; } .cap-projection { padding:18px; } .cap-projection-value { font-size:27px; } }
 @media(max-width:460px) { .cap-projections { grid-template-columns:1fr; } .cap-overview .actual-performance-card { padding:18px; } .cap-overview .actual-gauge-summary .actual-gauge-realized strong { font-size:30px; } }
 .cap-salary-context { display:block; margin-top:8px; color:var(--text-dim); font-size:11px; }
+
+.cap-section-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:4px 0 20px; }
+.cap-section-head .cap-section-heading { margin:0; }
+.cap-section-head .btn { flex:none; }
+@media(max-width:460px) { .cap-section-head { gap:8px; } .cap-section-head .cap-section-heading { gap:5px; font-size:10px; letter-spacing:.03em; } .cap-section-head .btn { padding:8px; font-size:11px; } }
