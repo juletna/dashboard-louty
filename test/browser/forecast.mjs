@@ -18,12 +18,20 @@ await new Promise(done => server.listen(0, '127.0.0.1', done));
 let browser;
 try {
   browser = await chromium.launch();
-  const page = await browser.newPage({ viewport: { width: 1440, height: 1100 }, reducedMotion: 'reduce' });
+  const page = await browser.newPage({ viewport: { width: 1440, height: 1100 }, reducedMotion: 'no-preference' });
   const errors = []; page.on('pageerror', error => errors.push(error.message));
   const base = process.env.FORECAST_BASE_URL || `http://127.0.0.1:${server.address().port}/`;
   await page.goto(base);
   await page.locator('#file-input').setInputFiles([fixtures.res, fixtures.forecast]);
   await page.locator('[data-f-action="manage"]').waitFor();
+  // Exercise color transitions as well as the initial numeric animation.
+  await page.evaluate(() => {
+    const chart = Chart.getChart(document.querySelector('#chart-ca-mb'));
+    chart.setActiveElements([{ datasetIndex: 0, index: 0 }]);
+    chart.update();
+  });
+  await page.locator('#chart-ca-mb').hover();
+  await page.waitForTimeout(1100);
   const shot = async name => {
     if (!process.env.SMOKE_SCREENSHOT_DIR) return;
     mkdirSync(process.env.SMOKE_SCREENSHOT_DIR, { recursive:true });

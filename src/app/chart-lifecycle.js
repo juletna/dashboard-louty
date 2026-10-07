@@ -12,7 +12,6 @@ export function prefersReducedMotion() {
 
 export function setChartTheme({ font, text, grid, tooltip }) {
   if (!window.Chart) return;
-  const animate = !prefersReducedMotion();
   Chart.defaults.font.family = font;
   Chart.defaults.font.size = 12;
   Chart.defaults.font.weight = '600';
@@ -33,7 +32,10 @@ export function setChartTheme({ font, text, grid, tooltip }) {
   Chart.defaults.plugins.tooltip.bodyFont = { size: 12, weight: '600', family: font };
   Chart.defaults.plugins.tooltip.boxPadding = 6;
   Chart.defaults.plugins.tooltip.usePointStyle = true;
-  Chart.defaults.animation = animate ? { duration: INITIAL_DURATION, easing: CHARTJS_EASING } : false;
+  // Chart.js enumerates these default keys to configure every transition.
+  // Replacing the object drops type/fn and breaks color interpolation.
+  Chart.defaults.animation.duration = INITIAL_DURATION;
+  Chart.defaults.animation.easing = CHARTJS_EASING;
   Chart.defaults.elements.bar.borderRadius = 7;
   Chart.defaults.elements.bar.borderSkipped = false;
   Chart.defaults.elements.point.radius = 2.5;
