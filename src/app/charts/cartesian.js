@@ -56,6 +56,10 @@ function renderCAMB(cy, curYear, years) {
     { type: 'bar', label: 'Achats & coûts (reste du CA)', data: reste, backgroundColor: COLORS.red, stack: 's', order: 3,
       borderRadius: { topLeft: R, topRight: R, bottomLeft: 0, bottomRight: 0 }, borderSkipped: false }
   ];
+  if (DATA?.forecast?.monthly.some(value => value !== null)) {
+    datasets.push({ type: 'bar', label: 'CA confirmé à facturer (sélection)', data: DATA.forecast.monthly,
+      backgroundColor: COLORS.blue, stack: 'forecast', order: 3, borderRadius: R, borderSkipped: false });
+  }
   // La fin de mois projetée est une vraie pile Chart.js, et non plus une
   // surimpression canvas. Seul le complément au réalisé du mois est ajouté.
   if (currentMonthProjection) {

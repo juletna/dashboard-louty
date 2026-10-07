@@ -33,7 +33,7 @@
   <div class="dropzone" id="dropzone">
     <div class="dz-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
     <div class="dz-title">Glisse tes exports Louty ici</div>
-    <div class="dz-sub"><strong>RES_U_Résultat d'Activité</strong> (obligatoire)<br><strong>Pièces</strong> pour les répartitions devis et clients (facultatif)<br>et <strong>BAL_A_Balance Analytique</strong> pour la santé financière (facultatif).<br>Tu peux déposer les trois d'un coup.</div>
+    <div class="dz-sub"><strong>RES_U_Résultat d'Activité</strong> (obligatoire)<br><strong>Pièces</strong> pour le prévisionnel et les répartitions devis et clients (facultatif)<br>et <strong>BAL_A_Balance Analytique</strong> pour la santé financière (facultatif).<br>Tu peux déposer les trois d'un coup.</div>
     <button type="button" class="btn primary" id="browse-btn">Parcourir mes fichiers</button>
     <input type="file" id="file-input" accept=".xlsx" multiple style="display:none">
     <div class="dz-files" id="dz-files"></div>
@@ -47,7 +47,7 @@
   </div>
   <div class="welcome-callout">
     <span class="wc-tag">Répartitions devis &amp; clients</span>
-    Dans <strong>Gestion com. › Devis (liste) › Filtre avancé</strong>, sélectionne <strong>Devis facturés</strong>, <strong>Facture</strong>, <strong>Facture de situation</strong>, <strong>Facture d’acompte</strong> et <strong>Avoir</strong>. Garde les états <strong>Validé + Imprimé</strong> et <strong>Confirmé</strong>, ne filtre pas le règlement, puis exporte la liste complète au format <code>.xlsx</code>. Exclue les brouillons et les devis non facturés ; les acomptes servent uniquement au détail de santé financière, jamais au CA.
+    Dans <strong>Gestion com. › Devis (liste) › Filtre avancé</strong>, inclus <strong>tous les devis (facturés ou non)</strong>, <strong>Facture</strong>, <strong>Facture de situation</strong>, <strong>Facture d’acompte</strong> et <strong>Avoir</strong>. Conserve tous les états hors brouillons, sans filtre de règlement, puis exporte la liste complète au format <code>.xlsx</code>. Inclus aussi les devis non facturés pour préparer le prévisionnel. Les acomptes ne sont pas ajoutés au CA.
   </div>
 </div>
 
@@ -60,6 +60,8 @@
 
 <div id="tab-general" class="tab-panel active" style="display:none">
   <section id="annual-cap" class="card annual-cap" aria-labelledby="annual-cap-title"></section>
+  <section id="revenue-forecast" class="card revenue-forecast" aria-labelledby="forecast-title"></section>
+  <input id="forecast-input" type="file" accept=".xlsx" hidden>
   <div class="pilotage-mode" aria-label="Vue de pilotage cumulée"><div class="pilotage-switch" role="group" aria-label="Indicateur affiché"><button type="button" data-pilotage-metric="mb" aria-pressed="true">Marge brute</button><button type="button" data-pilotage-metric="ca" aria-pressed="false">CA</button></div></div>
   <div class="grid grid-2 row1">
     <div id="bloc-pilotage"></div>
@@ -98,7 +100,7 @@
   </section>
   <div id="margin-distribution-row" class="distribution-column margin-distribution" style="display:none">
     <section class="card distribution-card" aria-labelledby="quote-margin-title">
-      <h3 id="quote-margin-title">Devis facturés par tranche de montant<span class="sp-help" data-tip="Répartition des devis qui ont été facturés, par tranche de montant HT. Les tranches restent dans l'ordre des montants ; la hauteur indique leur poids dans le total des devis facturés.">?</span></h3>
+      <h3 id="quote-margin-title">Devis exportés par tranche de montant<span class="sp-help" data-tip="Répartition des devis validés et imprimés présents dans cet export, facturés ou non, par montant HT. Ce graphique ne mesure pas la facturation.">?</span></h3>
       <p class="distribution-note">Exercice courant en barres, comparé à la moyenne des exercices précédents comparables.</p>
       <div id="quote-margin-distribution"></div>
     </section>
@@ -114,7 +116,7 @@
       <div class="sante-empty"><div class="se-drop" id="pieces-drop">
         <div class="se-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
         <div class="se-title">Ajoute l’export détaillé « Pièces »</div>
-        <div class="se-sub">Dans Louty : <strong>Gestion com. › Devis (liste) › Filtre avancé</strong>.<br>Sélectionne <strong>Devis facturés</strong>, <strong>Facture</strong>, <strong>Facture de situation</strong>, <strong>Facture d’acompte</strong> et <strong>Avoir</strong> ; conserve les états <strong>Validé + Imprimé</strong> et <strong>Confirmé</strong>, sans filtre de règlement. Exclue les brouillons et devis non facturés ; les acomptes alimentent seulement le détail de santé financière. Exporte toute la période au format <code>.xlsx</code>.</div>
+        <div class="se-sub">Dans Louty : <strong>Gestion com. › Devis (liste) › Filtre avancé</strong>.<br>Inclus <strong>tous les devis (facturés ou non)</strong>, <strong>Facture</strong>, <strong>Facture de situation</strong>, <strong>Facture d’acompte</strong> et <strong>Avoir</strong> ; conserve tous les états hors brouillons, sans filtre de règlement. Inclus les devis non facturés. Les acomptes ne sont pas ajoutés au CA. Exporte toute la période au format <code>.xlsx</code>.</div>
         <button type="button" class="btn primary" id="pieces-browse">Choisir le fichier Pièces</button>
         <input type="file" id="pieces-input" accept=".xlsx" style="display:none">
       </div></div>
@@ -141,6 +143,23 @@
 
 
 </div>
+
+<dialog id="forecast-manager" class="forecast-dialog" aria-labelledby="forecast-manager-title">
+  <div class="forecast-head"><div><h2 id="forecast-manager-title">Gérer le prévisionnel</h2><p class="small">Sélectionne les devis à suivre, puis précise le montant HT et l’échéance.</p></div><button class="btn" type="button" data-f-action="close-manager">Fermer</button></div>
+  <nav class="forecast-tabs" aria-label="Listes de devis"><button type="button" data-f-tab="review" aria-pressed="true">À examiner</button><button type="button" data-f-tab="selected" aria-pressed="false">Dans le prévisionnel</button><button type="button" data-f-tab="all" aria-pressed="false">Tous les devis</button></nav>
+  <label class="forecast-search-label" for="forecast-search">Rechercher un client, un numéro ou un titre</label><input id="forecast-search" type="search" placeholder="Rechercher…">
+  <p id="forecast-filter" class="small"></p><p id="forecast-storage-message" class="forecast-warning" role="alert"></p>
+  <div id="forecast-list"></div><p id="forecast-message" class="small" role="status"></p>
+</dialog>
+<dialog id="forecast-editor" class="forecast-dialog forecast-editor" aria-labelledby="forecast-editor-title">
+  <form id="forecast-form"><div class="forecast-head"><h2 id="forecast-editor-title">Ajouter au prévisionnel</h2><button class="btn" type="button" data-f-action="close-editor" aria-label="Fermer la fiche">Fermer</button></div><p id="forecast-editor-subtitle" class="small"></p>
+  <p id="forecast-note" class="forecast-warning"></p>
+  <label for="forecast-situation">Situation du chantier</label><select id="forecast-situation"><option value="confirmed">Travaux confirmés</option><option value="waiting">En attente client</option></select>
+  <label for="forecast-amount">Montant HT restant à facturer (€)</label><input id="forecast-amount" type="number" min="0" step="0.01" required>
+  <label for="forecast-month">Mois de facturation prévu</label><input id="forecast-month" type="month"><p class="small">Laisse vide pour « Sans date prévue ».</p>
+  <details class="forecast-method"><summary>Voir les éléments du rapprochement</summary><div id="forecast-evidence"></div></details>
+  <p id="forecast-form-error" class="forecast-warning" role="alert"></p><div class="forecast-footer"><button type="button" class="btn" data-f-action="close-editor">Annuler</button><button type="submit" class="btn primary">Enregistrer la prévision</button></div></form>
+</dialog>
 
 <div id="settings-backdrop"></div>
 <aside id="settings-panel" aria-label="Réglages">

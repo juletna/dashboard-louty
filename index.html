@@ -16,6 +16,77 @@
 
 
 
+  /* Prévisionnel : mêmes tokens que les autres cartes, aucun thème figé. */
+  .revenue-forecast { margin: 18px 0; color:var(--text); }
+  .forecast-head, .forecast-footer { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+  .forecast-head h2 { margin-bottom:4px; }
+  .forecast-head p { margin:0; }
+  .forecast-kpis { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin:22px 0; }
+  .forecast-kpis > div { padding:18px; background:var(--bg-inset); border-radius:var(--radius-sm); }
+  .forecast-kpis > div:first-child { background:var(--violet-bg); }
+  .forecast-kpis strong { display:block; font-size:30px; font-weight:800; margin:6px 0; font-variant-numeric:tabular-nums; }
+  .forecast-kpis > div:first-child strong { color:var(--violet); }
+  .forecast-kpis span, .forecast-kpis small { font-size:12px; }
+  .forecast-kpis small, .forecast-month small { display:block; color:var(--text-dim); }
+  .forecast-legend { display:flex; gap:20px; flex-wrap:wrap; color:var(--text-dim); font-size:12px; margin:12px 0; }
+  .forecast-legend i { display:inline-block; width:9px; height:9px; border-radius:3px; background:var(--violet); margin-right:6px; }
+  .forecast-legend .waiting, .forecast-bars .waiting { background:var(--amber); }
+  .forecast-months { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; }
+  .forecast-month { text-align:left; min-width:0; color:var(--text); font:inherit; border:1px solid var(--border); background:var(--bg-card); border-radius:var(--radius-sm); padding:15px; cursor:pointer; }
+  .forecast-month:hover { background:var(--bg-inset); }
+  .forecast-month strong { display:block; font-size:20px; font-variant-numeric:tabular-nums; }
+  .forecast-month span { font-size:12px; text-transform:capitalize; }
+  .forecast-month small { font-size:12px; }
+  .forecast-bars { height:70px; display:flex; align-items:flex-end; gap:5px; border-bottom:1px solid var(--border); margin:10px 0; }
+  .forecast-bars i { display:block; width:27px; border-radius:4px 4px 0 0; background:var(--violet); }
+  .forecast-bars .waiting { opacity:.6; }
+  .forecast-footer { margin-top:20px; padding-top:16px; border-top:1px solid var(--border); }
+  .forecast-footer p { margin:3px 0 0; }
+  .forecast-method { font-size:12px; color:var(--text-dim); margin-top:16px; }
+  .forecast-method summary { cursor:pointer; }
+  .forecast-method ul { max-height:240px; overflow:auto; padding-left:18px; }
+  .forecast-cap { color:var(--text); margin-top:20px; padding-top:18px; border-top:1px solid var(--border); }
+  .forecast-cap-values { display:flex; align-items:center; flex-wrap:wrap; gap:18px; }
+  .forecast-cap-values div { flex:1; min-width:145px; }
+  .forecast-cap-values span { font-size:12px; color:var(--text-dim); }
+  .forecast-cap-values strong { display:block; font-size:21px; font-variant-numeric:tabular-nums; }
+  .forecast-warning { background:var(--amber-bg); color:var(--text); border-radius:8px; padding:12px; font-size:12px; }
+  .forecast-warning:empty { display:none; }
+  .forecast-dialog { background:var(--bg-card); color:var(--text); border:1px solid var(--border); padding:26px; border-radius:var(--radius); width:min(1060px,calc(100% - 32px)); max-height:90vh; overflow:auto; box-shadow:var(--shadow-md); font:inherit; }
+  .forecast-dialog::backdrop { background:rgba(15,12,23,.5); }
+  .forecast-editor { width:min(540px,calc(100% - 24px)); }
+  .forecast-tabs { display:flex; gap:22px; flex-wrap:wrap; border-bottom:1px solid var(--border); margin:22px 0 16px; }
+  .forecast-tabs button { font:inherit; font-size:13px; background:none; border:0; border-bottom:3px solid transparent; padding:12px 0; color:var(--text-dim); cursor:pointer; }
+  .forecast-tabs button[aria-pressed="true"] { color:var(--violet); border-bottom-color:var(--violet); font-weight:800; }
+  .forecast-search-label { display:block; font-size:12px; color:var(--text-dim); margin-bottom:5px; }
+  #forecast-search { max-width:420px; }
+  .forecast-dialog input, .forecast-dialog select { display:block; width:100%; color:var(--text); background:var(--bg-inset); padding:11px; border:1px solid var(--border-strong); border-radius:8px; font:inherit; }
+  .forecast-editor label { display:block; font-weight:700; font-size:13px; margin:18px 0 6px; }
+  .forecast-row { display:grid; grid-template-columns:minmax(0,2fr) minmax(90px,.75fr) minmax(0,1.5fr) minmax(90px,1fr); align-items:center; gap:18px; padding:18px 0; border-bottom:1px solid var(--border); }
+  .forecast-row > div { min-width:0; overflow-wrap:anywhere; }
+  .forecast-row p { margin:3px 0; }
+  .forecast-row-amount { font-weight:800; font-variant-numeric:tabular-nums; }
+  .forecast-row-amount small { display:block; font-weight:400; font-size:11px; color:var(--text-dim); }
+  .forecast-row-actions { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:12px; }
+  .forecast-link { background:none; border:0; padding:6px 0; font:inherit; font-size:12px; color:var(--violet); cursor:pointer; text-decoration:underline; text-underline-offset:3px; }
+  .forecast-badge { display:inline-block; font-size:11px; border-radius:12px; padding:4px 8px; background:var(--bg-inset); color:var(--text-dim); }
+  .forecast-badge.warn { background:var(--amber-bg); color:var(--text); }
+  .forecast-empty { text-align:center; color:var(--text-dim); padding:30px; }
+  .forecast-dialog :focus-visible, .revenue-forecast :focus-visible { outline:2px solid var(--violet); outline-offset:3px; }
+  @media (max-width:650px) {
+    .forecast-kpis { grid-template-columns:1fr; gap:8px; }
+    .forecast-kpis > div { padding:14px; }
+    .forecast-kpis strong { font-size:26px; }
+    .forecast-dialog { padding:16px; }
+    .forecast-row { grid-template-columns:minmax(0,1fr) 110px; gap:10px; }
+    .forecast-row-actions { justify-content:flex-start; }
+    .forecast-months { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .forecast-tabs { gap:0 15px; }
+    .forecast-dialog input, .forecast-dialog select { font-size:16px; }
+    .forecast-dialog button, .revenue-forecast button { min-height:44px; }
+    .forecast-cap-values { gap:12px; }
+  }
+
   :root {
     color-scheme: light;
     --bg: #f2f1f5;
@@ -715,7 +786,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 #margin-distribution-row { flex:1 1 0; min-height:0; }
 #margin-distribution-row .distribution-card { flex:1 1 0; display:flex; flex-direction:column; min-height:0; }
 #quote-margin-distribution { display:flex; flex:1; min-height:0; }
-#quote-margin-distribution .chart-wrap { flex:1; height:auto; min-height:180px; }
+#quote-margin-distribution .chart-wrap { flex:1; min-width:0; width:100%; height:auto; min-height:180px; }
 .performance-kpis { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:12px; margin:16px 0 24px; }
 .performance-kpi { background:var(--bg-inset); border-radius:var(--radius-sm); padding:14px 16px; }
 .performance-kpi .label { color:var(--text-dim); font-size:12px; font-weight:700; }
@@ -738,6 +809,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
   #margin-distribution-row,
   #margin-distribution-row .distribution-card,
   #quote-margin-distribution { flex:0 0 auto; min-height:auto; }
+  .distribution-title-line { flex-wrap:wrap; }
   .performance-kpis { grid-template-columns:1fr; }
   .structure-chart { height:260px; }
   #bloc4 table.cmp { min-width:560px; }
@@ -1155,7 +1227,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
   <div class="dropzone" id="dropzone">
     <div class="dz-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
     <div class="dz-title">Glisse tes exports Louty ici</div>
-    <div class="dz-sub"><strong>RES_U_Résultat d'Activité</strong> (obligatoire)<br><strong>Pièces</strong> pour les répartitions devis et clients (facultatif)<br>et <strong>BAL_A_Balance Analytique</strong> pour la santé financière (facultatif).<br>Tu peux déposer les trois d'un coup.</div>
+    <div class="dz-sub"><strong>RES_U_Résultat d'Activité</strong> (obligatoire)<br><strong>Pièces</strong> pour le prévisionnel et les répartitions devis et clients (facultatif)<br>et <strong>BAL_A_Balance Analytique</strong> pour la santé financière (facultatif).<br>Tu peux déposer les trois d'un coup.</div>
     <button type="button" class="btn primary" id="browse-btn">Parcourir mes fichiers</button>
     <input type="file" id="file-input" accept=".xlsx" multiple style="display:none">
     <div class="dz-files" id="dz-files"></div>
@@ -1169,7 +1241,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
   </div>
   <div class="welcome-callout">
     <span class="wc-tag">Répartitions devis &amp; clients</span>
-    Dans <strong>Gestion com. › Devis (liste) › Filtre avancé</strong>, sélectionne <strong>Devis facturés</strong>, <strong>Facture</strong>, <strong>Facture de situation</strong>, <strong>Facture d’acompte</strong> et <strong>Avoir</strong>. Garde les états <strong>Validé + Imprimé</strong> et <strong>Confirmé</strong>, ne filtre pas le règlement, puis exporte la liste complète au format <code>.xlsx</code>. Exclue les brouillons et les devis non facturés ; les acomptes servent uniquement au détail de santé financière, jamais au CA.
+    Dans <strong>Gestion com. › Devis (liste) › Filtre avancé</strong>, inclus <strong>tous les devis (facturés ou non)</strong>, <strong>Facture</strong>, <strong>Facture de situation</strong>, <strong>Facture d’acompte</strong> et <strong>Avoir</strong>. Conserve tous les états hors brouillons, sans filtre de règlement, puis exporte la liste complète au format <code>.xlsx</code>. Inclus aussi les devis non facturés pour préparer le prévisionnel. Les acomptes ne sont pas ajoutés au CA.
   </div>
 </div>
 
@@ -1182,6 +1254,8 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 
 <div id="tab-general" class="tab-panel active" style="display:none">
   <section id="annual-cap" class="card annual-cap" aria-labelledby="annual-cap-title"></section>
+  <section id="revenue-forecast" class="card revenue-forecast" aria-labelledby="forecast-title"></section>
+  <input id="forecast-input" type="file" accept=".xlsx" hidden>
   <div class="pilotage-mode" aria-label="Vue de pilotage cumulée"><div class="pilotage-switch" role="group" aria-label="Indicateur affiché"><button type="button" data-pilotage-metric="mb" aria-pressed="true">Marge brute</button><button type="button" data-pilotage-metric="ca" aria-pressed="false">CA</button></div></div>
   <div class="grid grid-2 row1">
     <div id="bloc-pilotage"></div>
@@ -1220,7 +1294,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
   </section>
   <div id="margin-distribution-row" class="distribution-column margin-distribution" style="display:none">
     <section class="card distribution-card" aria-labelledby="quote-margin-title">
-      <h3 id="quote-margin-title">Devis facturés par tranche de montant<span class="sp-help" data-tip="Répartition des devis qui ont été facturés, par tranche de montant HT. Les tranches restent dans l'ordre des montants ; la hauteur indique leur poids dans le total des devis facturés.">?</span></h3>
+      <h3 id="quote-margin-title">Devis exportés par tranche de montant<span class="sp-help" data-tip="Répartition des devis validés et imprimés présents dans cet export, facturés ou non, par montant HT. Ce graphique ne mesure pas la facturation.">?</span></h3>
       <p class="distribution-note">Exercice courant en barres, comparé à la moyenne des exercices précédents comparables.</p>
       <div id="quote-margin-distribution"></div>
     </section>
@@ -1236,7 +1310,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
       <div class="sante-empty"><div class="se-drop" id="pieces-drop">
         <div class="se-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
         <div class="se-title">Ajoute l’export détaillé « Pièces »</div>
-        <div class="se-sub">Dans Louty : <strong>Gestion com. › Devis (liste) › Filtre avancé</strong>.<br>Sélectionne <strong>Devis facturés</strong>, <strong>Facture</strong>, <strong>Facture de situation</strong>, <strong>Facture d’acompte</strong> et <strong>Avoir</strong> ; conserve les états <strong>Validé + Imprimé</strong> et <strong>Confirmé</strong>, sans filtre de règlement. Exclue les brouillons et devis non facturés ; les acomptes alimentent seulement le détail de santé financière. Exporte toute la période au format <code>.xlsx</code>.</div>
+        <div class="se-sub">Dans Louty : <strong>Gestion com. › Devis (liste) › Filtre avancé</strong>.<br>Inclus <strong>tous les devis (facturés ou non)</strong>, <strong>Facture</strong>, <strong>Facture de situation</strong>, <strong>Facture d’acompte</strong> et <strong>Avoir</strong> ; conserve tous les états hors brouillons, sans filtre de règlement. Inclus les devis non facturés. Les acomptes ne sont pas ajoutés au CA. Exporte toute la période au format <code>.xlsx</code>.</div>
         <button type="button" class="btn primary" id="pieces-browse">Choisir le fichier Pièces</button>
         <input type="file" id="pieces-input" accept=".xlsx" style="display:none">
       </div></div>
@@ -1263,6 +1337,23 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 
 
 </div>
+
+<dialog id="forecast-manager" class="forecast-dialog" aria-labelledby="forecast-manager-title">
+  <div class="forecast-head"><div><h2 id="forecast-manager-title">Gérer le prévisionnel</h2><p class="small">Sélectionne les devis à suivre, puis précise le montant HT et l’échéance.</p></div><button class="btn" type="button" data-f-action="close-manager">Fermer</button></div>
+  <nav class="forecast-tabs" aria-label="Listes de devis"><button type="button" data-f-tab="review" aria-pressed="true">À examiner</button><button type="button" data-f-tab="selected" aria-pressed="false">Dans le prévisionnel</button><button type="button" data-f-tab="all" aria-pressed="false">Tous les devis</button></nav>
+  <label class="forecast-search-label" for="forecast-search">Rechercher un client, un numéro ou un titre</label><input id="forecast-search" type="search" placeholder="Rechercher…">
+  <p id="forecast-filter" class="small"></p><p id="forecast-storage-message" class="forecast-warning" role="alert"></p>
+  <div id="forecast-list"></div><p id="forecast-message" class="small" role="status"></p>
+</dialog>
+<dialog id="forecast-editor" class="forecast-dialog forecast-editor" aria-labelledby="forecast-editor-title">
+  <form id="forecast-form"><div class="forecast-head"><h2 id="forecast-editor-title">Ajouter au prévisionnel</h2><button class="btn" type="button" data-f-action="close-editor" aria-label="Fermer la fiche">Fermer</button></div><p id="forecast-editor-subtitle" class="small"></p>
+  <p id="forecast-note" class="forecast-warning"></p>
+  <label for="forecast-situation">Situation du chantier</label><select id="forecast-situation"><option value="confirmed">Travaux confirmés</option><option value="waiting">En attente client</option></select>
+  <label for="forecast-amount">Montant HT restant à facturer (€)</label><input id="forecast-amount" type="number" min="0" step="0.01" required>
+  <label for="forecast-month">Mois de facturation prévu</label><input id="forecast-month" type="month"><p class="small">Laisse vide pour « Sans date prévue ».</p>
+  <details class="forecast-method"><summary>Voir les éléments du rapprochement</summary><div id="forecast-evidence"></div></details>
+  <p id="forecast-form-error" class="forecast-warning" role="alert"></p><div class="forecast-footer"><button type="button" class="btn" data-f-action="close-editor">Annuler</button><button type="submit" class="btn primary">Enregistrer la prévision</button></div></form>
+</dialog>
 
 <div id="settings-backdrop"></div>
 <aside id="settings-panel" aria-label="Réglages">
@@ -1732,6 +1823,163 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     return isPeriodCovered(year, 12) && HISTORICAL_METRICS.every((key) => hasObservedValue(getMetricSeries(year, key), 1, 12));
   }
 
+  // src/app/domain/forecast.js
+  var cents = (value) => Math.round(value * 100);
+  var money = (value) => Math.round(value * 100) / 100;
+  var validMonth = (value) => typeof value === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
+  var groupKey = (d) => d.client_id ? JSON.stringify([d.activity, d.client_id]) : null;
+  var billingTypes = /* @__PURE__ */ new Set(["Facture", "Facture de situation", "Facture d'acompte", "Avoir"]);
+  function documentKey(d) {
+    return JSON.stringify(d.number ? [d.activity, d.type, d.number] : [d.activity, d.type, d.client_id, d.client, d.date, d.title, d.amount]);
+  }
+  function prepareDocuments(documents) {
+    const byKey = /* @__PURE__ */ new Map();
+    for (const d of documents) {
+      const key = documentKey(d);
+      if (byKey.has(key)) {
+        byKey.get(key).duplicate = true;
+        continue;
+      }
+      byKey.set(key, { ...d, key, duplicate: false });
+    }
+    return [...byKey.values()];
+  }
+  function matchQuotes(documents = []) {
+    const quotes = documents.filter((d) => d.type === "Devis" && !/brouillon/i.test(d.state));
+    const bills = documents.filter((d) => billingTypes.has(d.type) && !/brouillon/i.test(d.state));
+    const groups = /* @__PURE__ */ new Map();
+    for (const q of quotes) {
+      const key = groupKey(q);
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(q);
+    }
+    const results = /* @__PURE__ */ new Map();
+    for (const [key, qs] of groups) {
+      const clientBills = key === null ? [] : bills.filter((b) => groupKey(b) === key);
+      const available = clientBills.filter((b) => b.amount > 0 && !b.duplicate && b.type !== "Facture d'acompte");
+      const used = /* @__PURE__ */ new Set();
+      const candidates = (q) => available.filter((b) => !used.has(b.key) && q.date && b.date && b.date >= q.date);
+      const risky = clientBills.some((b) => b.type === "Avoir" || !Number.isFinite(b.amount) || b.amount < 0 || b.duplicate || !b.date);
+      const record = (q, status, matched = [], proposed = q.amount) => {
+        results.set(q.key, {
+          ...q,
+          status,
+          eligible: status !== "complete",
+          matched,
+          proposed,
+          // Any change in this client's documents asks for review, including a
+          // disappeared invoice or another quote competing for its allocation.
+          fingerprint: JSON.stringify([
+            q.key,
+            q.title,
+            q.client,
+            q.amount,
+            q.date,
+            ...[qs, clientBills].map((part) => [...part].sort((a, b) => a.key.localeCompare(b.key)).map((d) => [d.key, d.amount, d.date, d.duplicate]))
+          ])
+        });
+      };
+      for (const q of qs) {
+        if (key === null) record(q, "no-id");
+        else if (q.duplicate || risky || !q.date || !Number.isFinite(q.amount) || q.amount <= 0) record(q, "ambiguous");
+      }
+      for (const q of qs.filter((q2) => !results.has(q2.key))) {
+        const exact = candidates(q).filter((b) => cents(b.amount) === cents(q.amount));
+        const competitors = qs.filter((other) => cents(other.amount) === cents(q.amount));
+        if (exact.length === 1 && competitors.length === 1) {
+          used.add(exact[0].key);
+          record(q, "complete", exact, 0);
+        } else if (exact.length) record(q, "ambiguous");
+      }
+      const unresolved = qs.filter((q) => !results.has(q.key));
+      for (const q of unresolved) {
+        const remaining = candidates(q);
+        const advances = clientBills.filter((b) => b.type === "Facture d'acompte" && b.amount > 0 && q.date && b.date >= q.date);
+        if (!remaining.length && !advances.length) {
+          record(q, "unmatched");
+          continue;
+        }
+        if (unresolved.length !== 1 || qs.some((other) => results.get(other.key)?.status === "ambiguous") || advances.length || clientBills.some((b) => !b.date)) {
+          record(q, "ambiguous", remaining.concat(advances));
+          continue;
+        }
+        const sum = remaining.reduce((n, b) => n + cents(b.amount), 0);
+        if (sum > 0 && sum <= cents(q.amount)) {
+          remaining.forEach((b) => used.add(b.key));
+          record(q, sum === cents(q.amount) ? "complete" : "partial", remaining, (cents(q.amount) - sum) / 100);
+        } else record(q, "ambiguous", remaining);
+      }
+    }
+    return quotes.map((q) => results.get(q.key));
+  }
+  var MATCH_LABELS = {
+    complete: "Correspondance compl\xE8te probable",
+    partial: "Facturation partielle possible",
+    unmatched: "Aucune correspondance trouv\xE9e",
+    ambiguous: "Rapprochement ambigu",
+    "no-id": "ID client absent"
+  };
+  function reconcileForecast(documents, choices) {
+    const rows = matchQuotes(documents);
+    const byKey = new Map(rows.map((r) => [r.key, r]));
+    const result = rows.map((row) => {
+      const choice = choices.get(row.key);
+      return {
+        ...row,
+        choice,
+        missing: false,
+        review: !!choice && choice.fingerprint !== row.fingerprint
+      };
+    });
+    for (const [key, choice] of choices) {
+      if (!byKey.has(key) && choice.action === "include") {
+        result.push({ ...choice.quote, key, choice, missing: true, review: true, eligible: false });
+      }
+    }
+    return result;
+  }
+  function forecastSummary(rows, data, goal) {
+    const included = rows.filter((r) => r.choice?.action === "include");
+    const active = included.filter((r) => !r.missing && !r.review);
+    const sum = (list) => money(list.reduce((total, r) => total + r.choice.remaining, 0));
+    const confirmed = active.filter((r) => r.choice.situation === "confirmed");
+    const waiting = active.filter((r) => r.choice.situation === "waiting");
+    const snap = data.snapshot.current;
+    const year = String(snap.year);
+    const source = data.years[year];
+    const months = source.months_present || [];
+    const lastMonth = months.length ? Math.max(...months) : 0;
+    const cutoff = lastMonth ? `${year}-${String(lastMonth).padStart(2, "0")}` : null;
+    const dated = confirmed.filter((r) => r.choice.month?.startsWith(year + "-") && r.choice.month > cutoff);
+    const actual = lastMonth && isPeriodCovered(source, lastMonth) && hasObservedValue(source.monthly.ca, 1, lastMonth) ? money(source.monthly.ca.slice(0, lastMonth).reduce((n, v) => n + (v ?? 0), 0)) : null;
+    const annualConfirmed = sum(dated);
+    const actualPlusConfirmed = actual === null ? null : money(actual + annualConfirmed);
+    const monthly = Array(12).fill(null);
+    for (const row of dated) {
+      const i = Number(row.choice.month.slice(5)) - 1;
+      monthly[i] = money((monthly[i] ?? 0) + row.choice.remaining);
+    }
+    return {
+      year,
+      cutoff,
+      active,
+      included,
+      confirmed: sum(confirmed),
+      waiting: sum(waiting),
+      undated: sum(active.filter((r) => !r.choice.month)),
+      reviewCount: included.filter((r) => r.review).length,
+      actual,
+      annualConfirmed,
+      actualPlusConfirmed,
+      monthly,
+      gap: actualPlusConfirmed !== null && Number.isFinite(goal) ? money(goal - actualPlusConfirmed) : null,
+      coveredCount: active.filter((r) => r.choice.month && cutoff && r.choice.month <= cutoff).length,
+      // These invoices are displayed as an informational bridge only. Adding
+      // their total to RES or selections without explicit links risks duplicates.
+      unintegrated: (data.revenue_distribution?.documents || []).filter((d) => ["Facture", "Facture de situation", "Avoir"].includes(d.type) && !/brouillon/i.test(d.state) && d.date?.slice(0, 4) === year && d.date.slice(0, 7) > cutoff)
+    };
+  }
+
   // src/app/parser.js
   var TARGET_LABELS = {
     marge_economique: "Marge \xE9conomique",
@@ -2031,6 +2279,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     header.forEach(function(v, i) {
       col[String(v == null ? "" : v).trim()] = i;
     });
+    var documents = [];
     var quoteByYear = createDictionary(), clientByYear = createDictionary(), quoteCoverage = createDictionary(), advancesByClient = createDictionary(), receivablesByClient = createDictionary();
     function add(map, year2, label, amount2) {
       if (!map[year2]) map[year2] = createDictionary();
@@ -2056,6 +2305,20 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       var state = String(row[col.Etat] == null ? "" : row[col.Etat]).toLocaleLowerCase("fr-FR");
       var client = String(row[col.Client] == null ? "" : row[col.Client]).trim();
       var amount = toFloat(row[col["Montant H.T."]]), date = dateOf(row[col.Date]);
+      if (["Devis", "Facture", "Facture de situation", "Facture d'acompte", "Avoir"].includes(type) && state.indexOf("brouillon") === -1) {
+        const text = (key) => String(row[col[key]] ?? "").trim();
+        documents.push({
+          type,
+          state,
+          client,
+          amount,
+          client_id: text("N\xB0 client"),
+          activity: text("Code activit\xE9"),
+          number: text("Num\xE9ro chrono"),
+          title: text("Titre"),
+          date: date ? [date.getFullYear(), String(date.getMonth() + 1).padStart(2, "0"), String(date.getDate()).padStart(2, "0")].join("-") : null
+        });
+      }
       if (!date || amount === null || !client) continue;
       var year = String(date.getFullYear());
       if (type === "Devis" && state.indexOf("valid") !== -1 && state.indexOf("imp") !== -1 && amount > 0) {
@@ -2114,7 +2377,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         return b.amount - a.amount;
       });
     }
-    return { by_year: byYear, payment_details: { advances: detailList(advancesByClient), receivables: detailList(receivablesByClient) } };
+    return { by_year: byYear, documents: prepareDocuments(documents), payment_details: { advances: detailList(advancesByClient), receivables: detailList(receivablesByClient) } };
   }
   function parsePiecesDate(value) {
     if (value === null || value === void 0 || value === "") return null;
@@ -2296,7 +2559,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   }
 
   // src/app/views/annual-cap.js
-  function renderCapProjections(host, { year, salary, result, margin, revenue, goals }, { money, escape }) {
+  function renderCapProjections(host, { year, salary, result, margin, revenue, goals }, { money: money2, escape }) {
     const cards = [
       ["Salaire net d\xE9gageable", salary, goals.salary, true],
       ["Projection r\xE9sultat " + year, result, goals.result],
@@ -2306,8 +2569,218 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     host.innerHTML = cards.map(([title, value, goal, monthly]) => {
       const available = Number.isFinite(value);
       const delta = available ? Math.round(value - goal) : null;
-      return '<article class="cap-projection"><h4>' + escape(title) + '</h4><strong class="cap-projection-value">' + (available ? "\u2248 " + money(value) : "\u2014") + (monthly ? ' <span class="cap-projection-unit">/ mois</span>' : "") + '</strong><span class="cap-projection-delta ' + (available ? delta >= 0 ? "positive" : "negative" : "unavailable") + '">' + (available ? (delta > 0 ? "+" : "") + money(delta) + " vs objectif" : "Projection indisponible") + '</span><span class="cap-projection-goal">Objectif : <b>' + money(goal) + "</b></span>" + (monthly ? '<span class="cap-salary-context">\xC0 date \xB7 r\xE9sultat \xE0 l\u2019\xE9quilibre</span>' : "") + "</article>";
+      return '<article class="cap-projection"><h4>' + escape(title) + '</h4><strong class="cap-projection-value">' + (available ? "\u2248 " + money2(value) : "\u2014") + (monthly ? ' <span class="cap-projection-unit">/ mois</span>' : "") + '</strong><span class="cap-projection-delta ' + (available ? delta >= 0 ? "positive" : "negative" : "unavailable") + '">' + (available ? (delta > 0 ? "+" : "") + money2(delta) + " vs objectif" : "Projection indisponible") + '</span><span class="cap-projection-goal">Objectif : <b>' + money2(goal) + "</b></span>" + (monthly ? '<span class="cap-salary-context">\xC0 date \xB7 r\xE9sultat \xE0 l\u2019\xE9quilibre</span>' : "") + "</article>";
     }).join("");
+  }
+
+  // src/app/state/forecast.js
+  var FORECAST_KEY = "cabestan_forecast_v1";
+  function validateChoice(choice) {
+    return choice && ["include", "exclude"].includes(choice.action) && typeof choice.fingerprint === "string" && choice.quote && typeof choice.quote === "object" && (choice.action === "exclude" || ["confirmed", "waiting"].includes(choice.situation) && Number.isFinite(choice.remaining) && choice.remaining >= 0 && (choice.month === null || validMonth(choice.month)));
+  }
+  function createForecastStorage(storage) {
+    let choices = /* @__PURE__ */ new Map();
+    let warning = "";
+    try {
+      const raw = storage.getItem(FORECAST_KEY);
+      if (raw !== null) {
+        const saved = JSON.parse(raw);
+        if (saved.version !== 1 || !Array.isArray(saved.entries) || saved.entries.some((e) => !Array.isArray(e) || typeof e[0] !== "string" || !validateChoice(e[1]))) throw new Error("invalid");
+        choices = new Map(saved.entries);
+      }
+    } catch {
+      warning = "Les choix m\xE9moris\xE9s du pr\xE9visionnel sont illisibles ou inaccessibles. Le cache existant est conserv\xE9.";
+    }
+    let blocked = !!warning;
+    return {
+      get choices() {
+        return new Map(choices);
+      },
+      get warning() {
+        return warning;
+      },
+      set(key, choice) {
+        if (choice !== null && !validateChoice(choice)) throw new Error("Pr\xE9vision invalide.");
+        const next = new Map(choices);
+        if (choice === null) next.delete(key);
+        else next.set(key, choice);
+        choices = next;
+        if (blocked) {
+          warning = "Choix utilisables pour cette session seulement : le cache pr\xE9c\xE9dent, illisible ou inaccessible, est conserv\xE9.";
+          return false;
+        }
+        try {
+          storage.setItem(FORECAST_KEY, JSON.stringify({ version: 1, entries: [...choices] }));
+          warning = "";
+          return true;
+        } catch {
+          warning = "Choix utilisables pour cette session, mais non m\xE9moris\xE9s apr\xE8s rechargement. L\u2019ancien cache est conserv\xE9.";
+          return false;
+        }
+      }
+    };
+  }
+
+  // src/app/views/forecast.js
+  function createForecastView({ money: money2, escape: esc2, onChange }) {
+    const storage = createForecastStorage({ getItem: (key) => localStorage.getItem(key), setItem: (key, value) => localStorage.setItem(key, value) });
+    const host = document.getElementById("revenue-forecast");
+    const manager = document.getElementById("forecast-manager");
+    const editor = document.getElementById("forecast-editor");
+    const el = (id) => document.getElementById(id);
+    let data, goal, rows = [], summary, tab = "review", monthFilter = "", editingKey = null, returnFocus;
+    const selected = (r) => r.choice?.action === "include";
+    const candidate = (r) => !r.missing && !selected(r) && r.eligible && (r.choice?.action !== "exclude" || r.review);
+    const monthName = (m) => m ? new Date(Number(m.slice(0, 4)), Number(m.slice(5)) - 1, 1).toLocaleDateString("fr-FR", { month: "long", year: "numeric" }) : "Sans date pr\xE9vue";
+    const describe = (r) => r.missing ? "Absent de cet export \xB7 \xE0 v\xE9rifier" : r.review && selected(r) ? "Pi\xE8ces modifi\xE9es \xB7 \xE0 v\xE9rifier" : r.choice?.action === "exclude" && !r.review ? "\xC9cart\xE9 manuellement" : MATCH_LABELS[r.status];
+    function recalculate() {
+      rows = reconcileForecast(data.revenue_distribution?.documents || [], storage.choices);
+      summary = forecastSummary(rows, data, goal);
+      data.forecast = summary;
+    }
+    function renderSummary() {
+      const hasDocuments = Array.isArray(data.revenue_distribution?.documents);
+      const cap = el("cap-forecast");
+      const warning = storage.warning ? `<p class="forecast-warning" role="alert">${esc2(storage.warning)}</p>` : "";
+      if (!hasDocuments) {
+        host.innerHTML = `<div class="forecast-head"><div><h2 id="forecast-title">Chiffre d\u2019affaires \xE0 venir</h2><p class="small">Montants HT restant \xE0 facturer</p></div><button class="btn" data-f-action="import">Importer les Pi\xE8ces</button></div><p class="small">Ajoute un export Pi\xE8ces incluant tous les devis, m\xEAme non factur\xE9s. Les brouillons sont exclus automatiquement.</p>${warning}${summary.included.length ? '<p class="forecast-warning">Tes choix sont conserv\xE9s. R\xE9importe les Pi\xE8ces pour les rapprocher et r\xE9activer le pr\xE9visionnel.</p>' : ""}`;
+        if (cap) cap.innerHTML = "";
+        return;
+      }
+      const confirmedCount = summary.active.filter((r) => r.choice.situation === "confirmed").length;
+      const waitingCount = summary.active.filter((r) => r.choice.situation === "waiting").length;
+      const baseYear = Number(summary.year);
+      const nextMonth = summary.cutoff ? Number(summary.cutoff.slice(5)) + 1 : 1;
+      const calendar = new Set(summary.active.map((r) => r.choice.month).filter(Boolean));
+      for (let i = 0; i < 3; i++) {
+        const d = new Date(baseYear, nextMonth - 1 + i, 1);
+        calendar.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+      }
+      const months = [...calendar].sort().concat("");
+      const monthValues = months.map((m) => {
+        const list = summary.active.filter((r) => (r.choice.month || "") === m);
+        const sum = (situation) => list.filter((r) => r.choice.situation === situation).reduce((n, r) => n + r.choice.remaining, 0);
+        return { month: m, confirmed: sum("confirmed"), waiting: sum("waiting") };
+      });
+      const max = Math.max(1, ...monthValues.flatMap((v) => [v.confirmed, v.waiting]));
+      host.innerHTML = `<div class="forecast-head"><div><h2 id="forecast-title">Chiffre d\u2019affaires \xE0 venir</h2><p class="small">Montants HT restant \xE0 facturer \xB7 ta s\xE9lection de devis</p></div><button class="btn primary" data-f-action="manage">G\xE9rer les devis</button></div>${warning}
+      <div class="forecast-kpis"><div><span>Travaux confirm\xE9s</span><strong>${money2(summary.confirmed)}</strong><small>${confirmedCount} devis \xB7 reste \xE0 facturer</small></div><div><span>En attente client</span><strong>${money2(summary.waiting)}</strong><small>${waitingCount} devis \xB7 potentiel non acquis</small></div><div><span>Dont sans date pr\xE9vue</span><strong>${money2(summary.undated)}</strong><small>\xC0 positionner dans le temps</small></div></div>
+      ${summary.reviewCount ? `<p class="forecast-warning">${summary.reviewCount} devis s\xE9lectionn\xE9(s) \xE0 v\xE9rifier apr\xE8s import. Leurs montants saisis sont conserv\xE9s, mais suspendus des totaux. <button class="forecast-link" data-f-action="selected">V\xE9rifier</button></p>` : ""}
+      ${summary.coveredCount ? `<p class="small">${summary.coveredCount} devis pr\xE9vu(s) sur une p\xE9riode d\xE9j\xE0 couverte par le RES : \xE0 replanifier. Non ajout\xE9s au r\xE9alis\xE9.</p>` : ""}
+      <h3>Facturation pr\xE9vue</h3><div class="forecast-legend"><span><i></i>Travaux confirm\xE9s</span><span><i class="waiting"></i>En attente client</span></div>
+      <div class="forecast-months">${monthValues.map((v) => `<button class="forecast-month" data-f-month="${esc2(v.month || "none")}" aria-label="${esc2(monthName(v.month))} : ${money2(v.confirmed)} confirm\xE9s, ${money2(v.waiting)} en attente"><span>${esc2(monthName(v.month))}</span><div class="forecast-bars" aria-hidden="true"><i style="height:${v.confirmed / max * 64}px"></i><i class="waiting" style="height:${v.waiting / max * 64}px"></i></div><strong>${money2(v.confirmed)}</strong><small>+ ${money2(v.waiting)} en attente</small></button>`).join("")}</div>
+      <div class="forecast-footer"><div><strong>${rows.filter(candidate).length} devis \xE0 examiner</strong><p class="small">Le rapprochement propose, tu choisis ce qui entre au pr\xE9visionnel.</p></div><button class="btn" data-f-action="review">Examiner les propositions</button></div>
+      <details class="forecast-method"><summary>Comprendre les montants et les rapprochements</summary><p>Comparaison des montants HT par ID client et activit\xE9. Chaque facture est utilis\xE9e au plus une fois. Les acomptes, avoirs et correspondances ambigu\xEBs demandent une v\xE9rification. Les statuts d\u2019accord Louty ne d\xE9cident pas de ta s\xE9lection.</p><p>La marge brute, le r\xE9sultat, le salaire et la tr\xE9sorerie ne sont pas recalcul\xE9s \xE0 partir de ces devis. Les montants confirm\xE9s sont s\xE9par\xE9s de la projection statistique.</p><p>Les choix restent sur ce navigateur. Un nouvel import ne remplace jamais un montant saisi manuellement.</p></details>`;
+      if (cap) cap.innerHTML = `<div class="forecast-cap"><h3>CA r\xE9alis\xE9 + confirm\xE9 pr\xE9vu \xB7 ${esc2(summary.year)}</h3><div class="forecast-cap-values"><div><span>R\xE9alis\xE9 RES</span><strong>${money2(summary.actual)}</strong></div><span aria-hidden="true">+</span><div><span>Confirm\xE9 apr\xE8s ${esc2(monthName(summary.cutoff))}</span><strong>${money2(summary.annualConfirmed)}</strong></div><span aria-hidden="true">=</span><div><span>R\xE9alis\xE9 + confirm\xE9 pr\xE9vu</span><strong>${money2(summary.actualPlusConfirmed)}</strong></div><div><span>${summary.gap !== null && summary.gap < 0 ? "Au-del\xE0 de l\u2019objectif" : "Reste \xE0 couvrir"}</span><strong>${money2(summary.gap === null ? null : Math.abs(summary.gap))}</strong></div></div><p class="small">Base partielle : seuls les devis confirm\xE9s, v\xE9rifi\xE9s et dat\xE9s apr\xE8s les mois couverts par le RES et avant fin ${esc2(summary.year)} sont ajout\xE9s. Ne s\u2019ajoute pas \xE0 la projection statistique.</p>${summary.unintegrated.length ? `<details class="forecast-method"><summary>${summary.unintegrated.length} facture(s) / avoir(s) dat\xE9s apr\xE8s la p\xE9riode RES \xB7 ${money2(summary.unintegrated.reduce((n, d) => n + (d.amount ?? 0), 0))} HT</summary><p>Rep\xE8re \xE0 rapprocher du prochain RES. Ce montant n\u2019est pas ajout\xE9 automatiquement : il pourrait recouper les devis s\xE9lectionn\xE9s.</p><ul>${summary.unintegrated.map((d) => `<li>${esc2(d.date)} \xB7 ${esc2(d.number || d.type)} \xB7 ${esc2(d.client)} : ${money2(d.amount)}</li>`).join("")}</ul></details>` : ""}</div>`;
+    }
+    function renderList() {
+      const text = el("forecast-search").value.toLocaleLowerCase("fr");
+      const counts = { review: rows.filter(candidate).length, selected: rows.filter(selected).length, all: rows.filter((r) => !r.missing).length };
+      manager.querySelectorAll("[data-f-tab]").forEach((b) => {
+        b.setAttribute("aria-pressed", String(b.dataset.fTab === tab));
+        b.textContent = { review: "\xC0 examiner", selected: "Dans le pr\xE9visionnel", all: "Tous les devis" }[b.dataset.fTab] + " \xB7 " + counts[b.dataset.fTab];
+      });
+      const filtered = rows.filter((r) => tab === "review" ? candidate(r) : tab === "selected" ? selected(r) : !r.missing).filter((r) => !monthFilter || (r.choice?.month || "none") === monthFilter).filter((r) => `${r.client} ${r.number} ${r.title}`.toLocaleLowerCase("fr").includes(text));
+      el("forecast-filter").textContent = monthFilter ? `Filtre : ${monthName(monthFilter === "none" ? null : monthFilter)}. Cliquer sur un onglet pour effacer.` : tab === "all" ? "Ajout manuel possible, m\xEAme si une facturation compl\xE8te semble correspondre." : "Brouillons exclus \xB7 rapprochements indicatifs";
+      el("forecast-list").innerHTML = filtered.length ? filtered.map((r) => {
+        const index = rows.indexOf(r);
+        return `<article class="forecast-row"><div><strong>${esc2(r.client || "Client non renseign\xE9")}</strong><p class="small">${esc2(r.number || "Sans num\xE9ro")} \xB7 ${esc2(r.date || "Date absente")}</p><p class="small">${esc2(r.title)}</p></div><div class="forecast-row-amount">${money2(tab === "selected" ? r.choice.remaining : r.amount)}<small>${tab === "selected" ? "restant HT" : "devis HT"}</small></div><div><span class="forecast-badge ${r.review || ["ambiguous", "no-id"].includes(r.status) ? "warn" : ""}">${esc2(describe(r))}</span>${selected(r) ? `<p class="small">${r.choice.situation === "confirmed" ? "Travaux confirm\xE9s" : "En attente client"} \xB7 ${esc2(monthName(r.choice.month))}</p>` : ""}</div><div class="forecast-row-actions">${!r.missing ? `<button class="btn" data-f-edit="${index}">${selected(r) ? r.review ? "V\xE9rifier" : "Modifier" : "Ajouter"}</button>` : ""}${selected(r) ? `<button class="forecast-link" data-f-remove="${index}">Retirer</button>` : tab === "review" ? `<button class="forecast-link" data-f-exclude="${index}">\xC9carter</button>` : ""}</div></article>`;
+      }).join("") : '<p class="forecast-empty">Aucun devis dans cette vue.</p>';
+      el("forecast-storage-message").textContent = storage.warning;
+    }
+    function openManager(nextTab = "review", filter = "") {
+      tab = nextTab;
+      monthFilter = filter;
+      el("forecast-search").value = "";
+      el("forecast-message").textContent = "";
+      renderList();
+      if (!manager.open) {
+        returnFocus = document.activeElement;
+        manager.showModal();
+      }
+    }
+    function quoteSnapshot(row) {
+      return { client: row.client, number: row.number, date: row.date, amount: row.amount, title: row.title, activity: row.activity };
+    }
+    function commit(row, choice, message) {
+      const persisted = storage.set(row.key, choice);
+      recalculate();
+      renderSummary();
+      renderList();
+      onChange(summary);
+      el("forecast-message").textContent = persisted ? message : "Modification appliqu\xE9e pour cette session uniquement.";
+    }
+    function openEditor(index) {
+      const row = rows[index];
+      if (!row || row.missing) return;
+      editingKey = row.key;
+      el("forecast-editor-title").textContent = selected(row) ? "Modifier la pr\xE9vision" : "Ajouter au pr\xE9visionnel";
+      el("forecast-editor-subtitle").textContent = `${row.client} \xB7 ${row.number || "Sans num\xE9ro"} \xB7 ${money2(row.amount)} HT`;
+      el("forecast-situation").value = row.choice?.situation || "confirmed";
+      el("forecast-amount").value = selected(row) ? row.choice.remaining : row.proposed ?? "";
+      el("forecast-month").value = row.choice?.month || "";
+      el("forecast-note").textContent = row.review ? "Les pi\xE8ces ont chang\xE9. Ton montant saisi a \xE9t\xE9 conserv\xE9. V\xE9rifie-le avant de r\xE9activer cette pr\xE9vision." : row.status === "complete" ? "Une correspondance compl\xE8te est probable. Saisis le montant restant si tu souhaites ajouter ce devis manuellement." : "V\xE9rifie le montant restant et la situation r\xE9elle du chantier avant de confirmer.";
+      el("forecast-evidence").innerHTML = `<p>${esc2(MATCH_LABELS[row.status])}. ${row.status === "no-id" ? "Aucun rapprochement automatique sans ID client." : "Les montants rapproch\xE9s ne prouvent pas le rattachement au devis."}</p>${row.duplicate ? "<p>Plusieurs pi\xE8ces portent cette m\xEAme identit\xE9. Elles sont regroup\xE9es ici et demandent une v\xE9rification.</p>" : ""}<ul>${(row.matched || []).map((b) => `<li>${esc2(b.type)} ${esc2(b.number)} \xB7 ${esc2(b.date || "date absente")} : ${money2(b.amount)} HT</li>`).join("")}</ul>`;
+      el("forecast-evidence").closest("details").open = false;
+      el("forecast-form-error").textContent = "";
+      editor.showModal();
+    }
+    host.addEventListener("click", (e) => {
+      const b = e.target.closest("button");
+      if (!b) return;
+      if (b.dataset.fAction === "import") el("forecast-input").click();
+      else if (b.dataset.fMonth) openManager("selected", b.dataset.fMonth);
+      else openManager(b.dataset.fAction === "selected" ? "selected" : "review");
+    });
+    manager.addEventListener("click", (e) => {
+      const b = e.target.closest("button");
+      if (!b) return;
+      if (b.dataset.fTab) openManager(b.dataset.fTab);
+      if (b.dataset.fEdit !== void 0) openEditor(Number(b.dataset.fEdit));
+      if (b.dataset.fExclude !== void 0) {
+        const row = rows[Number(b.dataset.fExclude)];
+        commit(row, { action: "exclude", fingerprint: row.fingerprint, quote: quoteSnapshot(row) }, "Devis \xE9cart\xE9. Il reste accessible dans \xAB Tous les devis \xBB.");
+      }
+      if (b.dataset.fRemove !== void 0) commit(rows[Number(b.dataset.fRemove)], null, "Devis retir\xE9 du pr\xE9visionnel.");
+      if (b.dataset.fAction === "close-manager") manager.close();
+    });
+    editor.addEventListener("click", (e) => {
+      if (e.target.closest('[data-f-action="close-editor"]')) editor.close();
+    });
+    el("forecast-search").addEventListener("input", renderList);
+    el("forecast-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const row = rows.find((r) => r.key === editingKey);
+      const remaining = Number(el("forecast-amount").value);
+      if (!row || row.missing || !Number.isFinite(remaining) || remaining < 0 || el("forecast-amount").value === "") {
+        el("forecast-form-error").textContent = "Saisis un montant HT valide, sup\xE9rieur ou \xE9gal \xE0 z\xE9ro.";
+        return;
+      }
+      commit(row, {
+        action: "include",
+        fingerprint: row.fingerprint,
+        quote: quoteSnapshot(row),
+        remaining: Math.round(remaining * 100) / 100,
+        situation: el("forecast-situation").value,
+        month: el("forecast-month").value || null
+      }, "Pr\xE9vision enregistr\xE9e.");
+      editor.close();
+    });
+    manager.addEventListener("close", () => {
+      const target = returnFocus?.isConnected ? returnFocus : host.querySelector('[data-f-action="manage"]');
+      target?.focus();
+    });
+    editor.addEventListener("close", () => el("forecast-search").focus());
+    return {
+      render(nextData, nextGoal) {
+        if (data && data !== nextData && editor.open) editor.close();
+        data = nextData;
+        goal = nextGoal;
+        recalculate();
+        renderSummary();
+        if (manager.open) renderList();
+      }
+    };
   }
 
   // src/app/charts/cartesian.js
@@ -2386,6 +2859,18 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
           borderSkipped: false
         }
       ];
+      if (DATA2?.forecast?.monthly.some((value) => value !== null)) {
+        datasets.push({
+          type: "bar",
+          label: "CA confirm\xE9 \xE0 facturer (s\xE9lection)",
+          data: DATA2.forecast.monthly,
+          backgroundColor: COLORS2.blue,
+          stack: "forecast",
+          order: 3,
+          borderRadius: R,
+          borderSkipped: false
+        });
+      }
       if (currentMonthProjection) {
         var projectionMB = Array(12).fill(null);
         var projectionCosts = Array(12).fill(null);
@@ -2990,7 +3475,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     });
   }
   function parseExportDate(name) {
-    const match = /_(\d{2})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})\.xlsx$/i.exec(name || "");
+    const match = /(?:_|^Pieces)(\d{2})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})\.xlsx$/i.exec(name || "");
     if (!match) return null;
     const date = new Date(2e3 + +match[1], +match[2] - 1, +match[3], +match[4], +match[5], +match[6]);
     return Number.isNaN(date.getTime()) ? null : date.toISOString();
@@ -3326,6 +3811,11 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   var DATA = null;
   var distributionYear = null;
   var pilotageMetric = "mb";
+  var forecastView = createForecastView({ money: fmtEUR, escape: esc, onChange: function(summary) {
+    DATA.forecast = summary;
+    const year = DATA.snapshot.current.year;
+    renderCAMB(DATA.years[year], year, DATA.years);
+  } });
   var { renderCAMB, renderTauxAnnuel, renderCumulChart, renderAchatsCAChart, renderRepartYears } = createCartesianCharts({
     MONTH_NAMES,
     COLORS,
@@ -3351,6 +3841,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     const prevYearKey = String(parseInt(currentYear) - 1);
     const py = years[prevYearKey] || null;
     renderAnnualCap(data);
+    forecastView.render(data, C.CA_OBJ);
     renderBanner(data, cur, prev);
     renderSante(data, cur);
     renderPerformanceKpis(cy, py, cur);
@@ -3840,7 +4331,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var chargesReference = ref.n1 && isFinite(ref.n1.charges) ? ref.n1.charges : ref.charges;
     var chargesReferencePeriod = ref.n1 && ref.n1.year ? ref.n1.year : ref.label;
     var maxCharges = Math.max(5e3, Math.ceil(Math.max(ref.charges, PLAN.charges) * 1.8 / 1e3) * 1e3);
-    host.innerHTML = '<div class="annual-cap-head"><div><h2 id="annual-cap-title">Mon cap annuel</h2><p class="annual-cap-intro">Tes objectifs et les projections au m\xEAme endroit.</p></div></div><div class="cap-overview"><div class="cap-section-head"><h3 class="cap-section-heading">' + capSectionIcon("compass") + 'Ce que je vise</h3><button type="button" class="btn ghost" id="cap-edit" aria-haspopup="dialog" aria-controls="cap-drawer">Modifier mes objectifs</button></div><div id="cap-projections" class="cap-projections"></div><h3 class="cap-section-heading">' + capSectionIcon("trend") + 'O\xF9 j\u2019en suis</h3><div id="cap-actual" class="cap-actual"></div><details class="cap-explanation"><summary>Comprendre la projection</summary><p>Les projections de marge brute et de chiffre d\u2019affaires additionnent le r\xE9alis\xE9 \xE0 date et la moyenne des mois restants des exercices complets de r\xE9f\xE9rence. Sans historique exploitable, la projection est indisponible.</p><p id="cap-projection-method"></p><p>Le salaire net est une estimation avant imp\xF4t, calcul\xE9e avec le coefficient personnel de conversion du brut Louty. Ces montants annuels ne d\xE9crivent pas la tr\xE9sorerie disponible ni un bulletin de paie.</p></details></div><div class="cap-sim" id="cap-sim" hidden><div class="cap-sim-head"><div><h3>Modifier mon cap et mes hypoth\xE8ses</h3><p><span class="cap-origin">R\xE9f\xE9rence</span> vient de tes donn\xE9es r\xE9elles ; <span class="cap-origin custom">Personnalis\xE9</span> signale une valeur modifi\xE9e.</p></div><button type="button" class="btn ghost" id="cap-close">Fermer</button></div><div class="cap-inputs"><div class="cap-field"><label for="cap-salary">Salaire net mensuel \xE0 financer</label><div class="cap-control-row"><div class="cap-linked-inputs"><input id="cap-salary" type="number" min="0" step="1" value="' + Math.round(PLAN.salary / 12 * NET_FROM_GROSS) + '"><span class="cap-percent-input"><input id="cap-salary-change" type="number" step="0.1" value="' + Math.round(salaryChangePct * 10) / 10 + '" aria-label="\xC9volution du salaire par rapport \xE0 N-1"><span>%</span></span></div><button type="button" class="cap-mini-btn" id="cap-salary-ref">N-1 : ' + fmtEUR(salaryReferenceNet) + '</button></div><div class="cap-source">Salaire net moyen en ' + ref.n1.year + " : <strong>" + fmtEUR(salaryReferenceNet) + '/mois</strong></div></div><div class="cap-field"><label for="cap-surplus">R\xE9sultat annuel vis\xE9</label><div class="cap-control-row"><div class="cap-linked-inputs"><input id="cap-surplus" type="number" min="0" step="1" value="' + Math.round(PLAN.surplus) + '"><span class="cap-percent-input"><input id="cap-surplus-change" type="number" step="0.1" value="' + (ref.surplus > 0 ? Math.round(surplusChangePct * 10) / 10 : "") + '" placeholder="\u2014" aria-label="\xC9volution du r\xE9sultat par rapport \xE0 N-1"' + (ref.surplus > 0 ? "" : ' disabled title="Impossible \xE0 calculer : le r\xE9sultat N-1 est nul ou n\xE9gatif"') + '><span>%</span></span></div><button type="button" class="cap-mini-btn" id="cap-surplus-ref">N-1 : ' + fmtEUR(ref.surplus) + '</button></div><div class="cap-source">R\xE9sultat net N-1 (' + ref.n1.year + ") : <strong>" + fmtEUR(ref.n1.netResult) + '</strong></div></div><div class="cap-field cap-slider-field"><label for="cap-margin"><span class="cap-label-copy">Taux de marge brute sur CA pr\xE9visionnel <span class="sp-help" data-tip="Taux de marge brute = marge brute \xF7 chiffre d\u2019affaires. La marge brute est ce qui reste du CA apr\xE8s les achats mati\xE8res ; elle sert ensuite \xE0 financer salaires, charges, contribution coop\xE9rative et r\xE9sultat vis\xE9." tabindex="0" aria-label="Explication du taux de marge brute">?</span></span></label><output class="cap-slider-value" id="cap-margin-out">' + fmtPct(PLAN.margin, 1) + '</output><div class="cap-control-row"><div class="cap-range"><input id="cap-margin" type="range" min="0.2" max="0.9" step="0.005" value="' + PLAN.margin + '"><span class="cap-range-marker" style="left:' + Math.max(0, Math.min(100, (marginReference - 0.2) / 0.7 * 100)) + '%" title="R\xE9f\xE9rence : ' + fmtPct(marginReference, 1) + " \xB7 " + marginReferencePeriod + '"><span class="cap-range-ref-value">' + fmtPct(marginReference, 1) + '</span><span class="cap-range-ref-period">' + marginReferencePeriod + '</span></span></div><button type="button" class="cap-mini-btn" id="cap-margin-n1">N-1 : ' + fmtPct(ref.n1.margin, 1) + '</button></div></div><div class="cap-field cap-slider-field"><label for="cap-charges"><span class="cap-label-copy">Charges annuelles \xE0 financer pr\xE9visionnelles <span class="sp-help" data-tip="Les charges \xE0 financer regroupent les charges de fonctionnement et la contribution coop\xE9rative. Elles s\u2019ajoutent au salaire brut et au r\xE9sultat vis\xE9 pour calculer la marge brute n\xE9cessaire. N-1 (' + ref.n1.year + ") : " + fmtEUR(ref.n1.chargesFonct) + " de charges de fonctionnement + " + fmtEUR(ref.n1.contribution) + " de contribution coop\xE9rative = " + fmtEUR(ref.n1.charges) + '." tabindex="0" aria-label="D\xE9tail des charges annuelles \xE0 financer">?</span></span></label><output class="cap-slider-value" id="cap-charges-out">' + fmtEUR(PLAN.charges) + '</output><div class="cap-control-row"><div class="cap-range"><input id="cap-charges" type="range" min="0" max="' + maxCharges + '" step="1" value="' + Math.min(maxCharges, Math.round(PLAN.charges)) + '"><span class="cap-range-marker" style="left:' + Math.max(0, Math.min(100, chargesReference / maxCharges * 100)) + '%" title="R\xE9f\xE9rence : ' + fmtEUR(chargesReference) + " \xB7 " + chargesReferencePeriod + '"><span class="cap-range-ref-value">' + fmtEUR(chargesReference) + '</span><span class="cap-range-ref-period">' + chargesReferencePeriod + '</span></span></div><button type="button" class="cap-mini-btn" id="cap-charges-n1">N-1 : ' + fmtEUR(ref.n1.charges) + '</button></div></div></div><div class="cap-result" id="cap-result"></div><div class="cap-actions"><button type="button" class="btn primary" id="cap-apply">Utiliser cette trajectoire</button><button type="button" class="btn ghost" id="cap-reset">Revenir \xE0 mon historique</button></div><div class="cap-preview-status" id="cap-preview-status"></div></div>';
+    host.innerHTML = '<div class="annual-cap-head"><div><h2 id="annual-cap-title">Mon cap annuel</h2><p class="annual-cap-intro">Tes objectifs et les projections au m\xEAme endroit.</p></div></div><div class="cap-overview"><div class="cap-section-head"><h3 class="cap-section-heading">' + capSectionIcon("compass") + 'Ce que je vise</h3><button type="button" class="btn ghost" id="cap-edit" aria-haspopup="dialog" aria-controls="cap-drawer">Modifier mes objectifs</button></div><div id="cap-projections" class="cap-projections"></div><h3 class="cap-section-heading">' + capSectionIcon("trend") + 'O\xF9 j\u2019en suis</h3><div id="cap-actual" class="cap-actual"></div><div id="cap-forecast"></div><details class="cap-explanation"><summary>Comprendre la projection</summary><p>Les projections de marge brute et de chiffre d\u2019affaires additionnent le r\xE9alis\xE9 \xE0 date et la moyenne des mois restants des exercices complets de r\xE9f\xE9rence. Sans historique exploitable, la projection est indisponible.</p><p id="cap-projection-method"></p><p>Le salaire net est une estimation avant imp\xF4t, calcul\xE9e avec le coefficient personnel de conversion du brut Louty. Ces montants annuels ne d\xE9crivent pas la tr\xE9sorerie disponible ni un bulletin de paie.</p></details></div><div class="cap-sim" id="cap-sim" hidden><div class="cap-sim-head"><div><h3>Modifier mon cap et mes hypoth\xE8ses</h3><p><span class="cap-origin">R\xE9f\xE9rence</span> vient de tes donn\xE9es r\xE9elles ; <span class="cap-origin custom">Personnalis\xE9</span> signale une valeur modifi\xE9e.</p></div><button type="button" class="btn ghost" id="cap-close">Fermer</button></div><div class="cap-inputs"><div class="cap-field"><label for="cap-salary">Salaire net mensuel \xE0 financer</label><div class="cap-control-row"><div class="cap-linked-inputs"><input id="cap-salary" type="number" min="0" step="1" value="' + Math.round(PLAN.salary / 12 * NET_FROM_GROSS) + '"><span class="cap-percent-input"><input id="cap-salary-change" type="number" step="0.1" value="' + Math.round(salaryChangePct * 10) / 10 + '" aria-label="\xC9volution du salaire par rapport \xE0 N-1"><span>%</span></span></div><button type="button" class="cap-mini-btn" id="cap-salary-ref">N-1 : ' + fmtEUR(salaryReferenceNet) + '</button></div><div class="cap-source">Salaire net moyen en ' + ref.n1.year + " : <strong>" + fmtEUR(salaryReferenceNet) + '/mois</strong></div></div><div class="cap-field"><label for="cap-surplus">R\xE9sultat annuel vis\xE9</label><div class="cap-control-row"><div class="cap-linked-inputs"><input id="cap-surplus" type="number" min="0" step="1" value="' + Math.round(PLAN.surplus) + '"><span class="cap-percent-input"><input id="cap-surplus-change" type="number" step="0.1" value="' + (ref.surplus > 0 ? Math.round(surplusChangePct * 10) / 10 : "") + '" placeholder="\u2014" aria-label="\xC9volution du r\xE9sultat par rapport \xE0 N-1"' + (ref.surplus > 0 ? "" : ' disabled title="Impossible \xE0 calculer : le r\xE9sultat N-1 est nul ou n\xE9gatif"') + '><span>%</span></span></div><button type="button" class="cap-mini-btn" id="cap-surplus-ref">N-1 : ' + fmtEUR(ref.surplus) + '</button></div><div class="cap-source">R\xE9sultat net N-1 (' + ref.n1.year + ") : <strong>" + fmtEUR(ref.n1.netResult) + '</strong></div></div><div class="cap-field cap-slider-field"><label for="cap-margin"><span class="cap-label-copy">Taux de marge brute sur CA pr\xE9visionnel <span class="sp-help" data-tip="Taux de marge brute = marge brute \xF7 chiffre d\u2019affaires. La marge brute est ce qui reste du CA apr\xE8s les achats mati\xE8res ; elle sert ensuite \xE0 financer salaires, charges, contribution coop\xE9rative et r\xE9sultat vis\xE9." tabindex="0" aria-label="Explication du taux de marge brute">?</span></span></label><output class="cap-slider-value" id="cap-margin-out">' + fmtPct(PLAN.margin, 1) + '</output><div class="cap-control-row"><div class="cap-range"><input id="cap-margin" type="range" min="0.2" max="0.9" step="0.005" value="' + PLAN.margin + '"><span class="cap-range-marker" style="left:' + Math.max(0, Math.min(100, (marginReference - 0.2) / 0.7 * 100)) + '%" title="R\xE9f\xE9rence : ' + fmtPct(marginReference, 1) + " \xB7 " + marginReferencePeriod + '"><span class="cap-range-ref-value">' + fmtPct(marginReference, 1) + '</span><span class="cap-range-ref-period">' + marginReferencePeriod + '</span></span></div><button type="button" class="cap-mini-btn" id="cap-margin-n1">N-1 : ' + fmtPct(ref.n1.margin, 1) + '</button></div></div><div class="cap-field cap-slider-field"><label for="cap-charges"><span class="cap-label-copy">Charges annuelles \xE0 financer pr\xE9visionnelles <span class="sp-help" data-tip="Les charges \xE0 financer regroupent les charges de fonctionnement et la contribution coop\xE9rative. Elles s\u2019ajoutent au salaire brut et au r\xE9sultat vis\xE9 pour calculer la marge brute n\xE9cessaire. N-1 (' + ref.n1.year + ") : " + fmtEUR(ref.n1.chargesFonct) + " de charges de fonctionnement + " + fmtEUR(ref.n1.contribution) + " de contribution coop\xE9rative = " + fmtEUR(ref.n1.charges) + '." tabindex="0" aria-label="D\xE9tail des charges annuelles \xE0 financer">?</span></span></label><output class="cap-slider-value" id="cap-charges-out">' + fmtEUR(PLAN.charges) + '</output><div class="cap-control-row"><div class="cap-range"><input id="cap-charges" type="range" min="0" max="' + maxCharges + '" step="1" value="' + Math.min(maxCharges, Math.round(PLAN.charges)) + '"><span class="cap-range-marker" style="left:' + Math.max(0, Math.min(100, chargesReference / maxCharges * 100)) + '%" title="R\xE9f\xE9rence : ' + fmtEUR(chargesReference) + " \xB7 " + chargesReferencePeriod + '"><span class="cap-range-ref-value">' + fmtEUR(chargesReference) + '</span><span class="cap-range-ref-period">' + chargesReferencePeriod + '</span></span></div><button type="button" class="cap-mini-btn" id="cap-charges-n1">N-1 : ' + fmtEUR(ref.n1.charges) + '</button></div></div></div><div class="cap-result" id="cap-result"></div><div class="cap-actions"><button type="button" class="btn primary" id="cap-apply">Utiliser cette trajectoire</button><button type="button" class="btn ghost" id="cap-reset">Revenir \xE0 mon historique</button></div><div class="cap-preview-status" id="cap-preview-status"></div></div>';
     var cur = data.snapshot.current;
     var capacity = salaryCapacityAtDate(data.years[cur.year], cur.year, cur.mois_renseignes, data.res_export_iso || data.file_mtime_iso, NET_FROM_GROSS);
     renderCapProjections(document.getElementById("cap-projections"), {
@@ -5076,6 +5567,10 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       setFileStatus(LAST_DATA.res_name || null, LAST_DATA.bal_name || null, LAST_DATA.pieces_name || null);
     }).catch(showError);
   }
+  document.getElementById("forecast-input").addEventListener("change", function() {
+    if (this.files.length) ingest(this.files);
+    this.value = "";
+  });
   var dz = document.getElementById("dropzone");
   var fileInput = document.getElementById("file-input");
   document.getElementById("browse-btn").addEventListener("click", function(ev) {
@@ -5180,7 +5675,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var spb = document.querySelector(".sp-body");
     if (spb) spb.addEventListener("scroll", hide);
   })();
-  var APP_VERSION = "20260922-201629";
+  var APP_VERSION = "20261007-160000";
   function showUpdateBanner(base, v) {
     if (document.getElementById("update-banner")) return;
     var d = document.createElement("div");

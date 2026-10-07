@@ -1,4 +1,5 @@
 import { createDictionary } from './domain/schema.js';
+import { prepareDocuments } from './domain/forecast.js';
 
 /* Parser CABESTAN (portage _parser.py) */
 /* ===================================================================
@@ -281,6 +282,7 @@ export function parsePieces(XLSX, workbook) {
     var rows = sheetToMatrix(XLSX, ws);
     var header = rows[0] || [], col = createDictionary();
     header.forEach(function (v, i) { col[String(v == null ? '' : v).trim()] = i; });
+    var documents = [];
     var quoteByYear = createDictionary(), clientByYear = createDictionary(), quoteCoverage = createDictionary(), advancesByClient = createDictionary(), receivablesByClient = createDictionary();
     function add(map, year, label, amount) {
       if (!map[year]) map[year] = createDictionary();
@@ -304,6 +306,12 @@ export function parsePieces(XLSX, workbook) {
       var state = String(row[col.Etat] == null ? '' : row[col.Etat]).toLocaleLowerCase('fr-FR');
       var client = String(row[col.Client] == null ? '' : row[col.Client]).trim();
       var amount = toFloat(row[col['Montant H.T.']]), date = dateOf(row[col.Date]);
+      if (['Devis', 'Facture', 'Facture de situation', "Facture d'acompte", 'Avoir'].includes(type) && state.indexOf('brouillon') === -1) {
+        const text = (key) => String(row[col[key]] ?? '').trim();
+        documents.push({ type, state, client, amount, client_id: text('N° client'),
+          activity: text('Code activité'), number: text('Numéro chrono'), title: text('Titre'),
+          date: date ? [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-') : null });
+      }
       if (!date || amount === null || !client) continue;
       var year = String(date.getFullYear());
       if (type === 'Devis' && state.indexOf('valid') !== -1 && state.indexOf('imp') !== -1 && amount > 0) {
@@ -347,7 +355,7 @@ export function parsePieces(XLSX, workbook) {
         return item;
       }).sort(function (a, b) { return b.amount - a.amount; });
     }
-    return { by_year: byYear, payment_details: { advances: detailList(advancesByClient), receivables: detailList(receivablesByClient) } };
+    return { by_year: byYear, documents: prepareDocuments(documents), payment_details: { advances: detailList(advancesByClient), receivables: detailList(receivablesByClient) } };
   }
 
 export function parsePiecesDate(value) {

@@ -12,6 +12,7 @@ Ouvre le dashboard via le lien ci-dessus (ou le fichier [`index.html`](index.htm
 
 - **`RES_U_Résultat d'Activité`** (`.xlsx`, obligatoire) — marge brute, chiffre d'affaires, achats, charges, comparaisons N-1…
 - **`BAL_A_Balance Analytique`** (`.xlsx`, facultatif) — trésorerie, dettes, position nette (carte « Santé financière »).
+- **`Pièces`** (`.xlsx`, facultatif) — devis, factures, prévisionnel et répartition du CA par client. Inclure les devis facturés **et non facturés**, les factures, situations, acomptes et avoirs, sans filtre d’accord client ni de règlement. Les brouillons sont exclus automatiquement.
 
 Les deux fichiers se téléchargent dans Louty, rubrique **Rapports de gestion**. Au téléchargement du Résultat d'Activité, coche **toutes les années** dans la fenêtre « Exercices » pour activer les comparaisons et cumuls.
 
@@ -26,6 +27,18 @@ En tête du tableau de bord, définis ton **revenu annuel à financer** et le **
 Le premier bloc réunit les projections annuelles et les avancements à date. Le **salaire net dégageable** représente la capacité moyenne de rémunération créée à date : marge brute moins charges de fonctionnement et contribution coopérative, sans déduire les salaires déjà versés, convertie en net avec le coefficient personnel existant. Le mois de l’export est compté au prorata des jours écoulés, jour de l’export inclus ; les mois couverts antérieurs sont complets. Un déficit donne une capacité nulle et reste signalé dans « Comprendre la projection ». Les données ou dates manquantes donnent une valeur indisponible. Le résultat annuel projeté utilise, lui, les rémunérations et charges annuelles prévues dans les objectifs.
 
 Le simulateur de trajectoire (taux de marge et charges) est initialisé à partir des données réelles des deux derniers exercices complets, puis mémorisé sur ton poste. Le CA nécessaire est calculé automatiquement à partir du cap et du taux de marge choisi. Tu peux à tout moment revenir à cette référence historique. Les seuils de lecture des graphiques restent accessibles via la roue crantée.
+
+## Chiffre d’affaires à venir
+
+La nouvelle carte, sous « Mon cap annuel », présente les **montants HT restant à facturer**. Dans « Gérer les devis », le préfiltre rapproche les montants par **ID client et code activité**, sans utiliser la date d’accord. Les correspondances exactes uniques passent avant les sommes de factures restantes ; aucune facture n’est affectée à plusieurs devis. Sans ID client, avec des devis concurrents, acomptes ou avoirs, la proposition reste à vérifier. Ce rapprochement ne prouve jamais une facturation.
+
+« Tous les devis » permet d’ajouter manuellement un devis masqué par le préfiltre. Chaque sélection a une situation modifiable (travaux confirmés ou en attente client), un montant restant et un mois prévu, éventuellement vide. Cette version utilise **un seul mois par devis**. Les doublons d’une même identité de pièce sont regroupés et signalés comme ambigus. Un devis sans numéro est identifié par son activité, son client, sa date, son titre et son montant : si ces éléments changent, l’ancienne sélection reste visible comme absente de l’export.
+
+Les choix sont mémorisés indépendamment du RES (`cabestan_forecast_v1`). Un nouvel import RES réinitialise toujours les Pièces actives, mais conserve les choix. Réimporter les Pièces les réactive. Les sélections absentes ou dont les pièces du client ont changé sont suspendues des totaux jusqu’à vérification, sans modifier la saisie. Un échec de sauvegarde est signalé et conserve la session et l’ancien cache.
+
+Le cap annuel affiche **CA réalisé RES + confirmé prévu** et l’écart à l’objectif. Seuls les montants confirmés, vérifiés, datés après le dernier mois couvert par le RES et dans l’exercice sont ajoutés au réalisé. Le dernier mois couvert est traité conservativement comme entièrement couvert, même si l’export est en cours de mois : une prévision sur ce mois reste visible mais n’est pas ajoutée au cumul. Les factures/avoirs datés après la période RES sont listés séparément, sans addition automatique. La vue ne constitue donc pas une réconciliation comptable exhaustive. Le graphique mensuel ajoute une série de CA confirmé à facturer, séparée des barres de réalisé et de la projection statistique. Les devis ne modifient ni la marge, ni le résultat, ni le salaire, ni la trésorerie.
+
+Avec un export complet, la répartition par tranche s’intitule « Devis exportés » : elle conserve son périmètre historique des devis validés et imprimés, facturés ou non. La concentration clients reste calculée sur les factures/situations et avoirs confirmés, sans les acomptes.
 
 ## Bibliothèques graphiques
 

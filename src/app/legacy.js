@@ -1,6 +1,7 @@
 import './parser.js';
 import { salaryCapacityAtDate, projectedPlanResult } from './domain/annual-cap.js';
 import { renderCapProjections } from './views/annual-cap.js';
+import { createForecastView } from './views/forecast.js';
 import { createCartesianCharts } from './charts/cartesian.js';
 import {
   computeSnapshot as computeDomainSnapshot,
@@ -129,6 +130,11 @@ function computeSnapshot(data) { return computeDomainSnapshot(data, C); }
 let DATA = null;
 let distributionYear = null;
 let pilotageMetric = 'mb';
+const forecastView = createForecastView({ money: fmtEUR, escape: esc, onChange: function (summary) {
+  DATA.forecast = summary;
+  const year = DATA.snapshot.current.year;
+  renderCAMB(DATA.years[year], year, DATA.years);
+} });
 const { renderCAMB, renderTauxAnnuel, renderCumulChart, renderAchatsCAChart, renderRepartYears } = createCartesianCharts({
   MONTH_NAMES, COLORS, CHART_FONT, Chart: window.Chart, fmtEUR, fmtPct, makeChart, historicalPlanReference,
   getContext: () => ({ C, CHART_GRID, DATA }),
@@ -150,6 +156,7 @@ function render(data) {
   const py = years[prevYearKey] || null;
 
   renderAnnualCap(data);
+  forecastView.render(data, C.CA_OBJ);
   renderBanner(data, cur, prev);
   renderSante(data, cur);
   renderPerformanceKpis(cy, py, cur);
@@ -528,7 +535,7 @@ function renderAnnualCap(data) {
   host.innerHTML =
     '<div class="annual-cap-head"><div><h2 id="annual-cap-title">Mon cap annuel</h2><p class="annual-cap-intro">Tes objectifs et les projections au même endroit.</p></div></div>' +
     '<div class="cap-overview"><div class="cap-section-head"><h3 class="cap-section-heading">' + capSectionIcon('compass') + 'Ce que je vise</h3><button type="button" class="btn ghost" id="cap-edit" aria-haspopup="dialog" aria-controls="cap-drawer">Modifier mes objectifs</button></div><div id="cap-projections" class="cap-projections"></div>' +
-      '<h3 class="cap-section-heading">' + capSectionIcon('trend') + 'Où j’en suis</h3><div id="cap-actual" class="cap-actual"></div>' +
+      '<h3 class="cap-section-heading">' + capSectionIcon('trend') + 'Où j’en suis</h3><div id="cap-actual" class="cap-actual"></div><div id="cap-forecast"></div>' +
       '<details class="cap-explanation"><summary>Comprendre la projection</summary><p>Les projections de marge brute et de chiffre d’affaires additionnent le réalisé à date et la moyenne des mois restants des exercices complets de référence. Sans historique exploitable, la projection est indisponible.</p><p id="cap-projection-method"></p><p>Le salaire net est une estimation avant impôt, calculée avec le coefficient personnel de conversion du brut Louty. Ces montants annuels ne décrivent pas la trésorerie disponible ni un bulletin de paie.</p></details></div>' +
     '<div class="cap-sim" id="cap-sim" hidden>' +
       '<div class="cap-sim-head"><div><h3>Modifier mon cap et mes hypothèses</h3><p><span class="cap-origin">Référence</span> vient de tes données réelles ; <span class="cap-origin custom">Personnalisé</span> signale une valeur modifiée.</p></div><button type="button" class="btn ghost" id="cap-close">Fermer</button></div>' +
@@ -1640,6 +1647,10 @@ function ingest(fileList) {
     setFileStatus(LAST_DATA.res_name || null, LAST_DATA.bal_name || null, LAST_DATA.pieces_name || null);
   }).catch(showError);
 }
+document.getElementById('forecast-input').addEventListener('change', function () {
+  if (this.files.length) ingest(this.files);
+  this.value = '';
+});
 
 // Drag & drop + parcourir (écran d'accueil)
 var dz = document.getElementById('dropzone');
@@ -1702,7 +1713,7 @@ document.getElementById('welcome-back').addEventListener('click', function () {
 })();
 
 // Mise à jour automatique : si le fichier hébergé est plus récent, on recharge la dernière version
-var APP_VERSION = "20260922-201629";
+var APP_VERSION = "20261007-160000";
 function showUpdateBanner(base, v) {
   if (document.getElementById('update-banner')) return;
   var d = document.createElement('div');

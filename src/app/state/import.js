@@ -21,7 +21,7 @@ export function readWorkbook(file, XLSX, Reader = FileReader) {
 }
 
 export function parseExportDate(name) {
-  const match = /_(\d{2})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})\.xlsx$/i.exec(name || '');
+  const match = /(?:_|^Pieces)(\d{2})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})\.xlsx$/i.exec(name || '');
   if (!match) return null;
   const date = new Date(2000 + (+match[1]), (+match[2]) - 1, +match[3], +match[4], +match[5], +match[6]);
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
