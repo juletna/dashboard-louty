@@ -152,3 +152,136 @@ test('unidentified conflicting quote also tracks invoices bearing either known I
     assert.equal(reconcileForecast(prepareDocuments(changed), choices)[0].review, true);
   }
 });
+
+test('repeated quote amounts resolve collectively only with a complete date-compatible bijection', () => {
+  const input = [doc('q1', 100), doc('q2', 100, 'Devis', {date:'2026-03-01'}),
+    doc('f1', 100, 'Facture'), doc('f2', 100, 'Facture', {date:'2026-04-01'}),
+    doc('q3', 400), doc('f3', 50, 'Facture')];
+  const rows = match(input);
+  assert.deepEqual(rows.map(r => [r.status, r.proposed]), [['complete',0],['complete',0],['partial',350]]);
+  assert.ok(rows.slice(0,2).every(r => r.groupMatch));
+  assert.equal(new Set(rows.flatMap(r => r.matched.map(b => b.key))).size, 3);
+  assert.deepEqual(match([...input].reverse()).sort((a,b) => a.key.localeCompare(b.key)), [...rows].sort((a,b) => a.key.localeCompare(b.key)));
+  for (const invoices of [
+    [doc('f1',100,'Facture')],
+    [doc('f1',100,'Facture'),doc('f2',100,'Facture')],
+    [doc('f1',100,'Facture'),doc('f2',100,'Facture',{date:'2026-04-01'}),doc('f3',100,'Facture',{date:'2026-05-01'})],
+  ]) {
+    const pending = match([...input.slice(0,2), ...invoices]);
+    assert.ok(pending.every(r => r.status === 'ambiguous' && r.reason === 'repeated-amounts' && !r.matched.length));
+  }
+});
+
+test('agreement auto-includes only usable unmatched or partial quotes, with no invented schedule', () => {
+  const q = doc('q',100,'Devis',{agreement_date:'2026-01-15'});
+  for (const invoices of [[],[doc('f',40,'Facture')]]) {
+    const choices = new Map();
+    const [row] = reconcileForecast(prepareDocuments([q,...invoices]), choices);
+    assert.equal(row.accepted,true); assert.equal(row.auto,true); assert.equal(row.review,false);
+    assert.equal(row.choice.situation,'confirmed'); assert.equal(row.choice.month,null);
+    assert.equal(row.choice.remaining,invoices.length ? 60 : 100);
+    assert.equal(choices.size,0);
+  }
+  for (const invoices of [[doc('f',100,'Facture')],[doc('a',40,"Facture d'acompte")],[doc('a',-10,'Avoir')]]) {
+    const [row] = reconcileForecast(prepareDocuments([q,...invoices]),new Map());
+    assert.equal(row.accepted,true); assert.equal(row.auto,false); assert.equal(row.choice,undefined);
+  }
+  for (const date of [null,'','not-a-date','2026-02-30','2026-13-01']) {
+    const [row] = reconcileForecast(prepareDocuments([{...q,agreement_date:date}]),new Map());
+    assert.equal(row.accepted,false); assert.equal(row.choice,undefined);
+  }
+});
+
+test('manual inclusions and exclusions outrank agreement, including after changed evidence', () => {
+  const q=doc('q',100,'Devis',{agreement_date:'2026-01-15'});
+  const [original]=match([q]);
+  for (const action of ['include','exclude']) {
+    const manual=choice(original,{action,remaining:17,situation:'waiting',month:'2027-02'});
+    for (const invoices of [[],[doc('f',30,'Facture')]]) {
+      const [row]=reconcileForecast(prepareDocuments([q,...invoices]),new Map([[original.key,manual]]));
+      assert.equal(row.auto,false); assert.equal(row.choice,manual); assert.equal(row.review,!!invoices.length);
+    }
+  }
+});
+
+test('deposit candidates never reduce CA and changed payment evidence suspends saved choices', () => {
+  const input=[doc('q',100,'Devis',{amount_ttc:120,agreement_date:'2026-01-15'}),
+    doc('a',25,"Facture d'acompte",{amount_ttc:30,paid:30}),doc('old',20,"Facture d'acompte",{date:'2025-01-01'})];
+  const [row]=match(input);
+  assert.equal(row.proposed,100); assert.equal(row.reason,'advances-to-link'); assert.equal(row.advanceCandidates.length,1);
+  assert.equal(row.invoiceCandidates.length,0); assert.equal(row.billingRisk,false);
+  const choices=new Map([[row.key,choice(row,{advanceKeys:[row.advanceCandidates[0].key]})]]);
+  for (const patch of [{paid:20},{amount_ttc:31}]) {
+    const [changed]=reconcileForecast(prepareDocuments(input.map(d=>d.number==='a'?{...d,...patch}:d)),choices);
+    assert.equal(changed.review,true); assert.equal(changed.choice.remaining,100);
+  }
+  assert.equal(match([...input,doc('f',40,'Facture')])[0].invoiceCandidates.length,1);
+  assert.equal(match([...input,doc('credit',-10,'Avoir')])[0].billingRisk,true);
+});
+
+test('specific review reasons distinguish evidence defects and competing documents', () => {
+  const cases = [
+    [[doc('q',100,'Devis',{client_id:'',client:''})],'client-missing'],
+    [[doc('q',100),doc('q',100)],'duplicate-document'],
+    [[doc('q',100),doc('f',-10,'Avoir')],'credit-history'],
+    [[doc('q',100),doc('f',30,'Facture',{date:'2026-02-30'})],'invalid-invoice'],
+    [[doc('q',100,'Devis',{date:null})],'quote-date'],
+    [[doc('q',0)],'quote-amount'],
+    [[doc('q',100),doc('f1',100,'Facture'),doc('f2',100,'Facture')],'multiple-exact-invoices'],
+    [[doc('q',100),doc('q2',200),doc('f',30,'Facture')],'competing-quotes'],
+    [[doc('q',100),doc('f',150,'Facture')],'excess-invoices'],
+  ];
+  for (const [input,reason] of cases) assert.equal(match(input)[0].reason,reason);
+});
+
+test('confirmed final invoices and paid advances can jointly cover HT and TTC without double allocation', () => {
+  // Deliberately fictional amounts; decimal components exercise cent rounding.
+  const input = [doc('q',1234.57,'Devis',{amount_ttc:1481.48,agreement_date:'2026-01-05'}),
+    doc('a',370.37,"Facture d'acompte",{amount_ttc:444.44,paid:444.44,state:'Confirmé'}),
+    doc('f',864.20,'Facture',{amount_ttc:1037.04,paid:1037.04,pending:0,state:'confirmé',date:'2026-03-01'})];
+  const [row] = match(input);
+  assert.equal(row.status,'complete'); assert.equal(row.reason,'settled-with-advance');
+  assert.equal(row.proposed,0); assert.equal(row.eligible,false); assert.equal(row.matched.length,2);
+  assert.equal(reconcileForecast(prepareDocuments(input),new Map())[0].auto,false);
+  assert.deepEqual(match([...input].reverse()),[row]);
+  const split=match([input[0],input[1],
+    {...input[2],amount:800,amount_ttc:960},
+    doc('s',64.20,'Facture de situation',{amount_ttc:77.04,state:'Confirmé'})]);
+  assert.equal(split[0].status,'complete'); assert.equal(split[0].matched.length,3);
+  const manual=new Map([[row.key,choice(row,{remaining:99})]]);
+  const changed=reconcileForecast(prepareDocuments(input.map(d=>d.number==='a'?{...d,state:'Attente valid.'}:d)),manual)[0];
+  assert.equal(changed.review,true); assert.equal(changed.choice.remaining,99);
+  const two = match([...input, doc('other',900)]);
+  assert.ok(two.every(r => r.status==='ambiguous'));
+  const existingComplete = match([...input,doc('other',900),doc('other-final',900,'Facture',{state:'Confirmé',date:'2025-12-01'})]);
+  assert.ok(existingComplete.every(r => r.status==='ambiguous'));
+  for (const [index,patch] of [
+    [0,{amount_ttc:1481.49}], [0,{amount_ttc:null}], [1,{paid:444.43}],
+    [1,{state:'Non confirmé'}], [2,{state:'Brouillon'}], [2,{state:'Attente valid.'}],
+    [2,{amount_ttc:null}], [1,{date:'2026-04-01'}], [2,{amount:864.19}],
+    [2,{type:'Facture de situation'}],
+  ]) {
+    const [candidate]=match(input.map((d,i) => i===index ? {...d,...patch} : d));
+    assert.notEqual(candidate.status,'complete',JSON.stringify([index,patch]));
+  }
+  const [depositOnly] = match(input.slice(0,2));
+  assert.equal(depositOnly.status,'ambiguous'); assert.equal(depositOnly.proposed,1234.57);
+  const [withCredit] = match([...input,doc('credit',-10,'Avoir')]);
+  assert.equal(withCredit.status,'ambiguous');
+  const [fullInvoice] = match(input.map(d => d.number==='f' ? {...d,amount:1234.57,amount_ttc:1481.48} : d));
+  assert.equal(fullInvoice.status,'complete'); assert.equal(fullInvoice.matched.length,1);
+  assert.equal(fullInvoice.matched[0].number,'f');
+  const withExactOther=match([...input,doc('other',900),doc('other-final',900,'Facture',{state:'Confirmé',date:'2026-04-01'})]);
+  // A historical deposit could already belong to the other fully invoiced quote.
+  assert.equal(withExactOther[0].status,'ambiguous');
+  assert.equal(withExactOther.find(r=>r.number==='other').status,'complete');
+});
+
+test('an advance potentially settled in another complete quote cannot cover the remaining quote', () => {
+  const rows=match([
+    doc('q1',100,'Devis',{amount_ttc:120}),doc('q2',200,'Devis',{amount_ttc:240}),
+    doc('f1',100,'Facture',{amount_ttc:120,state:'Confirmé'}),doc('f2',150,'Facture',{amount_ttc:180,state:'Confirmé'}),
+    doc('a',50,"Facture d'acompte",{amount_ttc:60,paid:60,state:'Confirmé',date:'2026-01-15'}),
+  ]);
+  assert.equal(rows[0].status,'complete');assert.equal(rows[1].status,'ambiguous');
+});

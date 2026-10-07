@@ -1,5 +1,6 @@
 import { createDictionary } from './domain/schema.js';
 import { prepareDocuments } from './domain/forecast.js';
+import { paymentDetails } from './domain/payments.js';
 
 /* Parser CABESTAN (portage _parser.py) */
 /* ===================================================================
@@ -260,6 +261,7 @@ export function parseBAL(XLSX, workbook) {
       comptes_courants_associes: r2(ccass),
       dettes_tva: r2(dTva),
       dettes_acomptes_clients: r2(dAcomptes),
+      acompte_accounts_present: Object.keys(data).some(k => /^(4191|4712)/.test(k)),
       dettes_fournisseurs: r2(dFourn),
       dettes_sociales_fiscales: r2(dSocial),
       dettes_cca: r2(dCca),
@@ -283,7 +285,7 @@ export function parsePieces(XLSX, workbook) {
     var header = rows[0] || [], col = createDictionary();
     header.forEach(function (v, i) { col[String(v == null ? '' : v).trim()] = i; });
     var documents = [];
-    var quoteByYear = createDictionary(), clientByYear = createDictionary(), quoteCoverage = createDictionary(), advancesByClient = createDictionary(), receivablesByClient = createDictionary();
+    var quoteByYear = createDictionary(), clientByYear = createDictionary(), quoteCoverage = createDictionary();
     function add(map, year, label, amount) {
       if (!map[year]) map[year] = createDictionary();
       map[year][label] = (map[year][label] || 0) + amount;
@@ -296,11 +298,6 @@ export function parsePieces(XLSX, workbook) {
       if (amount < 25000) return '10–25 k€';
       return '> 25 k€';
     }
-    function addCustomerDetail(map, clientName, amount, date, dueDate, number) {
-      if (!map[clientName]) map[clientName] = { client: clientName, amount: 0, documents: [] };
-      map[clientName].amount += amount;
-      map[clientName].documents.push({ amount: Math.round(amount * 100) / 100, date: date ? date.toISOString() : null, due_date: dueDate ? dueDate.toISOString() : null, number: number || '' });
-    }
     for (var r = 1; r < rows.length; r++) {
       var row = rows[r], type = String(row[col.Type] == null ? '' : row[col.Type]).trim();
       var state = String(row[col.Etat] == null ? '' : row[col.Etat]).toLocaleLowerCase('fr-FR');
@@ -308,9 +305,13 @@ export function parsePieces(XLSX, workbook) {
       var amount = toFloat(row[col['Montant H.T.']]), date = dateOf(row[col.Date]);
       if (['Devis', 'Facture', 'Facture de situation', "Facture d'acompte", 'Avoir'].includes(type) && state.indexOf('brouillon') === -1) {
         const text = (key) => String(row[col[key]] ?? '').trim();
-        documents.push({ type, state, client, amount, client_id: text('N° client'),
+        documents.push({ type, state, client, amount, amount_ttc: toFloat(row[col['Montant T.T.C.']]),
+          paid: toFloat(row[col['Déjà réglé']]), pending: toFloat(row[col['En attente']]),
+          due_date: piecesDateISO(dateOf(row[col['Date échéance']])),
+          agreement_date: piecesDateISO(dateOf(row[col['Date accord'] ?? col["Date d'accord"]])),
+          client_id: text('N° client'),
           activity: text('Code activité'), number: text('Numéro chrono'), title: text('Titre'),
-          date: date ? [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-') : null });
+          date: piecesDateISO(date) });
       }
       if (!date || amount === null || !client) continue;
       var year = String(date.getFullYear());
@@ -322,16 +323,6 @@ export function parsePieces(XLSX, workbook) {
       }
       if ((type === 'Facture' || type === 'Facture de situation' || type === 'Avoir') && state.indexOf('confirm') !== -1) {
         add(clientByYear, year, client, amount);
-      }
-      if (state.indexOf('confirm') !== -1) {
-        var paid = toFloat(row[col['Déjà réglé']]) || 0;
-        var pending = toFloat(row[col['En attente']]) || 0;
-        var dueDate = dateOf(row[col['Date échéance']]);
-        var number = String(row[col['Numéro chrono']] == null ? '' : row[col['Numéro chrono']]).trim();
-        // Les acomptes restent exclus du CA, mais servent au rapprochement de la dette 4191.
-        if (type === "Facture d'acompte" && paid > 0) addCustomerDetail(advancesByClient, client, paid, date, null, number);
-        // Le solde « En attente » est la donnée de relance : les trop-perçus restent volontairement exclus.
-        if ((type === 'Facture' || type === 'Facture de situation') && pending > 0) addCustomerDetail(receivablesByClient, client, pending, date, dueDate, number);
       }
     }
     function orderedQuotes(values) {
@@ -347,23 +338,26 @@ export function parsePieces(XLSX, workbook) {
         clients: Object.keys(clientByYear[year] || {}).map(function (label) { return { label: label, amount: Math.round(clientByYear[year][label] * 100) / 100 }; }).filter(function (r) { return r.amount > 0; })
       };
     });
-    function detailList(map) {
-      return Object.keys(map).map(function (clientName) {
-        var item = map[clientName];
-        item.amount = Math.round(item.amount * 100) / 100;
-        item.documents.sort(function (a, b) { return String(b.date || '').localeCompare(String(a.date || '')); });
-        return item;
-      }).sort(function (a, b) { return b.amount - a.amount; });
-    }
-    return { by_year: byYear, documents: prepareDocuments(documents), payment_details: { advances: detailList(advancesByClient), receivables: detailList(receivablesByClient) } };
+    const prepared = prepareDocuments(documents);
+    return { by_year: byYear, documents: prepared, payment_details: paymentDetails(prepared) };
   }
 
+function piecesDateISO(date) {
+  return date ? [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-') : null;
+}
+
 export function parsePiecesDate(value) {
-  if (value === null || value === undefined || value === '') return null;
-  if (typeof value === 'number') return null;
-  if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  if (typeof value !== 'string' || !value.trim()) return null;
+  const text = value.trim();
+  const iso = /^(\d{4})-(\d{2})-(\d{2})(?:T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?)?$/.exec(text);
+  const french = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(text);
+  if (!iso && !french) return null;
+  const [year, month, day] = iso ? iso.slice(1, 4).map(Number) : [Number(french[3]), Number(french[2]), Number(french[1])];
+  const date = new Date(year, month - 1, day);
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return null;
+  if (iso && text.includes('T') && !Number.isFinite(Date.parse(text))) return null;
+  return date;
 }
 
 const API = { TARGET_LABELS, POSITIVE_AS_ABS, sheetToMatrix, toFloat, parseRES, parseBAL, parsePieces, parsePiecesDate };

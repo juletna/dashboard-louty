@@ -4,6 +4,7 @@ export const FORECAST_KEY = 'cabestan_forecast_v1';
 
 export function validateChoice(choice) {
   return choice && ['include', 'exclude'].includes(choice.action) &&
+    (choice.advanceKeys === undefined || (Array.isArray(choice.advanceKeys) && choice.advanceKeys.every(key => typeof key === 'string') && new Set(choice.advanceKeys).size === choice.advanceKeys.length)) &&
     typeof choice.fingerprint === 'string' && choice.quote && typeof choice.quote === 'object' &&
     (choice.action === 'exclude' || (['confirmed', 'waiting'].includes(choice.situation) &&
       Number.isFinite(choice.remaining) && choice.remaining >= 0 &&

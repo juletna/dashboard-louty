@@ -187,3 +187,25 @@ if (process.argv[1] && resolve(process.argv[1]) === thisFile) {
   const files = createFixtureFiles(destination);
   process.stdout.write(`${Object.values(files).join('\n')}\n`);
 }
+
+export function createAcceptedFixtureFiles(directory) {
+  const files = createFixtureFiles(directory), X = bundledXlsx();
+  const header = ['Type','Date','Client','Montant H.T.','Etat','N° client','Numéro chrono','Titre','Code activité','Montant T.T.C.','Déjà réglé','En attente','Date accord'];
+  const q = (number, amount, client, date = '2025-06-01', agreement = '2025-06-02') => ['Devis',date,client,amount,'Validé & imp.',client,number,'Chantier fictif','ACT',amount*1.2,null,null,agreement];
+  const f = (number, amount, client, type = 'Facture', paid = amount*1.2) => [type,'2025-07-01',client,amount,'Confirmé',client,number,'Facture fictive','ACT',amount*1.2,paid,amount*1.2-paid,null];
+  const rows = [header,q('AUTO',1000,'Client Automatique'),q('PART',2000,'Client Partiel'),f('INV-PART',500,'Client Partiel'),
+    q('REPEAT-1',100,'Client Répété'),q('REPEAT-2',100,'Client Répété'),f('INV-1',100,'Client Répété'),f('INV-2',100,'Client Répété'),
+    q('ADV',3000,'Client Acompte'),q('ADV-OTHER',4000,'Client Acompte'),f('DEP',900,'Client Acompte',"Facture d'acompte"),
+    q('OLD',600,'Client Ancien','2024-06-01',null)];
+  for (const [key, paid] of [['accepted',1080],['unpaid',0]]) {
+    const copy = rows.map(r => [...r]);
+    const deposit = copy.find(r=>r[6]==='DEP'); deposit[10] = paid; deposit[11] = 1080-paid;
+    const book = X.utils.book_new(); appendSheet(X,book,'Pièces fictives',copy);
+    files[key]=resolve(directory,`Pieces_${key}_250815_120000.xlsx`); writeWorkbook(X,book,files[key]);
+  }
+  const balance = balanceWorkbook(X); const sheet=balance.Sheets.Rapport;
+  const range=X.utils.decode_range(sheet['!ref']);
+  for(let r=0;r<=range.e.r;r++) if(sheet[X.utils.encode_cell({r,c:0})]?.v==='41910000') sheet[X.utils.encode_cell({r,c:5})].v=0;
+  files.zeroBal=resolve(directory,'BAL_A_Zero_250731_120000.xlsx'); writeWorkbook(X,balance,files.zeroBal);
+  return files;
+}

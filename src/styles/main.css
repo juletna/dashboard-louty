@@ -1192,3 +1192,15 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .cap-section-head .cap-section-heading { margin:0; }
 .cap-section-head .btn { flex:none; }
 @media(max-width:460px) { .cap-section-head { gap:8px; } .cap-section-head .cap-section-heading { gap:5px; font-size:10px; letter-spacing:.03em; } .cap-section-head .btn { padding:8px; font-size:11px; } }
+
+  #forecast-year { max-width:260px; margin:8px 0 12px; }
+  .forecast-editor .forecast-advance-option { display:flex; align-items:flex-start; gap:10px; font-weight:400; }
+  .forecast-dialog .forecast-advance-option input { width:18px; flex:0 0 18px; margin-top:3px; }
+  #forecast-advance-balance { padding:10px; border-radius:8px; background:var(--bg-inset); line-height:1.6; }
+
+  .customer-advances { margin-top:20px; padding:16px; border:1px solid var(--border); border-radius:12px; }
+  .customer-advances h4 { margin:0 0 12px; }
+  .customer-advances details { margin-top:12px; font-size:12px; }
+  .customer-advances summary { cursor:pointer; }
+  .customer-advances ul { padding-left:18px; max-height:260px; overflow:auto; }
+  .customer-advances li { margin:10px 0; overflow-wrap:anywhere; }

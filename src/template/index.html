@@ -145,15 +145,17 @@
 </div>
 
 <dialog id="forecast-manager" class="forecast-dialog" aria-labelledby="forecast-manager-title">
-  <div class="forecast-head"><div><h2 id="forecast-manager-title">Gérer le prévisionnel</h2><p class="small">Sélectionne les devis à suivre, puis précise le montant HT et l’échéance.</p></div><button class="btn" type="button" data-f-action="close-manager">Fermer</button></div>
+  <div class="forecast-head"><div><h2 id="forecast-manager-title">Gérer le prévisionnel</h2><p class="small">Les devis acceptés et rapprochés sans ambiguïté sont ajoutés automatiquement. Tes choix manuels restent prioritaires.</p></div><button class="btn" type="button" data-f-action="close-manager">Fermer</button></div>
   <nav class="forecast-tabs" aria-label="Listes de devis"><button type="button" data-f-tab="review" aria-pressed="true">À examiner</button><button type="button" data-f-tab="selected" aria-pressed="false">Dans le prévisionnel</button><button type="button" data-f-tab="all" aria-pressed="false">Tous les devis</button></nav>
   <label class="forecast-search-label" for="forecast-search">Rechercher un client, un numéro ou un titre</label><input id="forecast-search" type="search" placeholder="Rechercher…">
+  <label class="forecast-search-label" for="forecast-year">Date du devis</label><select id="forecast-year"><option value="">Toutes les années</option></select>
   <p id="forecast-filter" class="small"></p><p id="forecast-storage-message" class="forecast-warning" role="alert"></p>
   <div id="forecast-list"></div><p id="forecast-message" class="small" role="status"></p>
 </dialog>
 <dialog id="forecast-editor" class="forecast-dialog forecast-editor" aria-labelledby="forecast-editor-title">
   <form id="forecast-form"><div class="forecast-head"><h2 id="forecast-editor-title">Ajouter au prévisionnel</h2><button class="btn" type="button" data-f-action="close-editor" aria-label="Fermer la fiche">Fermer</button></div><p id="forecast-editor-subtitle" class="small"></p>
   <p id="forecast-note" class="forecast-warning"></p>
+  <div id="forecast-advances"></div>
   <label for="forecast-situation">Situation du chantier</label><select id="forecast-situation"><option value="confirmed">Travaux confirmés</option><option value="waiting">En attente client</option></select>
   <label for="forecast-amount">Montant HT restant à facturer (€)</label><input id="forecast-amount" type="number" min="0" step="0.01" required>
   <label for="forecast-month">Mois de facturation prévu</label><input id="forecast-month" type="month"><p class="small">Laisse vide pour « Sans date prévue ».</p>

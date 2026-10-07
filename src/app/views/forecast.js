@@ -1,4 +1,5 @@
-import { reconcileForecast, forecastSummary, MATCH_LABELS } from '../domain/forecast.js';
+import { reconcileForecast, forecastSummary, MATCH_LABELS, REASON_LABELS } from '../domain/forecast.js';
+import { forecastAdvances } from '../domain/forecast-advances.js';
 import { createForecastStorage } from '../state/forecast.js';
 
 export function createForecastView({ money: formatMoney, escape: esc, onChange }) {
@@ -10,11 +11,11 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
   const el = id => document.getElementById(id);
   let data, goal, rows = [], summary, tab = 'review', monthFilter = '', editingKey = null, returnFocus;
   const selected = r => r.choice?.action === 'include';
-  const candidate = r => !r.missing && !selected(r) && r.eligible && (r.choice?.action !== 'exclude' || r.review);
+  const candidate = r => !r.missing && !selected(r) && r.eligible && r.choice?.action !== 'exclude';
   const monthName = m => m ? new Date(Number(m.slice(0, 4)), Number(m.slice(5)) - 1, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) : 'Sans date prévue';
-  const matchingLabel = r => r.nameConflict ? 'Nom associé à plusieurs ID · à vérifier' : `${MATCH_LABELS[r.status]}${r.matchBasis === 'name' ? ' · par nom client' : ''}`;
+  const matchingLabel = r => r.groupMatch ? 'Couverture complète probable du groupe de devis' : r.nameConflict ? 'Nom associé à plusieurs ID · à vérifier' : `${REASON_LABELS[r.reason] || MATCH_LABELS[r.status]}${r.matchBasis === 'name' ? ' · par nom client' : ''}`;
   const describe = r => r.missing ? 'Absent de cet export · à vérifier' : r.review && selected(r) ? 'Rapprochement modifié · à vérifier' :
-    r.choice?.action === 'exclude' && !r.review ? 'Écarté manuellement' : matchingLabel(r);
+    r.choice?.action === 'exclude' ? 'Écarté manuellement' : matchingLabel(r);
   function recalculate() {
     rows = reconcileForecast(data.revenue_distribution?.documents || [], storage.choices);
     summary = forecastSummary(rows, data, goal);
@@ -23,7 +24,8 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
   function renderSummary() {
     const hasDocuments = Array.isArray(data.revenue_distribution?.documents);
     const cap = el('cap-forecast');
-    const warning = storage.warning ? `<p class="forecast-warning" role="alert">${esc(storage.warning)}</p>` : '';
+    const legacyPieces = hasDocuments && data.revenue_distribution.documents.some(d => !Object.hasOwn(d, 'agreement_date'));
+    const warning = (legacyPieces ? '<p class="forecast-warning">Réimporte les Pièces pour lire les dates d’accord, montants TTC et règlements nécessaires aux nouveaux rapprochements.</p>' : '') + (storage.warning ? `<p class="forecast-warning" role="alert">${esc(storage.warning)}</p>` : '');
     if (!hasDocuments) {
       host.innerHTML = `<div class="forecast-head"><div><h2 id="forecast-title">Chiffre d’affaires à venir</h2><p class="small">Montants HT restant à facturer</p></div><button class="btn" data-f-action="import">Importer les Pièces</button></div><p class="small">Ajoute un export Pièces incluant tous les devis, même non facturés. Les brouillons sont exclus automatiquement.</p>${warning}${summary.included.length ? '<p class="forecast-warning">Tes choix sont conservés. Réimporte les Pièces pour les rapprocher et réactiver le prévisionnel.</p>' : ''}`;
       if (cap) cap.innerHTML = '';
@@ -47,15 +49,19 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
     const max = Math.max(1, ...monthValues.flatMap(v => [v.confirmed, v.waiting]));
     host.innerHTML = `<div class="forecast-head"><div><h2 id="forecast-title">Chiffre d’affaires à venir</h2><p class="small">Montants HT restant à facturer · ta sélection de devis</p></div><button class="btn primary" data-f-action="manage">Gérer les devis</button></div>${warning}
       <div class="forecast-kpis"><div><span>Travaux confirmés</span><strong>${money(summary.confirmed)}</strong><small>${confirmedCount} devis · reste à facturer</small></div><div><span>En attente client</span><strong>${money(summary.waiting)}</strong><small>${waitingCount} devis · potentiel non acquis</small></div><div><span>Dont sans date prévue</span><strong>${money(summary.undated)}</strong><small>À positionner dans le temps</small></div></div>
+      ${summary.active.some(r => r.auto) ? `<p class="small">${summary.active.filter(r => r.auto).length} devis ajouté(s) automatiquement par date d’accord. Précise leur mois de facturation pour les intégrer au cap annuel.</p>` : ''}
       ${summary.reviewCount ? `<p class="forecast-warning">${summary.reviewCount} devis sélectionné(s) à vérifier après actualisation du rapprochement. Leurs montants saisis sont conservés, mais suspendus des totaux. <button class="forecast-link" data-f-action="selected">Vérifier</button></p>` : ''}
       ${summary.coveredCount ? `<p class="small">${summary.coveredCount} devis prévu(s) sur une période déjà couverte par le RES : à replanifier. Non ajoutés au réalisé.</p>` : ''}
       <h3>Facturation prévue</h3><div class="forecast-legend"><span><i></i>Travaux confirmés</span><span><i class="waiting"></i>En attente client</span></div>
       <div class="forecast-months">${monthValues.map(v => `<button class="forecast-month" data-f-month="${esc(v.month || 'none')}" aria-label="${esc(monthName(v.month))} : ${money(v.confirmed)} confirmés, ${money(v.waiting)} en attente"><span>${esc(monthName(v.month))}</span><div class="forecast-bars" aria-hidden="true"><i style="height:${v.confirmed / max * 64}px"></i><i class="waiting" style="height:${v.waiting / max * 64}px"></i></div><strong>${money(v.confirmed)}</strong><small>+ ${money(v.waiting)} en attente</small></button>`).join('')}</div>
-      <div class="forecast-footer"><div><strong>${rows.filter(candidate).length} devis à examiner</strong><p class="small">Le rapprochement propose, tu choisis ce qui entre au prévisionnel.</p></div><button class="btn" data-f-action="review">Examiner les propositions</button></div>
-      <details class="forecast-method"><summary>Comprendre les montants et les rapprochements</summary><p>Comparaison des montants HT par activité et ID client en priorité. Sans ID, le nom complet sert de repli : seules les majuscules et les espaces sont ignorés. Un nom associé à plusieurs ID reste à vérifier. Chaque facture est utilisée au plus une fois. Les acomptes, avoirs et correspondances ambiguës demandent une vérification. Les statuts d’accord Louty ne décident pas de ta sélection.</p><p>La marge brute, le résultat, le salaire et la trésorerie ne sont pas recalculés à partir de ces devis. Les montants confirmés sont séparés de la projection statistique.</p><p>Les choix restent sur ce navigateur. Un nouvel import ne remplace jamais un montant saisi manuellement.</p></details>`;
+      <div class="forecast-footer"><div><strong>${rows.filter(candidate).length} devis à examiner</strong><p class="small">Les devis acceptés sans ambiguïté sont ajoutés automatiquement. Les autres restent à examiner.</p></div><button class="btn" data-f-action="review">Examiner les propositions</button></div>
+      <details class="forecast-method"><summary>Comprendre les montants et les rapprochements</summary><p>Comparaison des montants HT par activité et ID client en priorité. Sans ID, le nom complet sert de repli : seules les majuscules et les espaces sont ignorés. Un nom associé à plusieurs ID reste à vérifier. Chaque facture est utilisée au plus une fois. Les acomptes, avoirs et correspondances ambiguës demandent une vérification. Une date d’accord valide ajoute automatiquement un devis confirmé si son reste à facturer est identifiable. Les cas ambigus restent à examiner. Tes choix manuels priment sur cet automatisme.</p><p>La marge brute, le résultat, le salaire et la trésorerie ne sont pas recalculés à partir de ces devis. Les montants confirmés sont séparés de la projection statistique.</p><p>Les choix restent sur ce navigateur. Un nouvel import ne remplace jamais un montant saisi manuellement.</p></details>`;
     if (cap) cap.innerHTML = `<div class="forecast-cap"><h3>CA réalisé + confirmé prévu · ${esc(summary.year)}</h3><div class="forecast-cap-values"><div><span>Réalisé RES</span><strong>${money(summary.actual)}</strong></div><span aria-hidden="true">+</span><div><span>Confirmé après ${esc(monthName(summary.cutoff))}</span><strong>${money(summary.annualConfirmed)}</strong></div><span aria-hidden="true">=</span><div><span>Réalisé + confirmé prévu</span><strong>${money(summary.actualPlusConfirmed)}</strong></div><div><span>${summary.gap !== null && summary.gap < 0 ? 'Au-delà de l’objectif' : 'Reste à couvrir'}</span><strong>${money(summary.gap === null ? null : Math.abs(summary.gap))}</strong></div></div><p class="small">Base partielle : seuls les devis confirmés, vérifiés et datés après les mois couverts par le RES et avant fin ${esc(summary.year)} sont ajoutés. Ne s’ajoute pas à la projection statistique.</p>${summary.unintegrated.length ? `<details class="forecast-method"><summary>${summary.unintegrated.length} facture(s) / avoir(s) datés après la période RES · ${money(summary.unintegrated.reduce((n, d) => n + (d.amount ?? 0), 0))}</summary><p>Repère à rapprocher du prochain RES. Ce montant n’est pas ajouté automatiquement : il pourrait recouper les devis sélectionnés.</p><ul>${summary.unintegrated.map(d => `<li>${esc(d.date)} · ${esc(d.number || d.type)} · ${esc(d.client)} : ${money(d.amount)}</li>`).join('')}</ul></details>` : ''}</div>`;
   }
   function renderList() {
+    const yearSelect = el('forecast-year'), previousYear = yearSelect.value;
+    yearSelect.innerHTML = '<option value="">Toutes les années</option>' + [...new Set(rows.map(r => r.date?.slice(0,4)).filter(Boolean))].sort().reverse().map(y => `<option value="${esc(y)}">${esc(y)}</option>`).join('');
+    yearSelect.value = previousYear;
     const text = el('forecast-search').value.toLocaleLowerCase('fr');
     const counts = { review: rows.filter(candidate).length, selected: rows.filter(selected).length, all: rows.filter(r => !r.missing).length };
     manager.querySelectorAll('[data-f-tab]').forEach(b => {
@@ -63,12 +69,13 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
       b.textContent = ({ review: 'À examiner', selected: 'Dans le prévisionnel', all: 'Tous les devis' })[b.dataset.fTab] + ' · ' + counts[b.dataset.fTab];
     });
     const filtered = rows.filter(r => tab === 'review' ? candidate(r) : tab === 'selected' ? selected(r) : !r.missing)
+      .filter(r => !yearSelect.value || r.date?.startsWith(yearSelect.value))
       .filter(r => !monthFilter || (r.choice?.month || 'none') === monthFilter)
       .filter(r => `${r.client} ${r.number} ${r.title}`.toLocaleLowerCase('fr').includes(text));
     el('forecast-filter').textContent = monthFilter ? `Filtre : ${monthName(monthFilter === 'none' ? null : monthFilter)}. Cliquer sur un onglet pour effacer.` : tab === 'all' ? 'Ajout manuel possible, même si une facturation complète semble correspondre.' : 'Brouillons exclus · rapprochements indicatifs';
     el('forecast-list').innerHTML = filtered.length ? filtered.map(r => {
       const index = rows.indexOf(r);
-      return `<article class="forecast-row"><div><strong>${esc(r.client || 'Client non renseigné')}</strong><p class="small">${esc(r.number || 'Sans numéro')} · ${esc(r.date || 'Date absente')}</p><p class="small">${esc(r.title)}</p></div><div class="forecast-row-amount">${money(tab === 'selected' ? r.choice.remaining : r.amount)}<small>${tab === 'selected' ? 'restant à facturer' : 'montant du devis'}</small></div><div><span class="forecast-badge ${r.review || ['ambiguous', 'no-id'].includes(r.status) ? 'warn' : ''}">${esc(describe(r))}</span>${selected(r) ? `<p class="small">${r.choice.situation === 'confirmed' ? 'Travaux confirmés' : 'En attente client'} · ${esc(monthName(r.choice.month))}</p>` : ''}</div><div class="forecast-row-actions">${!r.missing ? `<button class="btn" data-f-edit="${index}">${selected(r) ? r.review ? 'Vérifier' : 'Modifier' : 'Ajouter'}</button>` : ''}${selected(r) ? `<button class="forecast-link" data-f-remove="${index}">Retirer</button>` : tab === 'review' ? `<button class="forecast-link" data-f-exclude="${index}">Écarter</button>` : ''}</div></article>`;
+      return `<article class="forecast-row"><div><strong>${esc(r.client || 'Client non renseigné')}</strong><p class="small">${esc(r.number || 'Sans numéro')} · ${esc(r.date || 'Date absente')}</p><p class="small">${esc(r.title)}</p></div><div class="forecast-row-amount">${money(tab === 'selected' ? r.choice.remaining : r.amount)}<small>${tab === 'selected' ? 'restant à facturer' : 'montant du devis'}</small></div><div><span class="forecast-badge ${r.review || ['ambiguous', 'no-id'].includes(r.status) ? 'warn' : ''}">${esc(describe(r))}</span>${r.accepted ? `<p class="small">Accord du ${esc(r.agreement_date)}${r.auto ? ' · ajout automatique' : ''}</p>` : ''}${selected(r) ? `<p class="small">${r.choice.situation === 'confirmed' ? 'Travaux confirmés' : 'En attente client'} · ${esc(monthName(r.choice.month))}</p>` : ''}</div><div class="forecast-row-actions">${!r.missing ? `<button class="btn" data-f-edit="${index}">${selected(r) ? r.review ? 'Vérifier' : 'Modifier' : 'Ajouter'}</button>` : ''}${selected(r) ? `<button class="forecast-link" data-f-remove="${index}">Retirer</button>` : tab === 'review' ? `<button class="forecast-link" data-f-exclude="${index}">Écarter</button>` : ''}</div></article>`;
     }).join('') : '<p class="forecast-empty">Aucun devis dans cette vue.</p>';
     el('forecast-storage-message').textContent = storage.warning;
   }
@@ -85,6 +92,19 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
     recalculate(); renderSummary(); renderList(); onChange(summary);
     el('forecast-message').textContent = persisted ? message : 'Modification appliquée pour cette session uniquement.';
   }
+  function selectedAdvanceKeys(row) {
+    return [...el('forecast-advances').querySelectorAll('input[data-advance-key]:checked')].map(input => input.dataset.advanceKey);
+  }
+  function renderAdvanceBalance(row, keys) {
+    const state = forecastAdvances(row, rows, keys);
+    el('forecast-advance-balance').textContent = state.error || `Acomptes rattachés : ${formatMoney(state.paid)} TTC. Solde du devis à encaisser : ${state.cash === null ? 'à vérifier (factures, avoirs ou TTC manquant)' : formatMoney(state.cash) + ' TTC'}.`;
+  }
+  function renderAdvances(row) {
+    const state = forecastAdvances(row, rows);
+    const keys = row.choice?.advanceKeys || [];
+    el('forecast-advances').innerHTML = `<div class="forecast-method"><strong>Montant du chantier : ${money(row.amount)}${Number.isFinite(row.amount_ttc) ? ' · ' + formatMoney(row.amount_ttc) + ' TTC' : ''}</strong><p>Rattache uniquement les acomptes encaissés de ce chantier. Ils réduisent le solde à encaisser, pas le CA HT prévisionnel. Si une facture finale existe, son solde doit être vérifié séparément.</p>${state.candidates.length ? state.candidates.map(d => `<label class="forecast-advance-option"><input type="checkbox" data-advance-key="${esc(d.key)}" ${keys.includes(d.key) ? 'checked' : ''} ${!keys.includes(d.key) && (state.reserved.has(d.key) || d.duplicate || !Number.isFinite(d.paid) || d.paid <= 0) ? 'disabled' : ''}><span>${esc(d.number || 'Acompte sans numéro')} · ${esc(d.date || 'date absente')} · ${formatMoney(d.paid)} TTC encaissés${state.reserved.has(d.key) ? ' · déjà rattaché' : ''}${d.duplicate ? ' · pièce dupliquée' : ''}</span></label>`).join('') : '<p>Aucun acompte encaissé identifiable à rattacher.</p>'}${keys.some(key => !state.candidates.some(d => d.key === key)) ? '<p class="forecast-warning">Un ancien rattachement est absent de cet export. Enregistrer supprimera ce lien ; vérifie les pièces avant de confirmer.</p>' : ''}<p id="forecast-advance-balance" class="small"></p></div>`;
+    renderAdvanceBalance(row, keys);
+  }
   function openEditor(index) {
     const row = rows[index]; if (!row || row.missing) return;
     editingKey = row.key;
@@ -94,8 +114,9 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
     el('forecast-amount').value = selected(row) ? row.choice.remaining : row.proposed ?? '';
     el('forecast-month').value = row.choice?.month || '';
     el('forecast-note').textContent = row.review ? 'Le rapprochement a changé. Ton montant saisi a été conservé. Vérifie-le avant de réactiver cette prévision.' : row.status === 'complete' ? 'Une correspondance complète est probable. Saisis le montant restant si tu souhaites ajouter ce devis manuellement.' : 'Vérifie le montant restant et la situation réelle du chantier avant de confirmer.';
-    el('forecast-evidence').innerHTML = `<p>${esc(matchingLabel(row))}. ${row.status === 'no-id' ? 'ID et nom client exploitables absents.' : 'Les montants rapprochés ne prouvent pas le rattachement au devis.'}</p>${row.duplicate ? '<p>Plusieurs pièces portent cette même identité. Elles sont regroupées ici et demandent une vérification.</p>' : ''}<ul>${(row.matched || []).map(b => `<li>${esc(b.type)} ${esc(b.number)} · ${esc(b.date || 'date absente')} : ${money(b.amount)}</li>`).join('')}</ul>`;
+    el('forecast-evidence').innerHTML = `<p>${esc(matchingLabel(row))}. ${row.status === 'no-id' ? 'ID et nom client exploitables absents.' : 'Les montants rapprochés ne prouvent pas le rattachement au devis.'}</p>${row.groupMatch ? '<p>Les factures couvrent collectivement les devis de même montant. La pièce affichée est une attribution indicative, pas un lien établi.</p>' : ''}${row.duplicate ? '<p>Plusieurs pièces portent cette même identité. Elles sont regroupées ici et demandent une vérification.</p>' : ''}<ul>${(row.matched || []).map(b => `<li>${esc(b.type)} ${esc(b.number)} · ${esc(b.date || 'date absente')} : ${money(b.amount)}</li>`).join('')}</ul>`;
     el('forecast-evidence').closest('details').open = false;
+    renderAdvances(row);
     el('forecast-form-error').textContent = '';
     editor.showModal();
   }
@@ -113,10 +134,18 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
       const row = rows[Number(b.dataset.fExclude)];
       commit(row, { action: 'exclude', fingerprint: row.fingerprint, quote: quoteSnapshot(row) }, 'Devis écarté. Il reste accessible dans « Tous les devis ».');
     }
-    if (b.dataset.fRemove !== undefined) commit(rows[Number(b.dataset.fRemove)], null, 'Devis retiré du prévisionnel.');
+    if (b.dataset.fRemove !== undefined) {
+      const row = rows[Number(b.dataset.fRemove)];
+      commit(row, { action: 'exclude', fingerprint: row.fingerprint, quote: quoteSnapshot(row) }, 'Devis retiré. Ce choix reste prioritaire sur l’ajout automatique.');
+    }
     if (b.dataset.fAction === 'close-manager') manager.close();
   });
   editor.addEventListener('click', e => { if (e.target.closest('[data-f-action="close-editor"]')) editor.close(); });
+  el('forecast-year').addEventListener('change', renderList);
+  el('forecast-advances').addEventListener('change', () => {
+    const row = rows.find(r => r.key === editingKey);
+    if (row) renderAdvanceBalance(row, selectedAdvanceKeys(row));
+  });
   el('forecast-search').addEventListener('input', renderList);
   el('forecast-form').addEventListener('submit', e => {
     e.preventDefault();
@@ -125,7 +154,10 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
     if (!row || row.missing || !Number.isFinite(remaining) || remaining < 0 || el('forecast-amount').value === '') {
       el('forecast-form-error').textContent = 'Saisis un montant HT valide, supérieur ou égal à zéro.'; return;
     }
-    commit(row, { action: 'include', fingerprint: row.fingerprint, quote: quoteSnapshot(row),
+    const advanceKeys = selectedAdvanceKeys(row);
+    const advanceState = forecastAdvances(row, rows, advanceKeys);
+    if (advanceState.error) { el('forecast-form-error').textContent = advanceState.error; return; }
+    commit(row, { action: 'include', advanceKeys, fingerprint: row.fingerprint, quote: quoteSnapshot(row),
       remaining: Math.round(remaining * 100) / 100, situation: el('forecast-situation').value, month: el('forecast-month').value || null }, 'Prévision enregistrée.');
     editor.close();
   });
