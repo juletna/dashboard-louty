@@ -62,7 +62,14 @@ try {
   await shot('forecast-manager-desktop-light');
   await page.locator('[data-f-action=close-manager]').click();
   assert.match(await page.locator('#cap-forecast').innerText(), /600/);
-  const chartForecast = await page.evaluate(() => window.Chart.getChart(document.querySelector('#chart-ca-mb')).data.datasets.find(d => d.label === 'CA confirmé à facturer HT (sélection)').data);
+  const chartForecast = await page.evaluate(() => {
+    const datasets=Chart.getChart(document.querySelector('#chart-ca-mb')).data.datasets;
+    const margin=datasets.find(d=>d.label==='Marge estimée sur le confirmé HT').data;
+    const costs=datasets.find(d=>d.label==='Achats & coûts estimés sur le confirmé HT').data;
+    if(costs[10]!==240 || margin[10]!==360) throw Error('Incorrect monthly cost / margin split');
+    if(datasets.some(d=>d.label==='CA confirmé à facturer HT (sélection)')) throw Error('Revenue counted twice');
+    return margin.map((v,i)=>v===null?null:v+costs[i]);
+  });
   assert.equal(chartForecast[10], 600); assert.equal(chartForecast[9], null, 'waiting quotes do not join confirmed forecast');
   const projectedSeries = () => page.evaluate(() => Chart.getChart(document.querySelector('#chart-cumul')).data.datasets.find(d => d.label.includes('Réalisé +'))?.data);
   const marginSeries = await projectedSeries();
@@ -103,6 +110,8 @@ try {
   assert.equal(await page.locator('.forecast-column').count(),1);
   await page.locator('#revenue-forecast').scrollIntoViewIfNeeded();
   await shot('forecast-desktop-light');
+  await page.locator('#chart-ca-mb').scrollIntoViewIfNeeded();
+  await shot('monthly-projection-light');
   await page.setViewportSize({ width:1920, height:1100 });
   await page.locator('#revenue-forecast').scrollIntoViewIfNeeded();
   await shot('forecast-wide-light');
@@ -110,6 +119,8 @@ try {
   await page.locator('#toggle-theme').click();
   await page.locator('#revenue-forecast').scrollIntoViewIfNeeded();
   await shot('forecast-desktop-dark');
+  await page.locator('#chart-ca-mb').scrollIntoViewIfNeeded();
+  await shot('monthly-projection-dark');
   await page.locator('#chart-annual-progress').scrollIntoViewIfNeeded();
   await shot('outlook-desktop-dark');
   await page.reload();
@@ -135,6 +146,8 @@ try {
   await page.locator('[data-f-action=close-manager]').click();
   await page.locator('#revenue-forecast').scrollIntoViewIfNeeded();
   await shot('forecast-mobile-dark');
+  await page.locator('#chart-ca-mb').scrollIntoViewIfNeeded();
+  await shot('monthly-projection-mobile-dark');
   await page.locator('#chart-annual-progress').scrollIntoViewIfNeeded();
   await shot('outlook-mobile-dark');
   await page.locator('#chart-cumul').scrollIntoViewIfNeeded();
@@ -142,6 +155,8 @@ try {
   await page.locator('#toggle-theme').click();
   await page.locator('#revenue-forecast').scrollIntoViewIfNeeded();
   await shot('forecast-mobile-light');
+  await page.locator('#chart-ca-mb').scrollIntoViewIfNeeded();
+  await shot('monthly-projection-mobile-light');
   await page.locator('#chart-annual-progress').scrollIntoViewIfNeeded();
   await shot('outlook-mobile-light');
   await page.locator('[data-f-action=manage]').click();

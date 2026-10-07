@@ -57,9 +57,19 @@ function renderCAMB(cy, curYear, years) {
     { type: 'bar', label: 'Achats & coûts (reste du CA)', data: reste, backgroundColor: COLORS.red, stack: 's', order: 3,
       borderRadius: { topLeft: R, topRight: R, bottomLeft: 0, bottomRight: 0 }, borderSkipped: false }
   ];
+  const outlook = forecastOutlook(DATA);
   if (DATA?.forecast?.monthly.some(value => value !== null)) {
-    datasets.push({ type: 'bar', label: 'CA confirmé à facturer HT (sélection)', data: DATA.forecast.monthly,
-      backgroundColor: COLORS.blue, stack: 'forecast', order: 3, borderRadius: R, borderSkipped: false });
+    if (outlook?.totalMB !== null && outlook?.totalMB !== undefined) {
+      datasets.push({ type:'bar', label:'Marge estimée sur le confirmé HT', data:outlook.monthlyMargin,
+        backgroundColor:'rgba(79, 188, 188, 0.42)', borderColor:COLORS.green, borderWidth:1,
+        stack:'forecast', order:3, borderRadius:{topLeft:0,topRight:0,bottomLeft:R,bottomRight:R}, borderSkipped:false });
+      datasets.push({ type:'bar', label:'Achats & coûts estimés sur le confirmé HT', data:outlook.monthlyCosts,
+        backgroundColor:'rgba(255, 95, 133, 0.38)', borderColor:COLORS.red, borderWidth:1,
+        stack:'forecast', order:3, borderRadius:{topLeft:R,topRight:R,bottomLeft:0,bottomRight:0}, borderSkipped:false });
+    } else {
+      datasets.push({ type:'bar', label:'CA confirmé à facturer HT (sélection)', data:DATA.forecast.monthly,
+        backgroundColor:COLORS.blue, stack:'forecast', order:3, borderRadius:R, borderSkipped:false });
+    }
   }
   // La fin de mois projetée est une vraie pile Chart.js, et non plus une
   // surimpression canvas. Seul le complément au réalisé du mois est ajouté.
@@ -130,6 +140,13 @@ function renderCAMB(cy, curYear, years) {
               const i = items[0].dataIndex;
               const cv = caArr[i];
               const lines = cv != null ? ['CA total : ' + fmtEUR(cv)] : [];
+              if (DATA?.forecast?.monthly[i] != null) {
+                lines.push('CA confirmé à facturer : ' + fmtEUR(DATA.forecast.monthly[i]) + ' HT');
+                if (outlook?.monthlyCosts[i] != null) {
+                  lines.push('Coûts estimés après déduction des dépenses déjà engagées.');
+                  lines.push('Répartition mensuelle au prorata du CA confirmé.');
+                } else lines.push('Répartition marge / coûts indisponible.');
+              }
               if (currentMonthProjection && i === currentMonthProjection.monthIndex) {
                 lines.push('Objectif fin de mois : ' + fmtEUR(currentMonthProjection.ca));
                 lines.push('dont marge brute : ' + fmtEUR(currentMonthProjection.mb) + ' (' + fmtPct(targetMarginRate, 1) + ')');

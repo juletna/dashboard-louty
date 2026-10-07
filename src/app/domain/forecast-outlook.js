@@ -28,14 +28,23 @@ export function forecastOutlook(data) {
   const ca = Array(12).fill(null), mb = Array(12).fill(null);
   ca[end - 1] = forecast.actual;
   if (totalMB !== null) mb[end - 1] = actualMB;
-  let added = 0;
+  const monthlyCosts = Array(12).fill(null), monthlyMargin = Array(12).fill(null);
+  let added = 0, allocatedCosts = 0;
   for (let i = end; i <= last; i++) {
     added += monthly[i];
     ca[i] = round(forecast.actual + added);
-    if (totalMB !== null) mb[i] = round(actualMB + added - futureCosts * added / futureCA);
+    if (totalMB !== null) {
+      mb[i] = round(actualMB + added - futureCosts * added / futureCA);
+      const costsToDate = round(futureCosts * added / futureCA);
+      if (isFiniteNumber(forecast.monthly?.[i])) {
+        monthlyCosts[i] = round(costsToDate - allocatedCosts);
+        monthlyMargin[i] = round(monthly[i] - monthlyCosts[i]);
+      }
+      allocatedCosts = costsToDate;
+    }
   }
   return {
-    ca, mb, end, last, actualCA:forecast.actual, actualMB, futureCA:round(futureCA),
+    ca, mb, monthlyCosts, monthlyMargin, end, last, actualCA:forecast.actual, actualMB, futureCA:round(futureCA),
     totalCA:round(totalCA), totalMB:totalMB === null ? null : round(totalMB),
     actualCosts, annualCosts, futureCosts, rate:validRate ? rate : null, reference:reference.label,
     unavailable:actualMB === null ? 'Marge réalisée indisponible sur la période.' : !validRate ? 'Taux de marge historique exploitable indisponible.' : null,

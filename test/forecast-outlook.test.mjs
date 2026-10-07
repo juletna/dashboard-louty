@@ -38,3 +38,14 @@ test('no projection without confirmed future revenue or covered actual, stop at 
   const gap=data();gap.years[2026].months_present.splice(2,1);assert.equal(forecastOutlook(gap),null);
   const absent=data();absent.forecast.actual=null;assert.equal(forecastOutlook(absent),null);
 });
+
+test('monthly estimated costs and margin reconcile to confirmed revenue and annual envelope',()=>{
+  const result=forecastOutlook(data(80));
+  assert.equal(result.monthlyCosts[9],11.5);
+  assert.equal(result.monthlyMargin[9],8.5);
+  assert.equal(result.monthlyCosts[10],null);
+  assert.equal(result.monthlyCosts.reduce((n,v)=>n+(v??0),0),28.75);
+  assert.equal(result.monthlyMargin.reduce((n,v)=>n+(v??0),0),21.25);
+  assert.equal(forecastOutlook(data()).monthlyCosts[9],0);
+  assert.ok(forecastOutlook(data(150)).monthlyMargin[9]<0);
+});

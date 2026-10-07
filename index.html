@@ -2102,15 +2102,26 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     const ca = Array(12).fill(null), mb = Array(12).fill(null);
     ca[end - 1] = forecast.actual;
     if (totalMB !== null) mb[end - 1] = actualMB;
-    let added = 0;
+    const monthlyCosts = Array(12).fill(null), monthlyMargin = Array(12).fill(null);
+    let added = 0, allocatedCosts = 0;
     for (let i = end; i <= last; i++) {
       added += monthly[i];
       ca[i] = round(forecast.actual + added);
-      if (totalMB !== null) mb[i] = round(actualMB + added - futureCosts * added / futureCA);
+      if (totalMB !== null) {
+        mb[i] = round(actualMB + added - futureCosts * added / futureCA);
+        const costsToDate = round(futureCosts * added / futureCA);
+        if (isFiniteNumber(forecast.monthly?.[i])) {
+          monthlyCosts[i] = round(costsToDate - allocatedCosts);
+          monthlyMargin[i] = round(monthly[i] - monthlyCosts[i]);
+        }
+        allocatedCosts = costsToDate;
+      }
     }
     return {
       ca,
       mb,
+      monthlyCosts,
+      monthlyMargin,
       end,
       last,
       actualCA: forecast.actual,
@@ -3380,17 +3391,45 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
           borderSkipped: false
         }
       ];
+      const outlook = forecastOutlook(DATA2);
       if (DATA2?.forecast?.monthly.some((value) => value !== null)) {
-        datasets.push({
-          type: "bar",
-          label: "CA confirm\xE9 \xE0 facturer HT (s\xE9lection)",
-          data: DATA2.forecast.monthly,
-          backgroundColor: COLORS2.blue,
-          stack: "forecast",
-          order: 3,
-          borderRadius: R,
-          borderSkipped: false
-        });
+        if (outlook?.totalMB !== null && outlook?.totalMB !== void 0) {
+          datasets.push({
+            type: "bar",
+            label: "Marge estim\xE9e sur le confirm\xE9 HT",
+            data: outlook.monthlyMargin,
+            backgroundColor: "rgba(79, 188, 188, 0.42)",
+            borderColor: COLORS2.green,
+            borderWidth: 1,
+            stack: "forecast",
+            order: 3,
+            borderRadius: { topLeft: 0, topRight: 0, bottomLeft: R, bottomRight: R },
+            borderSkipped: false
+          });
+          datasets.push({
+            type: "bar",
+            label: "Achats & co\xFBts estim\xE9s sur le confirm\xE9 HT",
+            data: outlook.monthlyCosts,
+            backgroundColor: "rgba(255, 95, 133, 0.38)",
+            borderColor: COLORS2.red,
+            borderWidth: 1,
+            stack: "forecast",
+            order: 3,
+            borderRadius: { topLeft: R, topRight: R, bottomLeft: 0, bottomRight: 0 },
+            borderSkipped: false
+          });
+        } else {
+          datasets.push({
+            type: "bar",
+            label: "CA confirm\xE9 \xE0 facturer HT (s\xE9lection)",
+            data: DATA2.forecast.monthly,
+            backgroundColor: COLORS2.blue,
+            stack: "forecast",
+            order: 3,
+            borderRadius: R,
+            borderSkipped: false
+          });
+        }
       }
       if (currentMonthProjection) {
         var projectionMB = Array(12).fill(null);
@@ -3494,6 +3533,13 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
                   const i = items[0].dataIndex;
                   const cv = caArr[i];
                   const lines = cv != null ? ["CA total : " + fmtEUR2(cv)] : [];
+                  if (DATA2?.forecast?.monthly[i] != null) {
+                    lines.push("CA confirm\xE9 \xE0 facturer : " + fmtEUR2(DATA2.forecast.monthly[i]) + " HT");
+                    if (outlook?.monthlyCosts[i] != null) {
+                      lines.push("Co\xFBts estim\xE9s apr\xE8s d\xE9duction des d\xE9penses d\xE9j\xE0 engag\xE9es.");
+                      lines.push("R\xE9partition mensuelle au prorata du CA confirm\xE9.");
+                    } else lines.push("R\xE9partition marge / co\xFBts indisponible.");
+                  }
                   if (currentMonthProjection && i === currentMonthProjection.monthIndex) {
                     lines.push("Objectif fin de mois : " + fmtEUR2(currentMonthProjection.ca));
                     lines.push("dont marge brute : " + fmtEUR2(currentMonthProjection.mb) + " (" + fmtPct2(targetMarginRate, 1) + ")");
@@ -6184,7 +6230,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var spb = document.querySelector(".sp-body");
     if (spb) spb.addEventListener("scroll", hide);
   })();
-  var APP_VERSION = "20261007-233000";
+  var APP_VERSION = "20261007-234500";
   function showUpdateBanner(base, v) {
     if (document.getElementById("update-banner")) return;
     var d = document.createElement("div");
