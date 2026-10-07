@@ -1267,3 +1267,25 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .forecast-outlook p{margin:6px 0}
 .forecast-outlook strong{font-size:16px;color:var(--text)}
 .forecast-outlook summary{cursor:pointer;color:var(--violet)}
+
+/* Wide forecast: a narrow summary beside the calendar, with concise lists below. */
+.revenue-forecast{max-width:1440px;margin:18px auto;width:100%;box-sizing:border-box}
+.forecast-overview{display:grid;grid-template-columns:240px minmax(0,1fr);gap:36px;margin:24px 0 18px;padding-bottom:20px;border-bottom:1px solid var(--border);align-items:start}
+.forecast-summary{border-right:1px solid var(--border);padding-right:28px}
+.forecast-schedule{min-width:0}
+.forecast-overview .forecast-kpis{display:flex;flex-direction:column;gap:18px;margin:0}
+.forecast-overview .forecast-kpis>div{padding:0;min-width:0}
+.forecast-overview .forecast-kpis strong{font-size:26px;margin:2px 0;line-height:1.35}
+.forecast-overview .forecast-kpis>div:nth-child(2) strong{font-size:22px}
+.forecast-overview .forecast-kpis .forecast-to-plan strong{font-size:17px}
+.forecast-to-plan .forecast-link{font-size:11px;padding:4px 0;text-align:left}
+.forecast-schedule .forecast-head h3{font-size:13px;margin:0}
+.forecast-schedule .forecast-head .small{font-size:11px}
+.forecast-schedule .forecast-column-bar{width:48px}
+.forecast-schedule .forecast-chart-scroll{margin:0;padding-top:28px}
+.forecast-dashboard-tables{gap:32px}
+.forecast-dashboard-tables th{font-size:11px}
+.forecast-dashboard-tables td,.forecast-dashboard-tables th{padding:8px 5px}
+.forecast-table-scroll{max-height:none}
+@media(max-width:1050px){.forecast-overview{grid-template-columns:210px minmax(0,1fr);gap:22px}.forecast-summary{padding-right:20px}}
+@media(max-width:750px){.forecast-overview{grid-template-columns:1fr;gap:20px}.forecast-summary{border:0;padding:0}.forecast-overview .forecast-kpis{flex-direction:row;flex-wrap:wrap;gap:16px 24px}.forecast-overview .forecast-kpis>div{flex:1;min-width:130px}.forecast-schedule .forecast-column-bar{width:32px}.forecast-dashboard-tables{gap:20px}}

@@ -103,6 +103,10 @@ try {
   assert.equal(await page.locator('.forecast-column').count(),1);
   await page.locator('#revenue-forecast').scrollIntoViewIfNeeded();
   await shot('forecast-desktop-light');
+  await page.setViewportSize({ width:1920, height:1100 });
+  await page.locator('#revenue-forecast').scrollIntoViewIfNeeded();
+  await shot('forecast-wide-light');
+  await page.setViewportSize({ width:1440, height:1100 });
   await page.locator('#toggle-theme').click();
   await page.locator('#revenue-forecast').scrollIntoViewIfNeeded();
   await shot('forecast-desktop-dark');

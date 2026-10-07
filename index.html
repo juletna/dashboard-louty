@@ -1276,6 +1276,28 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .forecast-outlook p{margin:6px 0}
 .forecast-outlook strong{font-size:16px;color:var(--text)}
 .forecast-outlook summary{cursor:pointer;color:var(--violet)}
+
+/* Wide forecast: a narrow summary beside the calendar, with concise lists below. */
+.revenue-forecast{max-width:1440px;margin:18px auto;width:100%;box-sizing:border-box}
+.forecast-overview{display:grid;grid-template-columns:240px minmax(0,1fr);gap:36px;margin:24px 0 18px;padding-bottom:20px;border-bottom:1px solid var(--border);align-items:start}
+.forecast-summary{border-right:1px solid var(--border);padding-right:28px}
+.forecast-schedule{min-width:0}
+.forecast-overview .forecast-kpis{display:flex;flex-direction:column;gap:18px;margin:0}
+.forecast-overview .forecast-kpis>div{padding:0;min-width:0}
+.forecast-overview .forecast-kpis strong{font-size:26px;margin:2px 0;line-height:1.35}
+.forecast-overview .forecast-kpis>div:nth-child(2) strong{font-size:22px}
+.forecast-overview .forecast-kpis .forecast-to-plan strong{font-size:17px}
+.forecast-to-plan .forecast-link{font-size:11px;padding:4px 0;text-align:left}
+.forecast-schedule .forecast-head h3{font-size:13px;margin:0}
+.forecast-schedule .forecast-head .small{font-size:11px}
+.forecast-schedule .forecast-column-bar{width:48px}
+.forecast-schedule .forecast-chart-scroll{margin:0;padding-top:28px}
+.forecast-dashboard-tables{gap:32px}
+.forecast-dashboard-tables th{font-size:11px}
+.forecast-dashboard-tables td,.forecast-dashboard-tables th{padding:8px 5px}
+.forecast-table-scroll{max-height:none}
+@media(max-width:1050px){.forecast-overview{grid-template-columns:210px minmax(0,1fr);gap:22px}.forecast-summary{padding-right:20px}}
+@media(max-width:750px){.forecast-overview{grid-template-columns:1fr;gap:20px}.forecast-summary{border:0;padding:0}.forecast-overview .forecast-kpis{flex-direction:row;flex-wrap:wrap;gap:16px 24px}.forecast-overview .forecast-kpis>div{flex:1;min-width:130px}.forecast-schedule .forecast-column-bar{width:32px}.forecast-dashboard-tables{gap:20px}}
 </style>
 <script>try{var _t=localStorage.getItem("cabestan_dashboard_theme");if(_t==="dark"||_t==="light")document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 </head>
@@ -3065,13 +3087,13 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       if (dashboardMonth && dashboardMonth !== "none" && !monthValues.some((v) => v.month === dashboardMonth)) dashboardMonth = "";
       const max = Math.max(100, Math.ceil(Math.max(0, ...monthValues.map((v) => v.confirmed)) / 1e3) * 1e3);
       host.innerHTML = `<div class="forecast-head"><div><h2 id="forecast-title">Chiffre d\u2019affaires \xE0 venir</h2><p class="small">Montants HT restant \xE0 facturer \xB7 ta s\xE9lection de devis</p></div><button class="btn primary" data-f-action="manage">G\xE9rer les devis</button></div>${warning}
-      <div class="forecast-kpis"><div><span>Travaux confirm\xE9s</span><strong>${money3(summary.confirmed)}</strong><small>${confirmedCount} devis \xB7 reste \xE0 facturer</small></div><div><span>En attente client</span><strong>${money3(summary.waiting)}</strong><small>${waitingCount} devis \xB7 sans date \xB7 hors graphique</small></div><div><span>Confirm\xE9s \xE0 planifier</span><strong>${money3(summary.undated)}</strong><small>\xC0 positionner dans le temps</small></div></div>
+      <div class="forecast-overview"><aside class="forecast-summary"><div class="forecast-kpis"><div><span>Travaux confirm\xE9s</span><strong>${money3(summary.confirmed)}</strong><small>${confirmedCount} devis \xB7 reste \xE0 facturer</small></div><div><span>En attente client</span><strong>${money3(summary.waiting)}</strong><small>${waitingCount} devis \xB7 sans date \xB7 hors graphique</small></div>${summary.active.some((r) => r.choice.situation === "confirmed" && !r.choice.month) ? `<div class="forecast-to-plan"><span>Dont \xE0 planifier</span><strong>${money3(summary.undated)}</strong><button class="forecast-link" data-f-month="none">Planifier les devis sans date \u2192</button></div>` : ""}</div></aside><div class="forecast-schedule">
+      <div class="forecast-head"><h3>Facturation des chantiers confirm\xE9s</h3><span class="small">${monthValues.length ? esc2(monthName(monthValues[0].month)) + (monthValues.length > 1 ? " \u2192 " + esc2(monthName(monthValues.at(-1).month)) : "") + " \xB7 HT" : ""}</span></div>
+      ${monthValues.length ? `<div class="forecast-chart-scroll"><div class="forecast-chart" style="min-width:${Math.max(300, monthValues.length * 95)}px"><div class="forecast-axis">${[1, 0.75, 0.5, 0.25, 0].map((v, i) => `<span style="top:${i * 25}%">${formatMoney(max * v)}</span>`).join("")}</div><div class="forecast-columns" style="grid-template-columns:repeat(${monthValues.length},minmax(0,1fr))">${monthValues.map((v) => `<button class="forecast-column" data-f-month="${esc2(v.month)}" aria-pressed="${dashboardMonth === v.month}" aria-label="${esc2(monthName(v.month))} : ${money3(v.confirmed)} confirm\xE9s"><span class="forecast-column-bar" style="height:${v.confirmed / max * 100}%"><b>${formatMoney(v.confirmed)}</b></span><span class="forecast-column-label">${esc2(monthName(v.month))}</span></button>`).join("")}</div></div></div>` : '<p class="small">Aucun chantier confirm\xE9 dat\xE9. Renseigne un mois dans \xAB Modifier \xBB pour afficher le graphique.</p>'}
+      </div></div>
       ${summary.active.some((r) => r.auto) ? `<p class="small">${summary.active.filter((r) => r.auto).length} devis ajout\xE9(s) automatiquement par date d\u2019accord. Pr\xE9cise leur mois de facturation pour les int\xE9grer au cap annuel.</p>` : ""}
       ${summary.reviewCount ? `<p class="forecast-warning">${summary.reviewCount} devis s\xE9lectionn\xE9(s) \xE0 v\xE9rifier apr\xE8s actualisation du rapprochement. Leurs montants saisis sont conserv\xE9s, mais suspendus des totaux. <button class="forecast-link" data-f-action="selected">V\xE9rifier</button></p>` : ""}
       ${summary.coveredCount ? `<p class="small">${summary.coveredCount} devis pr\xE9vu(s) sur une p\xE9riode d\xE9j\xE0 couverte par le RES : \xE0 replanifier. Non ajout\xE9s au r\xE9alis\xE9.</p>` : ""}
-      <div class="forecast-head"><h3>Facturation des chantiers confirm\xE9s</h3><span class="small">${monthValues.length ? esc2(monthName(monthValues[0].month)) + (monthValues.length > 1 ? " \u2192 " + esc2(monthName(monthValues.at(-1).month)) : "") + " \xB7 HT" : ""}</span></div>
-      ${monthValues.length ? `<div class="forecast-chart-scroll"><div class="forecast-chart" style="min-width:${Math.max(300, monthValues.length * 95)}px"><div class="forecast-axis">${[1, 0.75, 0.5, 0.25, 0].map((v, i) => `<span style="top:${i * 25}%">${formatMoney(max * v)}</span>`).join("")}</div><div class="forecast-columns" style="grid-template-columns:repeat(${monthValues.length},minmax(0,1fr))">${monthValues.map((v) => `<button class="forecast-column" data-f-month="${esc2(v.month)}" aria-pressed="${dashboardMonth === v.month}" aria-label="${esc2(monthName(v.month))} : ${money3(v.confirmed)} confirm\xE9s"><span class="forecast-column-bar" style="height:${v.confirmed / max * 100}%"><b>${formatMoney(v.confirmed)}</b></span><span class="forecast-column-label">${esc2(monthName(v.month))}</span></button>`).join("")}</div></div></div>` : '<p class="small">Aucun chantier confirm\xE9 dat\xE9. Renseigne un mois dans \xAB Modifier \xBB pour afficher le graphique.</p>'}
-      ${summary.active.some((r) => r.choice.situation === "confirmed" && !r.choice.month) ? `<button class="forecast-link" data-f-month="none">Confirm\xE9s sans date : ${money3(summary.undated)}</button>` : ""}
       <div class="forecast-table-toolbar"><h3>Devis suivis</h3><input id="forecast-dashboard-search" type="search" aria-label="Rechercher les devis suivis" placeholder="Rechercher\u2026" value="${esc2(dashboardSearch)}"></div>
       <div id="forecast-dashboard-tables" class="forecast-dashboard-tables">${dashboardTable("confirmed")}${dashboardTable("waiting")}</div>
       <div class="forecast-footer"><div><strong>${rows.filter(candidate).length} devis \xE0 examiner</strong><p class="small">Les devis accept\xE9s sans ambigu\xEFt\xE9 sont ajout\xE9s automatiquement. Les autres restent \xE0 examiner.</p></div><button class="btn" data-f-action="review">Examiner les propositions</button></div>
@@ -6162,7 +6184,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var spb = document.querySelector(".sp-body");
     if (spb) spb.addEventListener("scroll", hide);
   })();
-  var APP_VERSION = "20261007-230000";
+  var APP_VERSION = "20261007-233000";
   function showUpdateBanner(base, v) {
     if (document.getElementById("update-banner")) return;
     var d = document.createElement("div");
