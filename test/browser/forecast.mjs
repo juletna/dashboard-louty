@@ -62,6 +62,8 @@ try {
   await shot('forecast-manager-desktop-light');
   await page.locator('[data-f-action=close-manager]').click();
   assert.match(await page.locator('#cap-forecast').innerText(), /600/);
+  assert.equal(await page.locator('#annual-cap #cap-forecast').count(),0);
+  assert.equal(await page.locator('#revenue-forecast #cap-forecast').count(),1);
   const chartForecast = await page.evaluate(() => {
     const datasets=Chart.getChart(document.querySelector('#chart-ca-mb')).data.datasets;
     const margin=datasets.find(d=>d.label==='Marge estimée sur le confirmé HT').data;
