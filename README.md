@@ -30,9 +30,11 @@ Le simulateur de trajectoire (taux de marge et charges) est initialisé à parti
 
 ## Chiffre d’affaires à venir
 
-La nouvelle carte, sous « Mon cap annuel », présente les **montants HT restant à facturer**. Dans « Gérer les devis », le préfiltre rapproche les montants par **ID client et code activité**, sans utiliser la date d’accord. Les correspondances exactes uniques passent avant les sommes de factures restantes ; aucune facture n’est affectée à plusieurs devis. Sans ID client, avec des devis concurrents, acomptes ou avoirs, la proposition reste à vérifier. Ce rapprochement ne prouve jamais une facturation.
+La nouvelle carte, sous « Mon cap annuel », présente les **montants HT restant à facturer**. Dans « Gérer les devis », le préfiltre rapproche les montants par **ID client et code activité**, sans utiliser la date d’accord. Les correspondances exactes uniques passent avant les sommes de factures restantes ; aucune facture n’est affectée à plusieurs devis. Sans ID client, le nom complet est utilisé en repli dans la même activité, en ignorant uniquement la casse et les espaces superflus. Les ID présents restent prioritaires ; un nom lié à plusieurs ID bloque le rapprochement des pièces non identifiées et des clients concernés. Avec des devis concurrents, acomptes ou avoirs, la proposition reste à vérifier. Ce rapprochement ne prouve jamais une facturation.
 
 « Tous les devis » permet d’ajouter manuellement un devis masqué par le préfiltre. Chaque sélection a une situation modifiable (travaux confirmés ou en attente client), un montant restant et un mois prévu, éventuellement vide. Cette version utilise **un seul mois par devis**. Les doublons d’une même identité de pièce sont regroupés et signalés comme ambigus. Un devis sans numéro est identifié par son activité, son client, sa date, son titre et son montant : si ces éléments changent, l’ancienne sélection reste visible comme absente de l’export.
+
+L’évolution du rapprochement par nom demande une vérification unique des sélections existantes ; les montants saisis sont conservés.
 
 Les choix sont mémorisés indépendamment du RES (`cabestan_forecast_v1`). Un nouvel import RES réinitialise toujours les Pièces actives, mais conserve les choix. Réimporter les Pièces les réactive. Les sélections absentes ou dont les pièces du client ont changé sont suspendues des totaux jusqu’à vérification, sans modifier la saisie. Un échec de sauvegarde est signalé et conserve la session et l’ancien cache.
 

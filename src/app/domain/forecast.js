@@ -3,7 +3,46 @@ import { isPeriodCovered, hasObservedValue } from './schema.js';
 const cents = (value) => Math.round(value * 100);
 const money = (value) => Math.round(value * 100) / 100;
 export const validMonth = (value) => typeof value === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
-const groupKey = (d) => d.client_id ? JSON.stringify([d.activity, d.client_id]) : null;
+const normalizedName = value => String(value ?? '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('fr-FR');
+const idKey = (activity, id) => JSON.stringify([activity, 'id', id]);
+
+function clientGroups(documents) {
+  const names = new Map();
+  const nameKey = d => JSON.stringify([d.activity, normalizedName(d.client)]);
+  for (const d of documents) {
+    if (!normalizedName(d.client)) continue;
+    const key = nameKey(d);
+    if (!names.has(key)) names.set(key, new Set());
+    if (d.client_id) names.get(key).add(d.client_id);
+  }
+  const blocked = new Set();
+  const conflicts = new Map();
+  // An unidentified document shared by several IDs cannot safely be assigned
+  // to any of them, nor ignored when matching their other documents.
+  for (const d of documents) {
+    const ids = names.get(nameKey(d));
+    if (!d.client_id && ids?.size > 1) {
+      for (const key of [null, ...[...ids].map(id => idKey(d.activity, id))]) {
+        if (key !== null) blocked.add(key);
+        if (!conflicts.has(key)) conflicts.set(key, new Set());
+        for (const related of documents.filter(other => nameKey(other) === nameKey(d))) {
+          conflicts.get(key).add(related);
+        }
+      }
+    }
+  }
+  return {
+    blocked,
+    conflicts,
+    resolve(d) {
+      if (d.client_id) return idKey(d.activity, d.client_id);
+      const name = normalizedName(d.client), ids = names.get(nameKey(d));
+      if (!name || ids?.size > 1) return null;
+      return ids?.size === 1 ? idKey(d.activity, [...ids][0]) : JSON.stringify([d.activity, 'name', name]);
+    },
+    ambiguous(d) { return !d.client_id && names.get(nameKey(d))?.size > 1; },
+  };
+}
 const billingTypes = new Set(['Facture', 'Facture de situation', "Facture d'acompte", 'Avoir']);
 
 // Numbered documents keep their identity when amounts/titles change. Unnumbered
@@ -23,11 +62,13 @@ export function prepareDocuments(documents) {
   return [...byKey.values()];
 }
 
-// A match is a proposal, never a statement of settlement. Missing client IDs
-// never fall back to a name. Invoice allocations are unique across quotes.
+// A match is a proposal, never a statement of settlement. Names are a fallback
+// only when they do not connect distinct IDs. Allocations remain unique.
 export function matchQuotes(documents = []) {
   const quotes = documents.filter(d => d.type === 'Devis' && !/brouillon/i.test(d.state));
   const bills = documents.filter(d => billingTypes.has(d.type) && !/brouillon/i.test(d.state));
+  const clients = clientGroups([...quotes, ...bills]);
+  const groupKey = clients.resolve;
   const groups = new Map();
   for (const q of quotes) {
     const key = groupKey(q);
@@ -42,16 +83,20 @@ export function matchQuotes(documents = []) {
     const candidates = (q) => available.filter(b => !used.has(b.key) && q.date && b.date && b.date >= q.date);
     const risky = clientBills.some(b => b.type === 'Avoir' || !Number.isFinite(b.amount) || b.amount < 0 || b.duplicate || !b.date);
     const record = (q, status, matched = [], proposed = q.amount) => {
-      results.set(q.key, { ...q, status, eligible: status !== 'complete', matched, proposed,
+      results.set(q.key, { ...q, status, matchBasis: key === null ? null : (!q.client_id || matched.some(b => !b.client_id) ? 'name' : 'id'), nameConflict: clients.ambiguous(q) || clients.blocked.has(key), eligible: status !== 'complete', matched, proposed,
         // Any change in this client's documents asks for review, including a
         // disappeared invoice or another quote competing for its allocation.
         fingerprint: JSON.stringify([q.key, q.title, q.client, q.amount, q.date,
           ...[qs, clientBills].map(part => [...part].sort((a, b) => a.key.localeCompare(b.key))
-            .map(d => [d.key, d.amount, d.date, d.duplicate]))]) });
+            .map(d => [d.key, d.amount, d.date, d.duplicate])),
+          key, clients.ambiguous(q) || clients.blocked.has(key),
+          [...(clients.conflicts.get(key) || [])].sort((a, b) => a.key.localeCompare(b.key))
+            .map(d => [d.key, d.amount, d.date, d.client_id, normalizedName(d.client), d.duplicate]),
+          ...[qs, clientBills].map(part => [...part].sort((a, b) => a.key.localeCompare(b.key)).map(d => [d.client_id, normalizedName(d.client)]))]) });
     };
     for (const q of qs) {
-      if (key === null) record(q, 'no-id');
-      else if (q.duplicate || risky || !q.date || !Number.isFinite(q.amount) || q.amount <= 0) record(q, 'ambiguous');
+      if (key === null) record(q, clients.ambiguous(q) ? 'ambiguous' : 'no-id');
+      else if (clients.blocked.has(key) || q.duplicate || risky || !q.date || !Number.isFinite(q.amount) || q.amount <= 0) record(q, 'ambiguous');
     }
     // Unique exact matches first. An identical amount on two quotes is kept
     // ambiguous regardless of file order, rather than allocating arbitrarily.
@@ -84,7 +129,7 @@ export function matchQuotes(documents = []) {
 
 export const MATCH_LABELS = {
   complete: 'Correspondance complète probable', partial: 'Facturation partielle possible',
-  unmatched: 'Aucune correspondance trouvée', ambiguous: 'Rapprochement ambigu', 'no-id': 'ID client absent',
+  unmatched: 'Aucune correspondance trouvée', ambiguous: 'Rapprochement ambigu', 'no-id': 'Client non identifiable',
 };
 
 export function reconcileForecast(documents, choices) {

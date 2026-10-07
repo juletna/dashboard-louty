@@ -41,6 +41,7 @@ try {
   assert.equal(await page.locator('#forecast-list .forecast-row').count(), 3);
   assert.equal(await page.locator('#forecast-list img').count(), 0, 'imported text must be escaped');
   const partial = () => page.locator('.forecast-row').filter({ hasText:'DEV-PARTIAL' });
+  assert.match(await partial().innerText(), /par nom client/);
   await partial().getByRole('button', {name:'Ajouter', exact:true}).click();
   assert.equal(await page.locator('#forecast-amount').inputValue(), '4100');
   await page.locator('#forecast-month').fill('2025-10');

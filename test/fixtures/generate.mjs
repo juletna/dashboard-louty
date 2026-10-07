@@ -151,7 +151,7 @@ export function createForecastFixtureFiles(directory) {
   const rows = [header,
     ['Devis','2025-06-01','Client Test Manuel',2100,'Validé & imp.','001','DEV-MANUAL','Luminaires','ACT'],
     ['Facture','2025-07-01','Client Test Manuel',2100,'Confirmé','001','FAC-MANUAL','Luminaires','ACT'],
-    ['Devis','2025-06-02','Client Test Partiel',5800,'Attente valid.','002','DEV-PARTIAL','Extension','ACT'],
+    ['Devis','2025-06-02','Client Test Partiel',5800,'Attente valid.','','DEV-PARTIAL','Extension','ACT'],
     ['Facture de situation','2025-07-02','Client Test Partiel',1700,'Confirmé','002','FAC-PARTIAL','Situation','ACT'],
     ['Devis','2025-06-03','Client Test Sans ID',3200,'Attente valid.','','DEV-NO-ID','Tableau','ACT'],
     ['Devis','2025-06-03','Client Brouillon',900,'Brouillon','003','DEV-DRAFT','Brouillon','ACT'],

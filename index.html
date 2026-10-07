@@ -1827,7 +1827,45 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   var cents = (value) => Math.round(value * 100);
   var money = (value) => Math.round(value * 100) / 100;
   var validMonth = (value) => typeof value === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
-  var groupKey = (d) => d.client_id ? JSON.stringify([d.activity, d.client_id]) : null;
+  var normalizedName = (value) => String(value ?? "").trim().replace(/\s+/g, " ").toLocaleLowerCase("fr-FR");
+  var idKey = (activity, id) => JSON.stringify([activity, "id", id]);
+  function clientGroups(documents) {
+    const names = /* @__PURE__ */ new Map();
+    const nameKey = (d) => JSON.stringify([d.activity, normalizedName(d.client)]);
+    for (const d of documents) {
+      if (!normalizedName(d.client)) continue;
+      const key = nameKey(d);
+      if (!names.has(key)) names.set(key, /* @__PURE__ */ new Set());
+      if (d.client_id) names.get(key).add(d.client_id);
+    }
+    const blocked = /* @__PURE__ */ new Set();
+    const conflicts = /* @__PURE__ */ new Map();
+    for (const d of documents) {
+      const ids = names.get(nameKey(d));
+      if (!d.client_id && ids?.size > 1) {
+        for (const key of [null, ...[...ids].map((id) => idKey(d.activity, id))]) {
+          if (key !== null) blocked.add(key);
+          if (!conflicts.has(key)) conflicts.set(key, /* @__PURE__ */ new Set());
+          for (const related of documents.filter((other) => nameKey(other) === nameKey(d))) {
+            conflicts.get(key).add(related);
+          }
+        }
+      }
+    }
+    return {
+      blocked,
+      conflicts,
+      resolve(d) {
+        if (d.client_id) return idKey(d.activity, d.client_id);
+        const name = normalizedName(d.client), ids = names.get(nameKey(d));
+        if (!name || ids?.size > 1) return null;
+        return ids?.size === 1 ? idKey(d.activity, [...ids][0]) : JSON.stringify([d.activity, "name", name]);
+      },
+      ambiguous(d) {
+        return !d.client_id && names.get(nameKey(d))?.size > 1;
+      }
+    };
+  }
   var billingTypes = /* @__PURE__ */ new Set(["Facture", "Facture de situation", "Facture d'acompte", "Avoir"]);
   function documentKey(d) {
     return JSON.stringify(d.number ? [d.activity, d.type, d.number] : [d.activity, d.type, d.client_id, d.client, d.date, d.title, d.amount]);
@@ -1847,6 +1885,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   function matchQuotes(documents = []) {
     const quotes = documents.filter((d) => d.type === "Devis" && !/brouillon/i.test(d.state));
     const bills = documents.filter((d) => billingTypes.has(d.type) && !/brouillon/i.test(d.state));
+    const clients = clientGroups([...quotes, ...bills]);
+    const groupKey = clients.resolve;
     const groups = /* @__PURE__ */ new Map();
     for (const q of quotes) {
       const key = groupKey(q);
@@ -1864,6 +1904,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         results.set(q.key, {
           ...q,
           status,
+          matchBasis: key === null ? null : !q.client_id || matched.some((b) => !b.client_id) ? "name" : "id",
+          nameConflict: clients.ambiguous(q) || clients.blocked.has(key),
           eligible: status !== "complete",
           matched,
           proposed,
@@ -1875,13 +1917,17 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
             q.client,
             q.amount,
             q.date,
-            ...[qs, clientBills].map((part) => [...part].sort((a, b) => a.key.localeCompare(b.key)).map((d) => [d.key, d.amount, d.date, d.duplicate]))
+            ...[qs, clientBills].map((part) => [...part].sort((a, b) => a.key.localeCompare(b.key)).map((d) => [d.key, d.amount, d.date, d.duplicate])),
+            key,
+            clients.ambiguous(q) || clients.blocked.has(key),
+            [...clients.conflicts.get(key) || []].sort((a, b) => a.key.localeCompare(b.key)).map((d) => [d.key, d.amount, d.date, d.client_id, normalizedName(d.client), d.duplicate]),
+            ...[qs, clientBills].map((part) => [...part].sort((a, b) => a.key.localeCompare(b.key)).map((d) => [d.client_id, normalizedName(d.client)]))
           ])
         });
       };
       for (const q of qs) {
-        if (key === null) record(q, "no-id");
-        else if (q.duplicate || risky || !q.date || !Number.isFinite(q.amount) || q.amount <= 0) record(q, "ambiguous");
+        if (key === null) record(q, clients.ambiguous(q) ? "ambiguous" : "no-id");
+        else if (clients.blocked.has(key) || q.duplicate || risky || !q.date || !Number.isFinite(q.amount) || q.amount <= 0) record(q, "ambiguous");
       }
       for (const q of qs.filter((q2) => !results.has(q2.key))) {
         const exact = candidates(q).filter((b) => cents(b.amount) === cents(q.amount));
@@ -1917,7 +1963,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     partial: "Facturation partielle possible",
     unmatched: "Aucune correspondance trouv\xE9e",
     ambiguous: "Rapprochement ambigu",
-    "no-id": "ID client absent"
+    "no-id": "Client non identifiable"
   };
   function reconcileForecast(documents, choices) {
     const rows = matchQuotes(documents);
@@ -2633,7 +2679,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     const selected = (r) => r.choice?.action === "include";
     const candidate = (r) => !r.missing && !selected(r) && r.eligible && (r.choice?.action !== "exclude" || r.review);
     const monthName = (m) => m ? new Date(Number(m.slice(0, 4)), Number(m.slice(5)) - 1, 1).toLocaleDateString("fr-FR", { month: "long", year: "numeric" }) : "Sans date pr\xE9vue";
-    const describe = (r) => r.missing ? "Absent de cet export \xB7 \xE0 v\xE9rifier" : r.review && selected(r) ? "Pi\xE8ces modifi\xE9es \xB7 \xE0 v\xE9rifier" : r.choice?.action === "exclude" && !r.review ? "\xC9cart\xE9 manuellement" : MATCH_LABELS[r.status];
+    const matchingLabel = (r) => r.nameConflict ? "Nom associ\xE9 \xE0 plusieurs ID \xB7 \xE0 v\xE9rifier" : `${MATCH_LABELS[r.status]}${r.matchBasis === "name" ? " \xB7 par nom client" : ""}`;
+    const describe = (r) => r.missing ? "Absent de cet export \xB7 \xE0 v\xE9rifier" : r.review && selected(r) ? "Rapprochement modifi\xE9 \xB7 \xE0 v\xE9rifier" : r.choice?.action === "exclude" && !r.review ? "\xC9cart\xE9 manuellement" : matchingLabel(r);
     function recalculate() {
       rows = reconcileForecast(data.revenue_distribution?.documents || [], storage.choices);
       summary = forecastSummary(rows, data, goal);
@@ -2666,12 +2713,12 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       const max = Math.max(1, ...monthValues.flatMap((v) => [v.confirmed, v.waiting]));
       host.innerHTML = `<div class="forecast-head"><div><h2 id="forecast-title">Chiffre d\u2019affaires \xE0 venir</h2><p class="small">Montants HT restant \xE0 facturer \xB7 ta s\xE9lection de devis</p></div><button class="btn primary" data-f-action="manage">G\xE9rer les devis</button></div>${warning}
       <div class="forecast-kpis"><div><span>Travaux confirm\xE9s</span><strong>${money2(summary.confirmed)}</strong><small>${confirmedCount} devis \xB7 reste \xE0 facturer</small></div><div><span>En attente client</span><strong>${money2(summary.waiting)}</strong><small>${waitingCount} devis \xB7 potentiel non acquis</small></div><div><span>Dont sans date pr\xE9vue</span><strong>${money2(summary.undated)}</strong><small>\xC0 positionner dans le temps</small></div></div>
-      ${summary.reviewCount ? `<p class="forecast-warning">${summary.reviewCount} devis s\xE9lectionn\xE9(s) \xE0 v\xE9rifier apr\xE8s import. Leurs montants saisis sont conserv\xE9s, mais suspendus des totaux. <button class="forecast-link" data-f-action="selected">V\xE9rifier</button></p>` : ""}
+      ${summary.reviewCount ? `<p class="forecast-warning">${summary.reviewCount} devis s\xE9lectionn\xE9(s) \xE0 v\xE9rifier apr\xE8s actualisation du rapprochement. Leurs montants saisis sont conserv\xE9s, mais suspendus des totaux. <button class="forecast-link" data-f-action="selected">V\xE9rifier</button></p>` : ""}
       ${summary.coveredCount ? `<p class="small">${summary.coveredCount} devis pr\xE9vu(s) sur une p\xE9riode d\xE9j\xE0 couverte par le RES : \xE0 replanifier. Non ajout\xE9s au r\xE9alis\xE9.</p>` : ""}
       <h3>Facturation pr\xE9vue</h3><div class="forecast-legend"><span><i></i>Travaux confirm\xE9s</span><span><i class="waiting"></i>En attente client</span></div>
       <div class="forecast-months">${monthValues.map((v) => `<button class="forecast-month" data-f-month="${esc2(v.month || "none")}" aria-label="${esc2(monthName(v.month))} : ${money2(v.confirmed)} confirm\xE9s, ${money2(v.waiting)} en attente"><span>${esc2(monthName(v.month))}</span><div class="forecast-bars" aria-hidden="true"><i style="height:${v.confirmed / max * 64}px"></i><i class="waiting" style="height:${v.waiting / max * 64}px"></i></div><strong>${money2(v.confirmed)}</strong><small>+ ${money2(v.waiting)} en attente</small></button>`).join("")}</div>
       <div class="forecast-footer"><div><strong>${rows.filter(candidate).length} devis \xE0 examiner</strong><p class="small">Le rapprochement propose, tu choisis ce qui entre au pr\xE9visionnel.</p></div><button class="btn" data-f-action="review">Examiner les propositions</button></div>
-      <details class="forecast-method"><summary>Comprendre les montants et les rapprochements</summary><p>Comparaison des montants HT par ID client et activit\xE9. Chaque facture est utilis\xE9e au plus une fois. Les acomptes, avoirs et correspondances ambigu\xEBs demandent une v\xE9rification. Les statuts d\u2019accord Louty ne d\xE9cident pas de ta s\xE9lection.</p><p>La marge brute, le r\xE9sultat, le salaire et la tr\xE9sorerie ne sont pas recalcul\xE9s \xE0 partir de ces devis. Les montants confirm\xE9s sont s\xE9par\xE9s de la projection statistique.</p><p>Les choix restent sur ce navigateur. Un nouvel import ne remplace jamais un montant saisi manuellement.</p></details>`;
+      <details class="forecast-method"><summary>Comprendre les montants et les rapprochements</summary><p>Comparaison des montants HT par activit\xE9 et ID client en priorit\xE9. Sans ID, le nom complet sert de repli : seules les majuscules et les espaces sont ignor\xE9s. Un nom associ\xE9 \xE0 plusieurs ID reste \xE0 v\xE9rifier. Chaque facture est utilis\xE9e au plus une fois. Les acomptes, avoirs et correspondances ambigu\xEBs demandent une v\xE9rification. Les statuts d\u2019accord Louty ne d\xE9cident pas de ta s\xE9lection.</p><p>La marge brute, le r\xE9sultat, le salaire et la tr\xE9sorerie ne sont pas recalcul\xE9s \xE0 partir de ces devis. Les montants confirm\xE9s sont s\xE9par\xE9s de la projection statistique.</p><p>Les choix restent sur ce navigateur. Un nouvel import ne remplace jamais un montant saisi manuellement.</p></details>`;
       if (cap) cap.innerHTML = `<div class="forecast-cap"><h3>CA r\xE9alis\xE9 + confirm\xE9 pr\xE9vu \xB7 ${esc2(summary.year)}</h3><div class="forecast-cap-values"><div><span>R\xE9alis\xE9 RES</span><strong>${money2(summary.actual)}</strong></div><span aria-hidden="true">+</span><div><span>Confirm\xE9 apr\xE8s ${esc2(monthName(summary.cutoff))}</span><strong>${money2(summary.annualConfirmed)}</strong></div><span aria-hidden="true">=</span><div><span>R\xE9alis\xE9 + confirm\xE9 pr\xE9vu</span><strong>${money2(summary.actualPlusConfirmed)}</strong></div><div><span>${summary.gap !== null && summary.gap < 0 ? "Au-del\xE0 de l\u2019objectif" : "Reste \xE0 couvrir"}</span><strong>${money2(summary.gap === null ? null : Math.abs(summary.gap))}</strong></div></div><p class="small">Base partielle : seuls les devis confirm\xE9s, v\xE9rifi\xE9s et dat\xE9s apr\xE8s les mois couverts par le RES et avant fin ${esc2(summary.year)} sont ajout\xE9s. Ne s\u2019ajoute pas \xE0 la projection statistique.</p>${summary.unintegrated.length ? `<details class="forecast-method"><summary>${summary.unintegrated.length} facture(s) / avoir(s) dat\xE9s apr\xE8s la p\xE9riode RES \xB7 ${money2(summary.unintegrated.reduce((n, d) => n + (d.amount ?? 0), 0))}</summary><p>Rep\xE8re \xE0 rapprocher du prochain RES. Ce montant n\u2019est pas ajout\xE9 automatiquement : il pourrait recouper les devis s\xE9lectionn\xE9s.</p><ul>${summary.unintegrated.map((d) => `<li>${esc2(d.date)} \xB7 ${esc2(d.number || d.type)} \xB7 ${esc2(d.client)} : ${money2(d.amount)}</li>`).join("")}</ul></details>` : ""}</div>`;
     }
     function renderList() {
@@ -2720,8 +2767,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       el("forecast-situation").value = row.choice?.situation || "confirmed";
       el("forecast-amount").value = selected(row) ? row.choice.remaining : row.proposed ?? "";
       el("forecast-month").value = row.choice?.month || "";
-      el("forecast-note").textContent = row.review ? "Les pi\xE8ces ont chang\xE9. Ton montant saisi a \xE9t\xE9 conserv\xE9. V\xE9rifie-le avant de r\xE9activer cette pr\xE9vision." : row.status === "complete" ? "Une correspondance compl\xE8te est probable. Saisis le montant restant si tu souhaites ajouter ce devis manuellement." : "V\xE9rifie le montant restant et la situation r\xE9elle du chantier avant de confirmer.";
-      el("forecast-evidence").innerHTML = `<p>${esc2(MATCH_LABELS[row.status])}. ${row.status === "no-id" ? "Aucun rapprochement automatique sans ID client." : "Les montants rapproch\xE9s ne prouvent pas le rattachement au devis."}</p>${row.duplicate ? "<p>Plusieurs pi\xE8ces portent cette m\xEAme identit\xE9. Elles sont regroup\xE9es ici et demandent une v\xE9rification.</p>" : ""}<ul>${(row.matched || []).map((b) => `<li>${esc2(b.type)} ${esc2(b.number)} \xB7 ${esc2(b.date || "date absente")} : ${money2(b.amount)}</li>`).join("")}</ul>`;
+      el("forecast-note").textContent = row.review ? "Le rapprochement a chang\xE9. Ton montant saisi a \xE9t\xE9 conserv\xE9. V\xE9rifie-le avant de r\xE9activer cette pr\xE9vision." : row.status === "complete" ? "Une correspondance compl\xE8te est probable. Saisis le montant restant si tu souhaites ajouter ce devis manuellement." : "V\xE9rifie le montant restant et la situation r\xE9elle du chantier avant de confirmer.";
+      el("forecast-evidence").innerHTML = `<p>${esc2(matchingLabel(row))}. ${row.status === "no-id" ? "ID et nom client exploitables absents." : "Les montants rapproch\xE9s ne prouvent pas le rattachement au devis."}</p>${row.duplicate ? "<p>Plusieurs pi\xE8ces portent cette m\xEAme identit\xE9. Elles sont regroup\xE9es ici et demandent une v\xE9rification.</p>" : ""}<ul>${(row.matched || []).map((b) => `<li>${esc2(b.type)} ${esc2(b.number)} \xB7 ${esc2(b.date || "date absente")} : ${money2(b.amount)}</li>`).join("")}</ul>`;
       el("forecast-evidence").closest("details").open = false;
       el("forecast-form-error").textContent = "";
       editor.showModal();
@@ -5676,7 +5723,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var spb = document.querySelector(".sp-body");
     if (spb) spb.addEventListener("scroll", hide);
   })();
-  var APP_VERSION = "20261007-171000";
+  var APP_VERSION = "20261007-180000";
   function showUpdateBanner(base, v) {
     if (document.getElementById("update-banner")) return;
     var d = document.createElement("div");

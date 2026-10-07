@@ -18,10 +18,43 @@ test('matching excludes drafts but never relies on agreement or validation statu
   assert.equal(result.length, 1);
   assert.equal(result[0].status, 'complete');
 });
-test('missing client IDs and different activity never match by client name', () => {
-  assert.equal(match([doc('q', 100, 'Devis', { client_id: '' }), doc('f', 100, 'Facture', { client_id: '' })])[0].status, 'no-id');
+test('missing IDs fall back to exact names within the same activity', () => {
+  assert.equal(match([doc('q', 100, 'Devis', { client_id: '' }), doc('f', 100, 'Facture', { client_id: '' })])[0].status, 'complete');
   assert.equal(match([doc('q', 100), doc('f', 100, 'Facture', { activity: 'OTHER' })])[0].status, 'unmatched');
 });
+
+test('names bridge missing IDs in either direction, ignoring only case and whitespace', () => {
+  for (const [qid, fid] of [['', '001'], ['001', ''], ['', '']]) {
+    const row = match([doc('q', 100, 'Devis', { client_id: qid, client: '  Martin   Alice ' }), doc('f', 40, 'Facture', { client_id: fid, client: 'MARTIN Alice' })])[0];
+    assert.equal(row.status, 'partial'); assert.equal(row.proposed, 60); assert.equal(row.matchBasis, 'name');
+  }
+  for (const client of ['Alice Martin', 'Martin Alise', '']) {
+    assert.notEqual(match([doc('q', 100, 'Devis', { client_id: '', client: 'Martin Alice' }), doc('f', 100, 'Facture', { client_id: '', client })])[0].status, 'complete');
+  }
+  assert.equal(match([doc('q', 100, 'Devis', { client_id: '', client: '  ' })])[0].status, 'no-id');
+});
+test('known IDs take priority; shared names never merge distinct clients', () => {
+  assert.equal(match([doc('q', 100), doc('f', 100, 'Facture', { client_id: '002' })])[0].status, 'unmatched');
+  const documents = [doc('q', 100, 'Devis', { client_id: '' }), doc('f1', 100, 'Facture'), doc('f2', 30, 'Facture', { client_id: '002' }), doc('q2', 100)];
+  const rows = match(documents);
+  assert.ok(rows.every(r => r.status === 'ambiguous' && r.nameConflict && !r.matched.length));
+  assert.deepEqual(match([...documents].reverse()).sort((a,b) => a.number.localeCompare(b.number)), [...rows].sort((a,b) => a.number.localeCompare(b.number)));
+});
+test('ID and name quotes share one invoice pool and detect competitors', () => {
+  const rows = match([doc('q1', 100), doc('q2', 200, 'Devis', { client_id: '' }), doc('f1', 100, 'Facture'), doc('f2', 60, 'Facture', { client_id: '' })]);
+  assert.equal(rows[0].status, 'complete'); assert.equal(rows[1].proposed, 140);
+  assert.equal(new Set(rows.flatMap(r => r.matched.map(b => b.key))).size, 2);
+  assert.ok(match([doc('q1', 100), doc('q2', 100, 'Devis', { client_id: '' }), doc('f', 100, 'Facture')]).every(r => r.status === 'ambiguous'));
+});
+test('identity changes invalidate saved proposals without changing manual amounts', () => {
+  const input = [doc('q', 100, 'Devis', { client_id: '' }), doc('f', 40, 'Facture')];
+  const row = match(input)[0], choices = new Map([[row.key, choice(row, { remaining: 70 })]]);
+  const changed = reconcileForecast(prepareDocuments([...input, doc('f2', 20, 'Facture', { client_id: '002' })]), choices)[0];
+  assert.equal(changed.review, true); assert.equal(changed.choice.remaining, 70);
+  const old = choice(row, { fingerprint: 'previous-matching-rule' });
+  assert.equal(reconcileForecast(prepareDocuments(input), new Map([[row.key, old]]))[0].review, true);
+});
+
 test('elimination allocates each invoice once, exact before partial sums', () => {
   const rows = match([doc('q1', 100), doc('q2', 500), doc('f1', 100, 'Facture'), doc('f2', 150, 'Facture de situation'), doc('f3', 200, 'Facture de situation')]);
   assert.equal(rows[0].status, 'complete');
@@ -99,4 +132,23 @@ test('parser retains unnumbered waiting quotes, missing fields and ID zero, excl
   const out = parsePieces(XLSX, { SheetNames: ['P'], Sheets: { P: sheet } });
   assert.equal(out.documents.length, 2); assert.equal(out.documents[0].client_id, '0');
   assert.equal(out.documents[1].amount, null); assert.equal(out.documents[1].date, null);
+});
+
+test('conflicting unidentified invoices remain in the review fingerprint without allocation', () => {
+  const input = [doc('q', 100), doc('other', 100, 'Devis', {client_id:'002'}), doc('f', 30, 'Facture', {client_id:''})];
+  const row = match(input)[0];
+  assert.equal(row.status, 'ambiguous'); assert.equal(row.matched.length, 0);
+  const choices = new Map([[row.key, choice(row, {remaining:70})]]);
+  const changed = input.map(d => d.number === 'f' ? {...d, amount:50} : d);
+  const next = reconcileForecast(prepareDocuments(changed), choices)[0];
+  assert.equal(next.review, true); assert.equal(next.choice.remaining, 70);
+});
+
+test('unidentified conflicting quote also tracks invoices bearing either known ID', () => {
+  const input = [doc('q', 100, 'Devis', {client_id:''}), doc('a', 30, 'Facture'), doc('b', 20, 'Facture', {client_id:'002'})];
+  const row = match(input)[0], choices = new Map([[row.key, choice(row)]]);
+  for (const number of ['a', 'b']) {
+    const changed = input.map(d => d.number === number ? {...d, amount:50} : d);
+    assert.equal(reconcileForecast(prepareDocuments(changed), choices)[0].review, true);
+  }
 });
