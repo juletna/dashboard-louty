@@ -1,3 +1,4 @@
+import { renderForecastSummary } from './forecast-summary.js';
 import { reconcileForecast, forecastSummary, forecastCalendar, MATCH_LABELS, REASON_LABELS } from '../domain/forecast.js';
 import { normalizedName } from '../domain/clients.js';
 import { forecastAdvances } from '../domain/forecast-advances.js';
@@ -32,29 +33,13 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
     const legacyPieces = hasDocuments && data.revenue_distribution.documents.some(d => !Object.hasOwn(d, 'agreement_date'));
     const warning = (legacyPieces ? '<p class="forecast-warning">Réimporte les Pièces pour lire les dates d’accord, montants TTC et règlements nécessaires aux nouveaux rapprochements.</p>' : '') + (storage.warning ? `<p class="forecast-warning" role="alert">${esc(storage.warning)}</p>` : '');
     if (!hasDocuments) {
-      host.innerHTML = `<div class="forecast-head"><div><h2 id="forecast-title">Chiffre d’affaires à venir</h2><p class="small">Montants HT restant à facturer</p></div><button class="btn" data-f-action="import">Importer les Pièces</button></div><p class="small">Ajoute un export Pièces incluant tous les devis, même non facturés. Les brouillons sont exclus automatiquement.</p>${warning}${summary.included.length ? '<p class="forecast-warning">Tes choix sont conservés. Réimporte les Pièces pour les rapprocher et réactiver le prévisionnel.</p>' : ''}`;
+      host.innerHTML = `<div class="forecast-head"><div><h2 id="forecast-title">Chiffre d’affaires prévisionnel</h2></div><button class="btn" data-f-action="import">Importer les Pièces</button></div><p class="small">Ajoute un export Pièces incluant tous les devis, même non facturés. Les brouillons sont exclus automatiquement.</p>${warning}${summary.included.length ? '<p class="forecast-warning">Tes choix sont conservés. Réimporte les Pièces pour les rapprocher et réactiver le prévisionnel.</p>' : ''}`;
       return;
     }
-    const confirmedCount = summary.active.filter(r => r.choice.situation === 'confirmed').length;
-    const waitingCount = summary.active.filter(r => r.choice.situation === 'waiting').length;
-    const monthValues = forecastCalendar(summary.active);
-    if (dashboardMonth && dashboardMonth !== 'none' && !monthValues.some(v => v.month === dashboardMonth)) dashboardMonth = '';
-    const max = Math.max(100, Math.ceil(Math.max(0, ...monthValues.map(v => v.confirmed)) / 1000) * 1000);
-    host.innerHTML = `<div class="forecast-head"><div><h2 id="forecast-title">Chiffre d’affaires à venir</h2><p class="small">Montants HT restant à facturer · ta sélection de devis</p></div><button class="btn primary" data-f-action="manage">Gérer les devis</button></div>${warning}
-      <div class="forecast-overview"><aside class="forecast-summary"><div class="forecast-kpis"><div><span>Travaux confirmés</span><strong>${money(summary.confirmed)}</strong><small>${confirmedCount} devis · reste à facturer</small></div><div><span>En attente client</span><strong>${money(summary.waiting)}</strong><small>${waitingCount} devis · sans date · hors graphique</small></div>${summary.active.some(r => r.choice.situation === 'confirmed' && !r.choice.month) ? `<div class="forecast-to-plan"><span>Dont à planifier</span><strong>${money(summary.undated)}</strong><button class="forecast-link" data-f-month="none">Planifier les devis sans date →</button></div>` : ''}</div></aside><div class="forecast-schedule">
-      <div class="forecast-head"><h3>Facturation des chantiers confirmés</h3><span class="small">${monthValues.length ? esc(monthName(monthValues[0].month)) + (monthValues.length > 1 ? ' → ' + esc(monthName(monthValues.at(-1).month)) : '') + ' · HT' : ''}</span></div>
-      ${monthValues.length ? `<div class="forecast-chart-scroll"><div class="forecast-chart" style="min-width:${Math.max(300, monthValues.length * 95)}px"><div class="forecast-axis">${[1,.75,.5,.25,0].map((v,i) => `<span style="top:${i*25}%">${formatMoney(max*v)}</span>`).join('')}</div><div class="forecast-columns" style="grid-template-columns:repeat(${monthValues.length},minmax(0,1fr))">${monthValues.map(v => `<button class="forecast-column" data-f-month="${esc(v.month)}" aria-pressed="${dashboardMonth === v.month}" aria-label="${esc(monthName(v.month))} : ${money(v.confirmed)} confirmés"><span class="forecast-column-bar" style="height:${v.confirmed/max*100}%"><b>${formatMoney(v.confirmed)}</b></span><span class="forecast-column-label">${esc(monthName(v.month))}</span></button>`).join('')}</div></div></div>` : '<p class="small">Aucun chantier confirmé daté. Renseigne un mois dans « Modifier » pour afficher le graphique.</p>'}
-      </div></div>
-      <div id="cap-forecast"></div>
-      ${summary.active.some(r => r.auto) ? `<p class="small">${summary.active.filter(r => r.auto).length} devis ajouté(s) automatiquement par date d’accord. Précise leur mois de facturation pour les intégrer au cap annuel.</p>` : ''}
-      ${summary.reviewCount ? `<p class="forecast-warning">${summary.reviewCount} devis sélectionné(s) à vérifier après actualisation du rapprochement. Leurs montants saisis sont conservés, mais suspendus des totaux. <button class="forecast-link" data-f-action="selected">Vérifier</button></p>` : ''}
-      ${summary.coveredCount ? `<p class="small">${summary.coveredCount} devis prévu(s) sur une période déjà couverte par le RES : à replanifier. Non ajoutés au réalisé.</p>` : ''}
-      <details id="forecast-followed" class="forecast-followed" ${expanded ? 'open' : ''}><summary><strong>Devis suivis</strong><span class="small">${summary.included.filter(r => r.choice.situation === 'confirmed').length} confirmés · ${summary.included.filter(r => r.choice.situation === 'waiting').length} en attente</span></summary>
-      <div class="forecast-table-toolbar"><input id="forecast-dashboard-search" type="search" aria-label="Rechercher les devis suivis" placeholder="Rechercher…" value="${esc(dashboardSearch)}"></div>
-      <div id="forecast-dashboard-tables" class="forecast-dashboard-tables">${dashboardTable('confirmed')}${dashboardTable('waiting')}</div></details>
-      <div class="forecast-footer"><div><strong>${rows.filter(candidate).length} devis à examiner</strong><p class="small">Les devis acceptés sans ambiguïté sont ajoutés automatiquement. Les autres restent à examiner.</p></div><button class="btn" data-f-action="review">Examiner les propositions</button></div>
-      <details class="forecast-method"><summary>Comprendre les montants et les rapprochements</summary><p>Comparaison des montants HT par activité et ID client en priorité. Sans ID, le nom complet sert de repli : seules les majuscules et les espaces sont ignorés. Un nom associé à plusieurs ID reste à vérifier. Chaque facture est utilisée au plus une fois. Les acomptes, avoirs et correspondances ambiguës demandent une vérification. Une date d’accord valide ajoute automatiquement un devis confirmé si son reste à facturer est identifiable. Les cas ambigus restent à examiner. Tes choix manuels priment sur cet automatisme.</p><p>Les montants réalisés restent inchangés. Les graphiques de pilotage ajoutent le CA confirmé et une marge estimée, au taux historique pondéré et après prise en compte des coûts déjà comptabilisés. Le résultat, le salaire et la trésorerie ne sont pas recalculés à partir de ces devis. Ce scénario reste séparé de la projection statistique.</p><p>Les choix restent sur ce navigateur. Un nouvel import ne remplace jamais un montant saisi manuellement.</p></details>`;
-    el('cap-forecast').innerHTML = `<div class="forecast-cap"><h3>CA réalisé + confirmé prévu · ${esc(summary.year)}</h3><div class="forecast-cap-values"><div><span>Réalisé RES</span><strong>${money(summary.actual)}</strong></div><span aria-hidden="true">+</span><div><span>Confirmé après ${esc(monthName(summary.cutoff))}</span><strong>${money(summary.annualConfirmed)}</strong></div><span aria-hidden="true">=</span><div><span>Réalisé + confirmé prévu</span><strong>${money(summary.actualPlusConfirmed)}</strong></div><div><span>${summary.gap !== null && summary.gap < 0 ? 'Au-delà de l’objectif' : 'Reste à couvrir'}</span><strong>${money(summary.gap === null ? null : Math.abs(summary.gap))}</strong></div></div><p class="small">Base partielle : seuls les devis confirmés, vérifiés et datés après les mois couverts par le RES et avant fin ${esc(summary.year)} sont ajoutés. Ne s’ajoute pas à la projection statistique.</p>${summary.unintegrated.length ? `<details class="forecast-method"><summary>${summary.unintegrated.length} facture(s) / avoir(s) datés après la période RES · ${money(summary.unintegrated.reduce((n, d) => n + (d.amount ?? 0), 0))}</summary><p>Repère à rapprocher du prochain RES. Ce montant n’est pas ajouté automatiquement : il pourrait recouper les devis sélectionnés.</p><ul>${summary.unintegrated.map(d => `<li>${esc(d.date)} · ${esc(d.number || d.type)} · ${esc(d.client)} : ${money(d.amount)}</li>`).join('')}</ul></details>` : ''}</div>`;
+    if (dashboardMonth && dashboardMonth !== 'none' && !forecastCalendar(summary.active).some(v => v.month === dashboardMonth)) dashboardMonth = '';
+    host.innerHTML = renderForecastSummary({ summary, goal, reviewCount: rows.filter(candidate).length,
+      warning, expanded, search: dashboardSearch, tables: dashboardTable('confirmed') + dashboardTable('waiting'),
+      money: formatMoney, escape: esc });
   }
   function dashboardTable(situation) {
     const list = rows.filter(r => selected(r) && r.choice.situation === situation &&
@@ -99,8 +84,10 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
     }).join('') : '<p class="forecast-empty">Aucun devis dans cette vue.</p>';
     el('forecast-storage-message').textContent = storage.warning;
   }
-  function openManager(nextTab = 'review', filter = '') {
-    if (!manager.open) situationFilter = '';
+  function openManager(nextTab = 'review', filter = '', situation = null) {
+    if (situation !== null) situationFilter = situation;
+    else if (!manager.open) situationFilter = '';
+    el('forecast-year').value = '';
     tab = nextTab; monthFilter = filter; el('forecast-search').value = ''; el('forecast-message').textContent = '';
     renderList();
     if (!manager.open) { returnFocus = document.activeElement; manager.showModal(); }
@@ -156,6 +143,12 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
   });
   host.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
+    if (b.classList.contains('sp-help')) return;
+    if (b.dataset.fFilter) {
+      const kind = b.dataset.fFilter;
+      openManager('selected', kind === 'undated' ? 'none' : '', kind === 'undated' ? 'confirmed' : kind);
+      return;
+    }
     if (b.dataset.fEdit !== undefined) { returnFocus = b; openEditor(Number(b.dataset.fEdit)); return; }
     if (b.dataset.fAction === 'reset-month') { dashboardMonth = ''; renderSummary(); return; }
     if (b.dataset.fAction === 'import') el('forecast-input').click();

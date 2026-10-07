@@ -64,6 +64,26 @@ try {
   assert.match(await page.locator('#cap-forecast').innerText(), /600/);
   assert.equal(await page.locator('#annual-cap #cap-forecast').count(),0);
   assert.equal(await page.locator('#revenue-forecast #cap-forecast').count(),1);
+  assert.equal(await page.locator('#forecast-title').innerText(), 'Chiffre d’affaires prévisionnel ⓘ');
+  for (const [filter, expected] of [['confirmed',1],['waiting',1],['undated',0]]) {
+    await page.locator(`[data-f-filter="${filter}"]`).click();
+    assert.equal(await page.locator('#forecast-manager').evaluate(d => d.open),true);
+    assert.equal(await page.locator('#forecast-list .forecast-row').count(),expected);
+    assert.equal(await page.locator('#forecast-followed').getAttribute('open'),null,'filters do not expand the table');
+    await page.keyboard.press('Escape');
+  }
+  await page.locator('[data-f-action=review]').click();
+  assert.equal(await page.locator('#forecast-list .forecast-row').count(),2);
+  await page.keyboard.press('Escape');
+  const link = page.locator('[data-f-filter=confirmed]');
+  await page.locator('#forecast-title').hover();
+  const defaultColor = await link.evaluate(e => getComputedStyle(e).color);
+  await link.hover();
+  assert.notEqual(await link.evaluate(e => getComputedStyle(e).color),defaultColor,'links become violet on hover');
+  await page.locator('.forecast-help').focus();
+  assert.equal(await page.locator('#help-tip').isVisible(),true,'help works with keyboard focus');
+  assert.equal(await page.locator('#forecast-manager').evaluate(d => d.open),false,'help does not open categorisation');
+
   const chartForecast = await page.evaluate(() => {
     const datasets=Chart.getChart(document.querySelector('#chart-ca-mb')).data.datasets;
     const margin=datasets.find(d=>d.label==='Marge estimée sur le confirmé HT').data;
@@ -94,6 +114,10 @@ try {
   assert.equal(await page.locator('#forecast-followed').getAttribute('open'),null,'followed quotes collapsed initially');
   await shot('forecast-followed-collapsed');
   await page.locator('#forecast-followed > summary').click();
+  assert.equal(await page.locator('#forecast-manager').evaluate(d => d.open),false,'table disclosure does not open categorisation');
+  const tableWidth = await page.locator('#forecast-dashboard-tables').evaluate(e => e.getBoundingClientRect().width);
+  const toolbarWidth = await page.locator('.forecast-details-row').evaluate(e => e.getBoundingClientRect().width);
+  assert.ok(Math.abs(tableWidth-toolbarWidth)<2,'expanded tables use the card width');
   await page.getByLabel('Rechercher les devis suivis').fill('DEV-PARTIAL');
   assert.match(await page.locator('section[aria-label="Devis confirmés"]').innerText(),/Aucun devis/);
   await page.getByLabel('Rechercher les devis suivis').fill('');
@@ -111,6 +135,9 @@ try {
   await page.locator('#forecast-month').fill('2026-01');
   await page.locator('#forecast-form button[type=submit]').click();
   assert.equal(await page.locator('.forecast-column').count(),3);
+  await page.locator('.forecast-column[data-f-month="2025-12"]').click();
+  assert.match(await page.locator('section[aria-label="Devis confirmés"]').innerText(),/Aucun devis/,'an empty interior month remains a usable filter');
+  await page.getByRole('button',{name:'Tout afficher',exact:true}).click();
   await page.locator('section[aria-label="Devis confirmés"] button').filter({hasText:'Modifier'}).last().click();
   await page.locator('#forecast-situation').selectOption('waiting');
   await page.locator('#forecast-form button[type=submit]').click();

@@ -22,7 +22,12 @@ try {
   await page.goto(process.env.FORECAST_BASE_URL || `http://127.0.0.1:${server.address().port}/`);
   await page.locator('#file-input').setInputFiles([fixtures.res,fixtures.accepted,fixtures.zeroBal]);
   await page.locator('[data-f-action=manage]').waitFor();
-  assert.match(await page.locator('#revenue-forecast').innerText(),/2 devis ajouté/);
+  assert.equal(await page.locator('[data-f-filter=confirmed]').innerText(),'Confirmés · 2');
+  assert.equal(await page.locator('[data-f-filter=undated]').innerText(),'À planifier · 2');
+  await page.locator('[data-f-filter=undated]').click();
+  assert.equal(await page.locator('#forecast-list .forecast-row').count(),2);
+  assert.equal(await page.locator('#forecast-list .forecast-row').filter({hasText:'ajout automatique'}).count(),2);
+  await page.keyboard.press('Escape');
   assert.match(await page.locator('.customer-advances').innerText(),/solde comptable est nul/);
   await page.locator('.customer-advances summary').click();
   assert.match(await page.locator('.customer-advances').innerText(),/1\s?080.*TTC/);

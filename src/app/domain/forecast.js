@@ -244,3 +244,12 @@ export function forecastCalendar(rows) {
   const first = Math.min(...totals.keys()), last = Math.max(...totals.keys());
   return Array.from({length:last-first+1}, (_,i) => {const n=first+i;return {month:`${String(Math.floor(n/12)).padStart(4,'0')}-${String(n%12+1).padStart(2,'0')}`,confirmed:money(totals.get(n) || 0)};});
 }
+
+// Future-only coverage. Keep the actual/goal comparison separate from the
+// historical scenario so an already reached goal never produces a negative need.
+export function forecastCoverage(summary, goal) {
+  if (!Number.isFinite(goal) || !Number.isFinite(summary.actual)) return null;
+  const need = Math.max(0, money(goal - summary.actual));
+  const balance = money(need - summary.annualConfirmed);
+  return { need, balance, percent: need > 0 ? Math.max(0, Math.min(100, summary.annualConfirmed / need * 100)) : 100 };
+}

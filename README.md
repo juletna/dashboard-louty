@@ -28,9 +28,11 @@ Le premier bloc réunit les projections annuelles et les avancements à date. Le
 
 Le simulateur de trajectoire (taux de marge et charges) est initialisé à partir des données réelles des deux derniers exercices complets, puis mémorisé sur ton poste. Le CA nécessaire est calculé automatiquement à partir du cap et du taux de marge choisi. Tu peux à tout moment revenir à cette référence historique. Les seuils de lecture des graphiques restent accessibles via la roue crantée.
 
-## Chiffre d’affaires à venir
+## Chiffre d’affaires prévisionnel
 
-La carte, sous « Mon cap annuel », présente les **montants HT restant à facturer**. Le préfiltre rapproche les montants par activité et ID client prioritaire, puis par nom complet identique sans distinguer casse/espaces si l’ID manque. Les homonymes associés à plusieurs ID restent à vérifier. Les motifs affichent la cause précise : devis de même montant, factures concurrentes, avoir, acomptes à rattacher ou document incomplet.
+La carte, sous « Mon cap annuel », présente les **montants HT restant à facturer**. La jauge confronte le CA restant à produire pour atteindre le cap à la part déjà confirmée et planifiée sur la fin de l’exercice. L’attente client apparaît séparément dans « Potentiel CA ». Le calendrier compact garde les échéances hors période, explicitement signalées hors jauge. Le lien de détail déplie les tableaux sur place ; les liens Confirmés, En attente, À examiner et À planifier ouvrent la modale filtrée. Les liens sont gris par défaut et violets au survol ou au focus. Le bouton « Vérifier les devis » ouvre les propositions à examiner. Le bouton d’information près du titre précise le périmètre.
+
+Le préfiltre rapproche les montants par activité et ID client prioritaire, puis par nom complet identique sans distinguer casse/espaces si l’ID manque. Les homonymes associés à plusieurs ID restent à vérifier. Les motifs affichent la cause précise : devis de même montant, factures concurrentes, avoir, acomptes à rattacher ou document incomplet.
 
 Une **Date accord** valide ajoute automatiquement un devis en travaux confirmés lorsque le reste à facturer est positif et non ambigu. Une date manquante ne vaut pas refus. Aucun mois de facturation n’est inventé : les ajouts automatiques commencent « sans date prévue » et ne rejoignent le cap annuel qu’après planification. Les décisions manuelles, y compris les exclusions et retraits, restent prioritaires lors des réimports. Les devis acceptés mais ambigus restent à examiner et ne gonflent pas les totaux.
 
