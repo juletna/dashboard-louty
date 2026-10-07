@@ -58,6 +58,7 @@ try {
   await page.locator('#forecast-amount').fill('600');
   await page.locator('#forecast-month').fill('2025-11');
   await page.locator('#forecast-form button[type=submit]').click();
+  await shot('forecast-manager-desktop-light');
   await page.locator('[data-f-action=close-manager]').click();
   assert.match(await page.locator('#cap-forecast').innerText(), /600/);
   const chartForecast = await page.evaluate(() => window.Chart.getChart(document.querySelector('#chart-ca-mb')).data.datasets.find(d => d.label === 'CA confirmé à facturer HT (sélection)').data);
@@ -73,6 +74,14 @@ try {
   await page.locator('[data-f-action="manage"]').click();
   await page.locator('[data-f-tab=selected]').click();
   assert.equal(await page.locator('#forecast-list .forecast-row').count(), 2);
+  await page.locator('[data-f-situation=waiting]').click();
+  assert.equal(await page.locator('#forecast-list .forecast-row').count(), 1);
+  assert.match(await partial().innerText(), /En attente client/);
+  await page.locator('[data-f-situation=confirmed]').click();
+  assert.equal(await page.locator('#forecast-list .forecast-row').count(), 1);
+  assert.match(await manual().innerText(), /Chantier confirmé/);
+  await page.locator('[data-f-situation=""]').click();
+  await shot('forecast-manager-desktop-dark');
   await page.setViewportSize({ width:390, height:844 });
   await shot('forecast-mobile-manager-dark');
   await page.waitForFunction(() => document.documentElement.scrollWidth <= innerWidth);
@@ -104,6 +113,13 @@ try {
   await page.locator('[data-f-action=manage]').click();
   await page.locator('[data-f-tab=selected]').click();
   assert.equal(await page.locator('#forecast-list .forecast-row').count(), 2);
+  await page.locator('[data-f-situation=waiting]').click();
+  assert.equal(await page.locator('#forecast-list .forecast-row').count(), 1);
+  assert.match(await partial().innerText(), /En attente client/);
+  await page.locator('[data-f-situation=confirmed]').click();
+  assert.equal(await page.locator('#forecast-list .forecast-row').count(), 1);
+  assert.match(await manual().innerText(), /Chantier confirmé/);
+  await page.locator('[data-f-situation=""]').click();
   assert.equal(await partial().getByRole('button', {name:'Modifier',exact:true}).count(), 1);
   await manual().getByRole('button', {name:'Retirer',exact:true}).click();
   assert.equal(await page.locator('#forecast-list .forecast-row').count(), 1);

@@ -10,6 +10,9 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
   const editor = document.getElementById('forecast-editor');
   const el = id => document.getElementById(id);
   let data, goal, rows = [], summary, tab = 'review', monthFilter = '', editingKey = null, returnFocus;
+  let situationFilter = '';
+  const situationOf = r => r.choice?.action === 'include' ? (r.choice.remaining === 0 ? 'complete' : r.choice.situation) : r.status === 'complete' ? 'complete' : r.accepted ? 'confirmed' : 'waiting';
+  const situationLabels = { waiting: 'En attente client', confirmed: 'Chantier confirmé', complete: 'Facturation complète probable' };
   const selected = r => r.choice?.action === 'include';
   const candidate = r => !r.missing && !selected(r) && r.eligible && r.choice?.action !== 'exclude';
   const monthName = m => m ? new Date(Number(m.slice(0, 4)), Number(m.slice(5)) - 1, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) : 'Sans date prévue';
@@ -68,18 +71,26 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
       b.setAttribute('aria-pressed', String(b.dataset.fTab === tab));
       b.textContent = ({ review: 'À examiner', selected: 'Dans le prévisionnel', all: 'Tous les devis' })[b.dataset.fTab] + ' · ' + counts[b.dataset.fTab];
     });
-    const filtered = rows.filter(r => tab === 'review' ? candidate(r) : tab === 'selected' ? selected(r) : !r.missing)
+    const contextual = rows.filter(r => tab === 'review' ? candidate(r) : tab === 'selected' ? selected(r) : !r.missing)
       .filter(r => !yearSelect.value || r.date?.startsWith(yearSelect.value))
       .filter(r => !monthFilter || (r.choice?.month || 'none') === monthFilter)
       .filter(r => `${r.client} ${r.number} ${r.title}`.toLocaleLowerCase('fr').includes(text));
+    manager.querySelectorAll('[data-f-situation]').forEach(button => {
+      const value = button.dataset.fSituation;
+      const count = contextual.filter(r => !value || situationOf(r) === value).length;
+      button.textContent = (value ? ({waiting:'En attente client',confirmed:'Chantiers confirmés',complete:'Facturés probables'})[value] : 'Toutes les situations') + ' · ' + count;
+      button.setAttribute('aria-pressed', String(value === situationFilter));
+    });
+    const filtered = contextual.filter(r => !situationFilter || situationOf(r) === situationFilter);
     el('forecast-filter').textContent = monthFilter ? `Filtre : ${monthName(monthFilter === 'none' ? null : monthFilter)}. Cliquer sur un onglet pour effacer.` : tab === 'all' ? 'Ajout manuel possible, même si une facturation complète semble correspondre.' : 'Brouillons exclus · rapprochements indicatifs';
     el('forecast-list').innerHTML = filtered.length ? filtered.map(r => {
       const index = rows.indexOf(r);
-      return `<article class="forecast-row"><div><strong>${esc(r.client || 'Client non renseigné')}</strong><p class="small">${esc(r.number || 'Sans numéro')} · ${esc(r.date || 'Date absente')}</p><p class="small">${esc(r.title)}</p></div><div class="forecast-row-amount">${money(tab === 'selected' ? r.choice.remaining : r.amount)}<small>${tab === 'selected' ? 'restant à facturer' : 'montant du devis'}</small></div><div><span class="forecast-badge ${r.review || ['ambiguous', 'no-id'].includes(r.status) ? 'warn' : ''}">${esc(describe(r))}</span>${r.accepted ? `<p class="small">Accord du ${esc(r.agreement_date)}${r.auto ? ' · ajout automatique' : ''}</p>` : ''}${selected(r) ? `<p class="small">${r.choice.situation === 'confirmed' ? 'Travaux confirmés' : 'En attente client'} · ${esc(monthName(r.choice.month))}</p>` : ''}</div><div class="forecast-row-actions">${!r.missing ? `<button class="btn" data-f-edit="${index}">${selected(r) ? r.review ? 'Vérifier' : 'Modifier' : 'Ajouter'}</button>` : ''}${selected(r) ? `<button class="forecast-link" data-f-remove="${index}">Retirer</button>` : tab === 'review' ? `<button class="forecast-link" data-f-exclude="${index}">Écarter</button>` : ''}</div></article>`;
+      return `<article class="forecast-row"><div><strong>${esc(r.client || 'Client non renseigné')}</strong><p class="small">${esc(r.number || 'Sans numéro')} · ${esc(r.date || 'Date absente')}</p><p class="small">${esc(r.title)}</p></div><div class="forecast-row-amount">${money(tab === 'selected' ? r.choice.remaining : r.amount)}<small>${tab === 'selected' ? 'restant à facturer' : 'montant du devis'}</small></div><div><span class="forecast-situation ${situationOf(r)}">${situationLabels[situationOf(r)]}</span><span class="forecast-badge ${r.review || ['ambiguous', 'no-id'].includes(r.status) ? 'warn' : ''}">${esc(describe(r))}</span>${r.accepted ? `<p class="small">Accord du ${esc(r.agreement_date)}${r.auto ? ' · ajout automatique' : ''}</p>` : ''}${selected(r) ? `<p class="small">${esc(monthName(r.choice.month))}</p>` : ''}</div><div class="forecast-row-actions">${!r.missing ? `<button class="btn" data-f-edit="${index}">${selected(r) ? r.review ? 'Vérifier' : 'Modifier' : 'Ajouter'}</button>` : ''}${selected(r) ? `<button class="forecast-link" data-f-remove="${index}">Retirer</button>` : tab === 'review' ? `<button class="forecast-link" data-f-exclude="${index}">Écarter</button>` : ''}</div></article>`;
     }).join('') : '<p class="forecast-empty">Aucun devis dans cette vue.</p>';
     el('forecast-storage-message').textContent = storage.warning;
   }
   function openManager(nextTab = 'review', filter = '') {
+    if (!manager.open) situationFilter = '';
     tab = nextTab; monthFilter = filter; el('forecast-search').value = ''; el('forecast-message').textContent = '';
     renderList();
     if (!manager.open) { returnFocus = document.activeElement; manager.showModal(); }
@@ -128,6 +139,7 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
   });
   manager.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.fSituation !== undefined) { situationFilter = b.dataset.fSituation; renderList(); }
     if (b.dataset.fTab) openManager(b.dataset.fTab);
     if (b.dataset.fEdit !== undefined) openEditor(Number(b.dataset.fEdit));
     if (b.dataset.fExclude !== undefined) {

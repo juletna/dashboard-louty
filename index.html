@@ -1213,6 +1213,13 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
   .customer-advances summary { cursor:pointer; }
   .customer-advances ul { padding-left:18px; max-height:260px; overflow:auto; }
   .customer-advances li { margin:10px 0; overflow-wrap:anywhere; }
+
+  .forecast-situation-filters { display:flex; gap:8px; flex-wrap:wrap; margin:12px 0; }
+  .forecast-situation-filters button { font:inherit; font-size:12px; color:var(--text-dim); background:var(--bg-inset); border:1px solid var(--border); border-radius:20px; padding:9px 12px; cursor:pointer; }
+  .forecast-situation-filters button[aria-pressed="true"] { color:var(--violet); border-color:var(--violet); background:var(--violet-bg); font-weight:800; }
+  .forecast-situation { display:block; width:fit-content; border-radius:6px; padding:5px 8px; margin-bottom:8px; font-size:12px; font-weight:800; background:var(--bg-inset); color:var(--text-dim); }
+  .forecast-situation.confirmed { background:var(--violet-bg); color:var(--violet); }
+  .forecast-situation.waiting { background:var(--amber-bg); color:var(--text); }
 </style>
 <script>try{var _t=localStorage.getItem("cabestan_dashboard_theme");if(_t==="dark"||_t==="light")document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 </head>
@@ -1353,6 +1360,8 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 <dialog id="forecast-manager" class="forecast-dialog" aria-labelledby="forecast-manager-title">
   <div class="forecast-head"><div><h2 id="forecast-manager-title">Gérer le prévisionnel</h2><p class="small">Les devis acceptés et rapprochés sans ambiguïté sont ajoutés automatiquement. Tes choix manuels restent prioritaires.</p></div><button class="btn" type="button" data-f-action="close-manager">Fermer</button></div>
   <nav class="forecast-tabs" aria-label="Listes de devis"><button type="button" data-f-tab="review" aria-pressed="true">À examiner</button><button type="button" data-f-tab="selected" aria-pressed="false">Dans le prévisionnel</button><button type="button" data-f-tab="all" aria-pressed="false">Tous les devis</button></nav>
+  <div class="forecast-situation-filters" role="group" aria-label="Situation du devis"><button type="button" data-f-situation="" aria-pressed="true">Toutes les situations</button><button type="button" data-f-situation="waiting" aria-pressed="false">En attente client</button><button type="button" data-f-situation="confirmed" aria-pressed="false">Chantiers confirmés</button><button type="button" data-f-situation="complete" aria-pressed="false">Facturés probables</button></div>
+  <p class="small">Situation saisie prioritaire, sinon date d’accord. Sans accord renseigné : en attente. Un chantier confirmé peut encore nécessiter une vérification du montant restant.</p>
   <label class="forecast-search-label" for="forecast-search">Rechercher un client, un numéro ou un titre</label><input id="forecast-search" type="search" placeholder="Rechercher…">
   <label class="forecast-search-label" for="forecast-year">Date du devis</label><select id="forecast-year"><option value="">Toutes les années</option></select>
   <p id="forecast-filter" class="small"></p><p id="forecast-storage-message" class="forecast-warning" role="alert"></p>
@@ -2870,6 +2879,9 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     const editor = document.getElementById("forecast-editor");
     const el = (id) => document.getElementById(id);
     let data, goal, rows = [], summary, tab = "review", monthFilter = "", editingKey = null, returnFocus;
+    let situationFilter = "";
+    const situationOf = (r) => r.choice?.action === "include" ? r.choice.remaining === 0 ? "complete" : r.choice.situation : r.status === "complete" ? "complete" : r.accepted ? "confirmed" : "waiting";
+    const situationLabels = { waiting: "En attente client", confirmed: "Chantier confirm\xE9", complete: "Facturation compl\xE8te probable" };
     const selected = (r) => r.choice?.action === "include";
     const candidate = (r) => !r.missing && !selected(r) && r.eligible && r.choice?.action !== "exclude";
     const monthName = (m) => m ? new Date(Number(m.slice(0, 4)), Number(m.slice(5)) - 1, 1).toLocaleDateString("fr-FR", { month: "long", year: "numeric" }) : "Sans date pr\xE9vue";
@@ -2927,15 +2939,23 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         b.setAttribute("aria-pressed", String(b.dataset.fTab === tab));
         b.textContent = { review: "\xC0 examiner", selected: "Dans le pr\xE9visionnel", all: "Tous les devis" }[b.dataset.fTab] + " \xB7 " + counts[b.dataset.fTab];
       });
-      const filtered = rows.filter((r) => tab === "review" ? candidate(r) : tab === "selected" ? selected(r) : !r.missing).filter((r) => !yearSelect.value || r.date?.startsWith(yearSelect.value)).filter((r) => !monthFilter || (r.choice?.month || "none") === monthFilter).filter((r) => `${r.client} ${r.number} ${r.title}`.toLocaleLowerCase("fr").includes(text));
+      const contextual = rows.filter((r) => tab === "review" ? candidate(r) : tab === "selected" ? selected(r) : !r.missing).filter((r) => !yearSelect.value || r.date?.startsWith(yearSelect.value)).filter((r) => !monthFilter || (r.choice?.month || "none") === monthFilter).filter((r) => `${r.client} ${r.number} ${r.title}`.toLocaleLowerCase("fr").includes(text));
+      manager.querySelectorAll("[data-f-situation]").forEach((button) => {
+        const value = button.dataset.fSituation;
+        const count = contextual.filter((r) => !value || situationOf(r) === value).length;
+        button.textContent = (value ? { waiting: "En attente client", confirmed: "Chantiers confirm\xE9s", complete: "Factur\xE9s probables" }[value] : "Toutes les situations") + " \xB7 " + count;
+        button.setAttribute("aria-pressed", String(value === situationFilter));
+      });
+      const filtered = contextual.filter((r) => !situationFilter || situationOf(r) === situationFilter);
       el("forecast-filter").textContent = monthFilter ? `Filtre : ${monthName(monthFilter === "none" ? null : monthFilter)}. Cliquer sur un onglet pour effacer.` : tab === "all" ? "Ajout manuel possible, m\xEAme si une facturation compl\xE8te semble correspondre." : "Brouillons exclus \xB7 rapprochements indicatifs";
       el("forecast-list").innerHTML = filtered.length ? filtered.map((r) => {
         const index = rows.indexOf(r);
-        return `<article class="forecast-row"><div><strong>${esc2(r.client || "Client non renseign\xE9")}</strong><p class="small">${esc2(r.number || "Sans num\xE9ro")} \xB7 ${esc2(r.date || "Date absente")}</p><p class="small">${esc2(r.title)}</p></div><div class="forecast-row-amount">${money3(tab === "selected" ? r.choice.remaining : r.amount)}<small>${tab === "selected" ? "restant \xE0 facturer" : "montant du devis"}</small></div><div><span class="forecast-badge ${r.review || ["ambiguous", "no-id"].includes(r.status) ? "warn" : ""}">${esc2(describe(r))}</span>${r.accepted ? `<p class="small">Accord du ${esc2(r.agreement_date)}${r.auto ? " \xB7 ajout automatique" : ""}</p>` : ""}${selected(r) ? `<p class="small">${r.choice.situation === "confirmed" ? "Travaux confirm\xE9s" : "En attente client"} \xB7 ${esc2(monthName(r.choice.month))}</p>` : ""}</div><div class="forecast-row-actions">${!r.missing ? `<button class="btn" data-f-edit="${index}">${selected(r) ? r.review ? "V\xE9rifier" : "Modifier" : "Ajouter"}</button>` : ""}${selected(r) ? `<button class="forecast-link" data-f-remove="${index}">Retirer</button>` : tab === "review" ? `<button class="forecast-link" data-f-exclude="${index}">\xC9carter</button>` : ""}</div></article>`;
+        return `<article class="forecast-row"><div><strong>${esc2(r.client || "Client non renseign\xE9")}</strong><p class="small">${esc2(r.number || "Sans num\xE9ro")} \xB7 ${esc2(r.date || "Date absente")}</p><p class="small">${esc2(r.title)}</p></div><div class="forecast-row-amount">${money3(tab === "selected" ? r.choice.remaining : r.amount)}<small>${tab === "selected" ? "restant \xE0 facturer" : "montant du devis"}</small></div><div><span class="forecast-situation ${situationOf(r)}">${situationLabels[situationOf(r)]}</span><span class="forecast-badge ${r.review || ["ambiguous", "no-id"].includes(r.status) ? "warn" : ""}">${esc2(describe(r))}</span>${r.accepted ? `<p class="small">Accord du ${esc2(r.agreement_date)}${r.auto ? " \xB7 ajout automatique" : ""}</p>` : ""}${selected(r) ? `<p class="small">${esc2(monthName(r.choice.month))}</p>` : ""}</div><div class="forecast-row-actions">${!r.missing ? `<button class="btn" data-f-edit="${index}">${selected(r) ? r.review ? "V\xE9rifier" : "Modifier" : "Ajouter"}</button>` : ""}${selected(r) ? `<button class="forecast-link" data-f-remove="${index}">Retirer</button>` : tab === "review" ? `<button class="forecast-link" data-f-exclude="${index}">\xC9carter</button>` : ""}</div></article>`;
       }).join("") : '<p class="forecast-empty">Aucun devis dans cette vue.</p>';
       el("forecast-storage-message").textContent = storage.warning;
     }
     function openManager(nextTab = "review", filter = "") {
+      if (!manager.open) situationFilter = "";
       tab = nextTab;
       monthFilter = filter;
       el("forecast-search").value = "";
@@ -2996,6 +3016,10 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     manager.addEventListener("click", (e) => {
       const b = e.target.closest("button");
       if (!b) return;
+      if (b.dataset.fSituation !== void 0) {
+        situationFilter = b.dataset.fSituation;
+        renderList();
+      }
       if (b.dataset.fTab) openManager(b.dataset.fTab);
       if (b.dataset.fEdit !== void 0) openEditor(Number(b.dataset.fEdit));
       if (b.dataset.fExclude !== void 0) {
@@ -5908,7 +5932,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var spb = document.querySelector(".sp-body");
     if (spb) spb.addEventListener("scroll", hide);
   })();
-  var APP_VERSION = "20261007-190000";
+  var APP_VERSION = "20261007-200000";
   function showUpdateBanner(base, v) {
     if (document.getElementById("update-banner")) return;
     var d = document.createElement("div");

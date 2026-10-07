@@ -35,6 +35,12 @@ try {
   await row('AUTO').getByRole('button',{name:'Retirer',exact:true}).click();
   await page.locator('[data-f-tab=all]').click();
   assert.match(await row('REPEAT-1').innerText(),/Couverture complète probable du groupe/);
+  await page.locator('[data-f-situation=complete]').click();
+  assert.equal(await page.locator('.forecast-row').count(),2);
+  await page.locator('[data-f-situation=confirmed]').click();
+  assert.match(await row('ADV').innerText(),/Chantier confirmé/);
+  assert.equal(await row('REPEAT-1').count(),0);
+  await page.locator('[data-f-situation=""]').click();
   await page.locator('#forecast-year').selectOption('2024');assert.equal(await page.locator('.forecast-row').count(),1);
   await page.locator('#forecast-year').selectOption('');
   await row('ADV').getByRole('button',{name:'Ajouter',exact:true}).click();
