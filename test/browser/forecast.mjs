@@ -89,12 +89,17 @@ try {
   await page.locator('.forecast-outlook summary').click();
   await page.locator('#revenue-forecast').scrollIntoViewIfNeeded();
   assert.equal(await page.locator('.forecast-dashboard-tables table').count(),2);
+  assert.equal(await page.locator('#forecast-followed').getAttribute('open'),null,'followed quotes collapsed initially');
+  await shot('forecast-followed-collapsed');
+  await page.locator('#forecast-followed > summary').click();
   await page.getByLabel('Rechercher les devis suivis').fill('DEV-PARTIAL');
   assert.match(await page.locator('section[aria-label="Devis confirmés"]').innerText(),/Aucun devis/);
   await page.getByLabel('Rechercher les devis suivis').fill('');
   assert.equal(await page.locator('.forecast-column').count(),1);
   assert.equal(await page.locator('.forecast-column').getAttribute('data-f-month'),'2025-11');
+  await page.locator('#forecast-followed > summary').click();
   await page.locator('.forecast-column').click();
+  assert.notEqual(await page.locator('#forecast-followed').getAttribute('open'),null,'month selection opens details');
   assert.equal(await page.locator('section[aria-label="Devis en attente"] tbody tr').count(),1);
   await page.getByRole('button',{name:'Tout afficher',exact:true}).click();
   await page.locator('section[aria-label="Devis en attente"] button').click();
@@ -125,6 +130,8 @@ try {
   await shot('outlook-desktop-dark');
   await page.reload();
   await page.locator('[data-f-action="manage"]').waitFor();
+  assert.equal(await page.locator('#forecast-followed').getAttribute('open'),null,'collapsed again after reload');
+  await page.locator('#forecast-followed > summary').click();
   assert.match(await page.locator('#revenue-forecast').innerText(), /600/);
   await page.locator('[data-f-action="manage"]').click();
   await page.locator('[data-f-tab=selected]').click();
@@ -189,6 +196,7 @@ try {
   await page.locator('[data-f-situation=""]').click();
   assert.equal(await partial().getByRole('button', {name:'Modifier',exact:true}).count(), 1);
   await page.locator('[data-f-action=close-manager]').click();
+  if(await page.locator('#forecast-followed').getAttribute('open')===null) await page.locator('#forecast-followed > summary').click();
   await page.locator('section[aria-label="Devis confirmés"] button').click();
   await page.getByRole('button',{name:'Retirer du prévisionnel',exact:true}).click();
   assert.equal(await page.locator('.forecast-column').count(),0);

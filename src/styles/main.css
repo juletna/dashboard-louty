@@ -1289,3 +1289,9 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .forecast-table-scroll{max-height:none}
 @media(max-width:1050px){.forecast-overview{grid-template-columns:210px minmax(0,1fr);gap:22px}.forecast-summary{padding-right:20px}}
 @media(max-width:750px){.forecast-overview{grid-template-columns:1fr;gap:20px}.forecast-summary{border:0;padding:0}.forecast-overview .forecast-kpis{flex-direction:row;flex-wrap:wrap;gap:16px 24px}.forecast-overview .forecast-kpis>div{flex:1;min-width:130px}.forecast-schedule .forecast-column-bar{width:32px}.forecast-dashboard-tables{gap:20px}}
+
+.forecast-followed>summary{cursor:pointer;padding:10px 0;font-size:13px;color:var(--text)}
+.forecast-followed>summary strong{margin-right:14px}
+.forecast-followed>summary .small{display:inline-block}
+.forecast-followed .forecast-table-toolbar{justify-content:flex-end;margin-top:4px}
+.forecast-followed:not([open])+.forecast-footer{margin-top:10px}

@@ -1298,6 +1298,12 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .forecast-table-scroll{max-height:none}
 @media(max-width:1050px){.forecast-overview{grid-template-columns:210px minmax(0,1fr);gap:22px}.forecast-summary{padding-right:20px}}
 @media(max-width:750px){.forecast-overview{grid-template-columns:1fr;gap:20px}.forecast-summary{border:0;padding:0}.forecast-overview .forecast-kpis{flex-direction:row;flex-wrap:wrap;gap:16px 24px}.forecast-overview .forecast-kpis>div{flex:1;min-width:130px}.forecast-schedule .forecast-column-bar{width:32px}.forecast-dashboard-tables{gap:20px}}
+
+.forecast-followed>summary{cursor:pointer;padding:10px 0;font-size:13px;color:var(--text)}
+.forecast-followed>summary strong{margin-right:14px}
+.forecast-followed>summary .small{display:inline-block}
+.forecast-followed .forecast-table-toolbar{justify-content:flex-end;margin-top:4px}
+.forecast-followed:not([open])+.forecast-footer{margin-top:10px}
 </style>
 <script>try{var _t=localStorage.getItem("cabestan_dashboard_theme");if(_t==="dark"||_t==="light")document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 </head>
@@ -3082,7 +3088,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       summary = forecastSummary(rows, data, goal);
       data.forecast = summary;
     }
-    function renderSummary() {
+    function renderSummary(expand = false) {
+      const expanded = expand || !!el("forecast-followed")?.open;
       const hasDocuments = Array.isArray(data.revenue_distribution?.documents);
       const cap = el("cap-forecast");
       const legacyPieces = hasDocuments && data.revenue_distribution.documents.some((d) => !Object.hasOwn(d, "agreement_date"));
@@ -3105,8 +3112,9 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       ${summary.active.some((r) => r.auto) ? `<p class="small">${summary.active.filter((r) => r.auto).length} devis ajout\xE9(s) automatiquement par date d\u2019accord. Pr\xE9cise leur mois de facturation pour les int\xE9grer au cap annuel.</p>` : ""}
       ${summary.reviewCount ? `<p class="forecast-warning">${summary.reviewCount} devis s\xE9lectionn\xE9(s) \xE0 v\xE9rifier apr\xE8s actualisation du rapprochement. Leurs montants saisis sont conserv\xE9s, mais suspendus des totaux. <button class="forecast-link" data-f-action="selected">V\xE9rifier</button></p>` : ""}
       ${summary.coveredCount ? `<p class="small">${summary.coveredCount} devis pr\xE9vu(s) sur une p\xE9riode d\xE9j\xE0 couverte par le RES : \xE0 replanifier. Non ajout\xE9s au r\xE9alis\xE9.</p>` : ""}
-      <div class="forecast-table-toolbar"><h3>Devis suivis</h3><input id="forecast-dashboard-search" type="search" aria-label="Rechercher les devis suivis" placeholder="Rechercher\u2026" value="${esc2(dashboardSearch)}"></div>
-      <div id="forecast-dashboard-tables" class="forecast-dashboard-tables">${dashboardTable("confirmed")}${dashboardTable("waiting")}</div>
+      <details id="forecast-followed" class="forecast-followed" ${expanded ? "open" : ""}><summary><strong>Devis suivis</strong><span class="small">${summary.included.filter((r) => r.choice.situation === "confirmed").length} confirm\xE9s \xB7 ${summary.included.filter((r) => r.choice.situation === "waiting").length} en attente</span></summary>
+      <div class="forecast-table-toolbar"><input id="forecast-dashboard-search" type="search" aria-label="Rechercher les devis suivis" placeholder="Rechercher\u2026" value="${esc2(dashboardSearch)}"></div>
+      <div id="forecast-dashboard-tables" class="forecast-dashboard-tables">${dashboardTable("confirmed")}${dashboardTable("waiting")}</div></details>
       <div class="forecast-footer"><div><strong>${rows.filter(candidate).length} devis \xE0 examiner</strong><p class="small">Les devis accept\xE9s sans ambigu\xEFt\xE9 sont ajout\xE9s automatiquement. Les autres restent \xE0 examiner.</p></div><button class="btn" data-f-action="review">Examiner les propositions</button></div>
       <details class="forecast-method"><summary>Comprendre les montants et les rapprochements</summary><p>Comparaison des montants HT par activit\xE9 et ID client en priorit\xE9. Sans ID, le nom complet sert de repli : seules les majuscules et les espaces sont ignor\xE9s. Un nom associ\xE9 \xE0 plusieurs ID reste \xE0 v\xE9rifier. Chaque facture est utilis\xE9e au plus une fois. Les acomptes, avoirs et correspondances ambigu\xEBs demandent une v\xE9rification. Une date d\u2019accord valide ajoute automatiquement un devis confirm\xE9 si son reste \xE0 facturer est identifiable. Les cas ambigus restent \xE0 examiner. Tes choix manuels priment sur cet automatisme.</p><p>Les montants r\xE9alis\xE9s restent inchang\xE9s. Les graphiques de pilotage ajoutent le CA confirm\xE9 et une marge estim\xE9e, au taux historique pond\xE9r\xE9 et apr\xE8s prise en compte des co\xFBts d\xE9j\xE0 comptabilis\xE9s. Le r\xE9sultat, le salaire et la tr\xE9sorerie ne sont pas recalcul\xE9s \xE0 partir de ces devis. Ce sc\xE9nario reste s\xE9par\xE9 de la projection statistique.</p><p>Les choix restent sur ce navigateur. Un nouvel import ne remplace jamais un montant saisi manuellement.</p></details>`;
       if (cap) cap.innerHTML = `<div class="forecast-cap"><h3>CA r\xE9alis\xE9 + confirm\xE9 pr\xE9vu \xB7 ${esc2(summary.year)}</h3><div class="forecast-cap-values"><div><span>R\xE9alis\xE9 RES</span><strong>${money3(summary.actual)}</strong></div><span aria-hidden="true">+</span><div><span>Confirm\xE9 apr\xE8s ${esc2(monthName(summary.cutoff))}</span><strong>${money3(summary.annualConfirmed)}</strong></div><span aria-hidden="true">=</span><div><span>R\xE9alis\xE9 + confirm\xE9 pr\xE9vu</span><strong>${money3(summary.actualPlusConfirmed)}</strong></div><div><span>${summary.gap !== null && summary.gap < 0 ? "Au-del\xE0 de l\u2019objectif" : "Reste \xE0 couvrir"}</span><strong>${money3(summary.gap === null ? null : Math.abs(summary.gap))}</strong></div></div><p class="small">Base partielle : seuls les devis confirm\xE9s, v\xE9rifi\xE9s et dat\xE9s apr\xE8s les mois couverts par le RES et avant fin ${esc2(summary.year)} sont ajout\xE9s. Ne s\u2019ajoute pas \xE0 la projection statistique.</p>${summary.unintegrated.length ? `<details class="forecast-method"><summary>${summary.unintegrated.length} facture(s) / avoir(s) dat\xE9s apr\xE8s la p\xE9riode RES \xB7 ${money3(summary.unintegrated.reduce((n, d) => n + (d.amount ?? 0), 0))}</summary><p>Rep\xE8re \xE0 rapprocher du prochain RES. Ce montant n\u2019est pas ajout\xE9 automatiquement : il pourrait recouper les devis s\xE9lectionn\xE9s.</p><ul>${summary.unintegrated.map((d) => `<li>${esc2(d.date)} \xB7 ${esc2(d.number || d.type)} \xB7 ${esc2(d.client)} : ${money3(d.amount)}</li>`).join("")}</ul></details>` : ""}</div>`;
@@ -3227,7 +3235,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       if (b.dataset.fAction === "import") el("forecast-input").click();
       else if (b.dataset.fMonth) {
         dashboardMonth = b.dataset.fMonth;
-        renderSummary();
+        renderSummary(true);
       } else openManager(b.dataset.fAction === "selected" ? "selected" : "review");
     });
     manager.addEventListener("click", (e) => {
@@ -6230,7 +6238,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var spb = document.querySelector(".sp-body");
     if (spb) spb.addEventListener("scroll", hide);
   })();
-  var APP_VERSION = "20261007-234500";
+  var APP_VERSION = "20261007-235500";
   function showUpdateBanner(base, v) {
     if (document.getElementById("update-banner")) return;
     var d = document.createElement("div");
