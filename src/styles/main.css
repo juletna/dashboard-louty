@@ -1218,3 +1218,47 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
   .forecast-history-table th { background:var(--bg-inset); position:sticky; top:0; }
   .forecast-history-table td { overflow-wrap:anywhere; }
   .forecast-history-current { background:var(--violet-bg); }
+
+  /* Compact forecast: confirmed calendar and separate quote tables. */
+  .forecast-chart-scroll { overflow-x:auto; padding-top:25px; margin:8px 0; }
+  .forecast-chart { display:flex; gap:12px; height:205px; }
+  .forecast-axis { flex:0 0 65px; display:flex; flex-direction:column; justify-content:space-between; height:160px; font-size:10px; text-align:right; color:var(--text-dim); transform:translateY(-7px); }
+  .forecast-columns { display:grid; flex:1; height:160px; background:repeating-linear-gradient(to top,transparent 0,transparent 39px,var(--border) 39px,var(--border) 40px); }
+  .forecast-column { display:flex; justify-content:center; align-items:flex-end; height:160px; position:relative; border:0; background:transparent; color:var(--text); font:inherit; cursor:pointer; padding:0; }
+  .forecast-column[aria-pressed="true"], .forecast-column:hover { background:var(--violet-bg); }
+  .forecast-column-bar { display:block; width:32px; max-width:55%; background:var(--violet); border-radius:4px 4px 0 0; position:relative; }
+  .forecast-column-bar b { position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%); white-space:nowrap; font-size:11px; color:var(--text-dim); }
+  .forecast-column-label { position:absolute; top:171px; font-size:10px; color:var(--text-dim); }
+  .forecast-dashboard-tables { display:grid; grid-template-columns:1.15fr 1fr; gap:24px; margin-top:16px; }
+  .forecast-dashboard-tables section { min-width:0; }
+  .forecast-table-head { display:flex; justify-content:space-between; gap:10px; align-items:center; }
+  .forecast-table-head h3 { font-size:13px; margin:0; }
+  .forecast-table-head strong { color:var(--violet); white-space:nowrap; font-size:13px; }
+  .forecast-dashboard-tables section:last-child .forecast-table-head strong { color:var(--amber); }
+  .forecast-table-note { min-height:30px; display:flex; align-items:center; justify-content:space-between; }
+  .forecast-table-scroll { overflow:auto; max-height:245px; }
+  .forecast-dashboard-tables table { width:100%; border-collapse:collapse; font-size:12px; }
+  .forecast-dashboard-tables th, .forecast-dashboard-tables td { text-align:left; padding:7px 5px; border-bottom:1px solid var(--border); }
+  .forecast-dashboard-tables th { color:var(--text-dim); font-size:10px; font-weight:500; background:var(--bg-card); position:sticky; top:0; }
+  .forecast-dashboard-tables td:first-child { overflow-wrap:anywhere; }
+  .forecast-dashboard-tables td small { display:block; color:var(--text-dim); font-size:10px; }
+  .forecast-dashboard-tables .forecast-table-amount { white-space:nowrap; text-align:right; font-variant-numeric:tabular-nums; }
+  .forecast-dashboard-tables .forecast-link { font-size:11px; padding:2px; }
+  .forecast-kpis { margin:14px 0; }
+  .forecast-kpis > div { background:transparent; padding:8px 0; }
+  .forecast-kpis strong { font-size:24px; }
+  .forecast-kpis > div:first-child { background:transparent; }
+  .sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+  #forecast-month-field[hidden], #forecast-waiting-note[hidden], #forecast-remove-editor[hidden] { display:none; }
+  @media(max-width:850px) { .forecast-dashboard-tables { grid-template-columns:1fr; gap:20px; } }
+
+  .forecast-axis { position:relative; transform:none; }
+  .forecast-axis span { position:absolute; right:0; transform:translateY(-50%); }
+  @media(max-width:650px) {
+    .forecast-kpis { display:flex; flex-wrap:wrap; gap:10px; }
+    .forecast-kpis > div { flex:1; min-width:130px; }
+  }
+
+  .forecast-table-toolbar { display:flex; gap:15px; justify-content:space-between; align-items:center; margin-top:16px; }
+  .forecast-table-toolbar h3 { font-size:13px; }
+  #forecast-dashboard-search { width:190px; max-width:55%; border:1px solid var(--border); border-radius:6px; padding:7px 10px; font:inherit; font-size:12px; background:var(--bg-card); color:var(--text); }

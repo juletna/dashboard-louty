@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { prepareDocuments, matchQuotes, reconcileForecast, forecastSummary } from '../src/app/domain/forecast.js';
+import { prepareDocuments, matchQuotes, reconcileForecast, forecastSummary, forecastCalendar } from '../src/app/domain/forecast.js';
 import { createForecastStorage, FORECAST_KEY } from '../src/app/state/forecast.js';
 import { parseExportDate } from '../src/app/state/import.js';
 import { parsePieces } from '../src/app/parser.js';
@@ -199,7 +199,7 @@ test('manual inclusions and exclusions outrank agreement, including after change
     const manual=choice(original,{action,remaining:17,situation:'waiting',month:'2027-02'});
     for (const invoices of [[],[doc('f',30,'Facture')]]) {
       const [row]=reconcileForecast(prepareDocuments([q,...invoices]),new Map([[original.key,manual]]));
-      assert.equal(row.auto,false); assert.equal(row.choice,manual); assert.equal(row.review,!!invoices.length);
+      assert.equal(row.auto,false); assert.deepEqual(row.choice,action === 'include' ? {...manual,month:null} : manual); assert.equal(manual.month,'2027-02'); assert.equal(row.review,!!invoices.length);
     }
   }
 });
@@ -309,4 +309,13 @@ test('different IDs with identical name and TTC require manual confirmation desp
   const alreadyMatched = match([q, f, doc('Q-OTHER',82.5,'Devis',{client_id:'002',amount_ttc:99})]);
   assert.equal(alreadyMatched[0].probableInvoices,undefined);
   assert.equal(alreadyMatched[1].status,'complete');
+});
+
+
+test('confirmed calendar ends at last booked month, keeps interior gaps and excludes waiting dates', () => {
+  const row=(month,remaining,situation='confirmed')=>({choice:{month,remaining,situation}});
+  assert.deepEqual(forecastCalendar([row('2026-11',100),row('2027-01',200),row('2027-05',999,'waiting'),row(null,500)]),[
+    {month:'2026-11',confirmed:100},{month:'2026-12',confirmed:0},{month:'2027-01',confirmed:200}]);
+  assert.deepEqual(forecastCalendar([row(null,50),row('2028-01',500,'waiting')]),[]);
+  assert.deepEqual(forecastCalendar([row('2026-10',10),row('2026-10',20)]),[{month:'2026-10',confirmed:30}]);
 });

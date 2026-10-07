@@ -162,9 +162,10 @@
   <div id="forecast-advances"></div>
   <label for="forecast-situation">Situation du chantier</label><select id="forecast-situation"><option value="confirmed">Travaux confirmés</option><option value="waiting">En attente client</option></select>
   <label for="forecast-amount">Montant HT restant à facturer (€)</label><input id="forecast-amount" type="number" min="0" step="0.01" required>
-  <label for="forecast-month">Mois de facturation prévu</label><input id="forecast-month" type="month"><p class="small">Laisse vide pour « Sans date prévue ».</p>
+  <p id="forecast-waiting-note" class="small" hidden>Les devis en attente restent sans date, hors graphique. Tu pourras les planifier après confirmation.</p>
+  <div id="forecast-month-field"><label for="forecast-month">Mois de facturation prévu</label><input id="forecast-month" type="month"><p class="small">Laisse vide pour « Sans date prévue ».</p></div>
   <details class="forecast-method"><summary>Voir les éléments du rapprochement</summary><div id="forecast-evidence"></div></details>
-  <p id="forecast-form-error" class="forecast-warning" role="alert"></p><div class="forecast-footer"><button type="button" class="btn" data-f-action="close-editor">Annuler</button><button type="submit" class="btn primary">Enregistrer la prévision</button></div></form>
+  <p id="forecast-form-error" class="forecast-warning" role="alert"></p><div class="forecast-footer"><button type="button" class="btn" data-f-action="close-editor">Annuler</button><button type="button" class="forecast-link" id="forecast-remove-editor" data-f-action="remove-editor">Retirer du prévisionnel</button><button type="submit" class="btn primary">Enregistrer la prévision</button></div></form>
 </dialog>
 
 <div id="settings-backdrop"></div>

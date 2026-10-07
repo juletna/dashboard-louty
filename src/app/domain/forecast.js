@@ -194,7 +194,8 @@ export function reconcileForecast(documents, choices) {
       result.push({ ...choice.quote, key, choice, missing: true, review: true, eligible: false });
     }
   }
-  return result;
+  return result.map(row => row.choice?.action === 'include' && row.choice.situation === 'waiting'
+    ? { ...row, choice: { ...row.choice, month: null } } : row);
 }
 
 export function forecastSummary(rows, data, goal) {
@@ -222,13 +223,24 @@ export function forecastSummary(rows, data, goal) {
     monthly[i] = money((monthly[i] ?? 0) + row.choice.remaining);
   }
   return { year, cutoff, active, included, confirmed: sum(confirmed), waiting: sum(waiting),
-    undated: sum(active.filter(r => !r.choice.month)), reviewCount: included.filter(r => r.review).length,
+    undated: sum(confirmed.filter(r => !r.choice.month)), reviewCount: included.filter(r => r.review).length,
     actual, annualConfirmed, actualPlusConfirmed, monthly,
     gap: actualPlusConfirmed !== null && Number.isFinite(goal) ? money(goal - actualPlusConfirmed) : null,
-    coveredCount: active.filter(r => r.choice.month && cutoff && r.choice.month <= cutoff).length,
+    coveredCount: confirmed.filter(r => r.choice.month && cutoff && r.choice.month <= cutoff).length,
     // These invoices are displayed as an informational bridge only. Adding
     // their total to RES or selections without explicit links risks duplicates.
     unintegrated: (data.revenue_distribution?.documents || []).filter(d => ['Facture', 'Facture de situation', 'Avoir'].includes(d.type) &&
       !/brouillon/i.test(d.state) && d.date?.slice(0, 4) === year && d.date.slice(0, 7) > cutoff),
   };
+}
+
+// Calendar includes interior gaps, but never adds months past the last booking.
+export function forecastCalendar(rows) {
+  const dated = rows.filter(r => r.choice?.situation === 'confirmed' && validMonth(r.choice.month));
+  if (!dated.length) return [];
+  const ordinal = m => Number(m.slice(0,4)) * 12 + Number(m.slice(5)) - 1;
+  const totals = new Map();
+  for (const r of dated) { const n = ordinal(r.choice.month); totals.set(n, (totals.get(n) || 0) + r.choice.remaining); }
+  const first = Math.min(...totals.keys()), last = Math.max(...totals.keys());
+  return Array.from({length:last-first+1}, (_,i) => {const n=first+i;return {month:`${String(Math.floor(n/12)).padStart(4,'0')}-${String(n%12+1).padStart(2,'0')}`,confirmed:money(totals.get(n) || 0)};});
 }

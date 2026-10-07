@@ -1227,6 +1227,50 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
   .forecast-history-table th { background:var(--bg-inset); position:sticky; top:0; }
   .forecast-history-table td { overflow-wrap:anywhere; }
   .forecast-history-current { background:var(--violet-bg); }
+
+  /* Compact forecast: confirmed calendar and separate quote tables. */
+  .forecast-chart-scroll { overflow-x:auto; padding-top:25px; margin:8px 0; }
+  .forecast-chart { display:flex; gap:12px; height:205px; }
+  .forecast-axis { flex:0 0 65px; display:flex; flex-direction:column; justify-content:space-between; height:160px; font-size:10px; text-align:right; color:var(--text-dim); transform:translateY(-7px); }
+  .forecast-columns { display:grid; flex:1; height:160px; background:repeating-linear-gradient(to top,transparent 0,transparent 39px,var(--border) 39px,var(--border) 40px); }
+  .forecast-column { display:flex; justify-content:center; align-items:flex-end; height:160px; position:relative; border:0; background:transparent; color:var(--text); font:inherit; cursor:pointer; padding:0; }
+  .forecast-column[aria-pressed="true"], .forecast-column:hover { background:var(--violet-bg); }
+  .forecast-column-bar { display:block; width:32px; max-width:55%; background:var(--violet); border-radius:4px 4px 0 0; position:relative; }
+  .forecast-column-bar b { position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%); white-space:nowrap; font-size:11px; color:var(--text-dim); }
+  .forecast-column-label { position:absolute; top:171px; font-size:10px; color:var(--text-dim); }
+  .forecast-dashboard-tables { display:grid; grid-template-columns:1.15fr 1fr; gap:24px; margin-top:16px; }
+  .forecast-dashboard-tables section { min-width:0; }
+  .forecast-table-head { display:flex; justify-content:space-between; gap:10px; align-items:center; }
+  .forecast-table-head h3 { font-size:13px; margin:0; }
+  .forecast-table-head strong { color:var(--violet); white-space:nowrap; font-size:13px; }
+  .forecast-dashboard-tables section:last-child .forecast-table-head strong { color:var(--amber); }
+  .forecast-table-note { min-height:30px; display:flex; align-items:center; justify-content:space-between; }
+  .forecast-table-scroll { overflow:auto; max-height:245px; }
+  .forecast-dashboard-tables table { width:100%; border-collapse:collapse; font-size:12px; }
+  .forecast-dashboard-tables th, .forecast-dashboard-tables td { text-align:left; padding:7px 5px; border-bottom:1px solid var(--border); }
+  .forecast-dashboard-tables th { color:var(--text-dim); font-size:10px; font-weight:500; background:var(--bg-card); position:sticky; top:0; }
+  .forecast-dashboard-tables td:first-child { overflow-wrap:anywhere; }
+  .forecast-dashboard-tables td small { display:block; color:var(--text-dim); font-size:10px; }
+  .forecast-dashboard-tables .forecast-table-amount { white-space:nowrap; text-align:right; font-variant-numeric:tabular-nums; }
+  .forecast-dashboard-tables .forecast-link { font-size:11px; padding:2px; }
+  .forecast-kpis { margin:14px 0; }
+  .forecast-kpis > div { background:transparent; padding:8px 0; }
+  .forecast-kpis strong { font-size:24px; }
+  .forecast-kpis > div:first-child { background:transparent; }
+  .sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+  #forecast-month-field[hidden], #forecast-waiting-note[hidden], #forecast-remove-editor[hidden] { display:none; }
+  @media(max-width:850px) { .forecast-dashboard-tables { grid-template-columns:1fr; gap:20px; } }
+
+  .forecast-axis { position:relative; transform:none; }
+  .forecast-axis span { position:absolute; right:0; transform:translateY(-50%); }
+  @media(max-width:650px) {
+    .forecast-kpis { display:flex; flex-wrap:wrap; gap:10px; }
+    .forecast-kpis > div { flex:1; min-width:130px; }
+  }
+
+  .forecast-table-toolbar { display:flex; gap:15px; justify-content:space-between; align-items:center; margin-top:16px; }
+  .forecast-table-toolbar h3 { font-size:13px; }
+  #forecast-dashboard-search { width:190px; max-width:55%; border:1px solid var(--border); border-radius:6px; padding:7px 10px; font:inherit; font-size:12px; background:var(--bg-card); color:var(--text); }
 </style>
 <script>try{var _t=localStorage.getItem("cabestan_dashboard_theme");if(_t==="dark"||_t==="light")document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 </head>
@@ -1382,9 +1426,10 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
   <div id="forecast-advances"></div>
   <label for="forecast-situation">Situation du chantier</label><select id="forecast-situation"><option value="confirmed">Travaux confirmés</option><option value="waiting">En attente client</option></select>
   <label for="forecast-amount">Montant HT restant à facturer (€)</label><input id="forecast-amount" type="number" min="0" step="0.01" required>
-  <label for="forecast-month">Mois de facturation prévu</label><input id="forecast-month" type="month"><p class="small">Laisse vide pour « Sans date prévue ».</p>
+  <p id="forecast-waiting-note" class="small" hidden>Les devis en attente restent sans date, hors graphique. Tu pourras les planifier après confirmation.</p>
+  <div id="forecast-month-field"><label for="forecast-month">Mois de facturation prévu</label><input id="forecast-month" type="month"><p class="small">Laisse vide pour « Sans date prévue ».</p></div>
   <details class="forecast-method"><summary>Voir les éléments du rapprochement</summary><div id="forecast-evidence"></div></details>
-  <p id="forecast-form-error" class="forecast-warning" role="alert"></p><div class="forecast-footer"><button type="button" class="btn" data-f-action="close-editor">Annuler</button><button type="submit" class="btn primary">Enregistrer la prévision</button></div></form>
+  <p id="forecast-form-error" class="forecast-warning" role="alert"></p><div class="forecast-footer"><button type="button" class="btn" data-f-action="close-editor">Annuler</button><button type="button" class="forecast-link" id="forecast-remove-editor" data-f-action="remove-editor">Retirer du prévisionnel</button><button type="submit" class="btn primary">Enregistrer la prévision</button></div></form>
 </dialog>
 
 <div id="settings-backdrop"></div>
@@ -2119,7 +2164,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         result.push({ ...choice.quote, key, choice, missing: true, review: true, eligible: false });
       }
     }
-    return result;
+    return result.map((row) => row.choice?.action === "include" && row.choice.situation === "waiting" ? { ...row, choice: { ...row.choice, month: null } } : row);
   }
   function forecastSummary(rows, data, goal) {
     const included = rows.filter((r) => r.choice?.action === "include");
@@ -2149,18 +2194,33 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       included,
       confirmed: sum(confirmed),
       waiting: sum(waiting),
-      undated: sum(active.filter((r) => !r.choice.month)),
+      undated: sum(confirmed.filter((r) => !r.choice.month)),
       reviewCount: included.filter((r) => r.review).length,
       actual,
       annualConfirmed,
       actualPlusConfirmed,
       monthly,
       gap: actualPlusConfirmed !== null && Number.isFinite(goal) ? money(goal - actualPlusConfirmed) : null,
-      coveredCount: active.filter((r) => r.choice.month && cutoff && r.choice.month <= cutoff).length,
+      coveredCount: confirmed.filter((r) => r.choice.month && cutoff && r.choice.month <= cutoff).length,
       // These invoices are displayed as an informational bridge only. Adding
       // their total to RES or selections without explicit links risks duplicates.
       unintegrated: (data.revenue_distribution?.documents || []).filter((d) => ["Facture", "Facture de situation", "Avoir"].includes(d.type) && !/brouillon/i.test(d.state) && d.date?.slice(0, 4) === year && d.date.slice(0, 7) > cutoff)
     };
+  }
+  function forecastCalendar(rows) {
+    const dated = rows.filter((r) => r.choice?.situation === "confirmed" && validMonth(r.choice.month));
+    if (!dated.length) return [];
+    const ordinal = (m) => Number(m.slice(0, 4)) * 12 + Number(m.slice(5)) - 1;
+    const totals = /* @__PURE__ */ new Map();
+    for (const r of dated) {
+      const n = ordinal(r.choice.month);
+      totals.set(n, (totals.get(n) || 0) + r.choice.remaining);
+    }
+    const first = Math.min(...totals.keys()), last = Math.max(...totals.keys());
+    return Array.from({ length: last - first + 1 }, (_, i) => {
+      const n = first + i;
+      return { month: `${String(Math.floor(n / 12)).padStart(4, "0")}-${String(n % 12 + 1).padStart(2, "0")}`, confirmed: money(totals.get(n) || 0) };
+    });
   }
 
   // src/app/domain/payments.js
@@ -2905,7 +2965,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     const editor = document.getElementById("forecast-editor");
     const el = (id) => document.getElementById(id);
     let data, goal, rows = [], summary, tab = "review", monthFilter = "", editingKey = null, returnFocus;
-    let situationFilter = "";
+    let situationFilter = "", dashboardMonth = "", dashboardSearch = "";
     const situationOf = (r) => r.choice?.action === "include" ? r.choice.remaining === 0 ? "complete" : r.choice.situation : r.status === "complete" ? "complete" : r.accepted ? "confirmed" : "waiting";
     const situationLabels = { waiting: "En attente client", confirmed: "Chantier confirm\xE9", complete: "Facturation compl\xE8te probable" };
     const selected = (r) => r.choice?.action === "include";
@@ -2930,30 +2990,34 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       }
       const confirmedCount = summary.active.filter((r) => r.choice.situation === "confirmed").length;
       const waitingCount = summary.active.filter((r) => r.choice.situation === "waiting").length;
-      const baseYear = Number(summary.year);
-      const nextMonth = summary.cutoff ? Number(summary.cutoff.slice(5)) + 1 : 1;
-      const calendar = new Set(summary.active.map((r) => r.choice.month).filter(Boolean));
-      for (let i = 0; i < 3; i++) {
-        const d = new Date(baseYear, nextMonth - 1 + i, 1);
-        calendar.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
-      }
-      const months = [...calendar].sort().concat("");
-      const monthValues = months.map((m) => {
-        const list = summary.active.filter((r) => (r.choice.month || "") === m);
-        const sum = (situation) => list.filter((r) => r.choice.situation === situation).reduce((n, r) => n + r.choice.remaining, 0);
-        return { month: m, confirmed: sum("confirmed"), waiting: sum("waiting") };
-      });
-      const max = Math.max(1, ...monthValues.flatMap((v) => [v.confirmed, v.waiting]));
+      const monthValues = forecastCalendar(summary.active);
+      if (dashboardMonth && dashboardMonth !== "none" && !monthValues.some((v) => v.month === dashboardMonth)) dashboardMonth = "";
+      const max = Math.max(100, Math.ceil(Math.max(0, ...monthValues.map((v) => v.confirmed)) / 1e3) * 1e3);
       host.innerHTML = `<div class="forecast-head"><div><h2 id="forecast-title">Chiffre d\u2019affaires \xE0 venir</h2><p class="small">Montants HT restant \xE0 facturer \xB7 ta s\xE9lection de devis</p></div><button class="btn primary" data-f-action="manage">G\xE9rer les devis</button></div>${warning}
-      <div class="forecast-kpis"><div><span>Travaux confirm\xE9s</span><strong>${money3(summary.confirmed)}</strong><small>${confirmedCount} devis \xB7 reste \xE0 facturer</small></div><div><span>En attente client</span><strong>${money3(summary.waiting)}</strong><small>${waitingCount} devis \xB7 potentiel non acquis</small></div><div><span>Dont sans date pr\xE9vue</span><strong>${money3(summary.undated)}</strong><small>\xC0 positionner dans le temps</small></div></div>
+      <div class="forecast-kpis"><div><span>Travaux confirm\xE9s</span><strong>${money3(summary.confirmed)}</strong><small>${confirmedCount} devis \xB7 reste \xE0 facturer</small></div><div><span>En attente client</span><strong>${money3(summary.waiting)}</strong><small>${waitingCount} devis \xB7 sans date \xB7 hors graphique</small></div><div><span>Confirm\xE9s \xE0 planifier</span><strong>${money3(summary.undated)}</strong><small>\xC0 positionner dans le temps</small></div></div>
       ${summary.active.some((r) => r.auto) ? `<p class="small">${summary.active.filter((r) => r.auto).length} devis ajout\xE9(s) automatiquement par date d\u2019accord. Pr\xE9cise leur mois de facturation pour les int\xE9grer au cap annuel.</p>` : ""}
       ${summary.reviewCount ? `<p class="forecast-warning">${summary.reviewCount} devis s\xE9lectionn\xE9(s) \xE0 v\xE9rifier apr\xE8s actualisation du rapprochement. Leurs montants saisis sont conserv\xE9s, mais suspendus des totaux. <button class="forecast-link" data-f-action="selected">V\xE9rifier</button></p>` : ""}
       ${summary.coveredCount ? `<p class="small">${summary.coveredCount} devis pr\xE9vu(s) sur une p\xE9riode d\xE9j\xE0 couverte par le RES : \xE0 replanifier. Non ajout\xE9s au r\xE9alis\xE9.</p>` : ""}
-      <h3>Facturation pr\xE9vue</h3><div class="forecast-legend"><span><i></i>Travaux confirm\xE9s</span><span><i class="waiting"></i>En attente client</span></div>
-      <div class="forecast-months">${monthValues.map((v) => `<button class="forecast-month" data-f-month="${esc2(v.month || "none")}" aria-label="${esc2(monthName(v.month))} : ${money3(v.confirmed)} confirm\xE9s, ${money3(v.waiting)} en attente"><span>${esc2(monthName(v.month))}</span><div class="forecast-bars" aria-hidden="true"><i style="height:${v.confirmed / max * 64}px"></i><i class="waiting" style="height:${v.waiting / max * 64}px"></i></div><strong>${money3(v.confirmed)}</strong><small>+ ${money3(v.waiting)} en attente</small></button>`).join("")}</div>
+      <div class="forecast-head"><h3>Facturation des chantiers confirm\xE9s</h3><span class="small">${monthValues.length ? esc2(monthName(monthValues[0].month)) + (monthValues.length > 1 ? " \u2192 " + esc2(monthName(monthValues.at(-1).month)) : "") + " \xB7 HT" : ""}</span></div>
+      ${monthValues.length ? `<div class="forecast-chart-scroll"><div class="forecast-chart" style="min-width:${Math.max(300, monthValues.length * 95)}px"><div class="forecast-axis">${[1, 0.75, 0.5, 0.25, 0].map((v, i) => `<span style="top:${i * 25}%">${formatMoney(max * v)}</span>`).join("")}</div><div class="forecast-columns" style="grid-template-columns:repeat(${monthValues.length},minmax(0,1fr))">${monthValues.map((v) => `<button class="forecast-column" data-f-month="${esc2(v.month)}" aria-pressed="${dashboardMonth === v.month}" aria-label="${esc2(monthName(v.month))} : ${money3(v.confirmed)} confirm\xE9s"><span class="forecast-column-bar" style="height:${v.confirmed / max * 100}%"><b>${formatMoney(v.confirmed)}</b></span><span class="forecast-column-label">${esc2(monthName(v.month))}</span></button>`).join("")}</div></div></div>` : '<p class="small">Aucun chantier confirm\xE9 dat\xE9. Renseigne un mois dans \xAB Modifier \xBB pour afficher le graphique.</p>'}
+      ${summary.active.some((r) => r.choice.situation === "confirmed" && !r.choice.month) ? `<button class="forecast-link" data-f-month="none">Confirm\xE9s sans date : ${money3(summary.undated)}</button>` : ""}
+      <div class="forecast-table-toolbar"><h3>Devis suivis</h3><input id="forecast-dashboard-search" type="search" aria-label="Rechercher les devis suivis" placeholder="Rechercher\u2026" value="${esc2(dashboardSearch)}"></div>
+      <div id="forecast-dashboard-tables" class="forecast-dashboard-tables">${dashboardTable("confirmed")}${dashboardTable("waiting")}</div>
       <div class="forecast-footer"><div><strong>${rows.filter(candidate).length} devis \xE0 examiner</strong><p class="small">Les devis accept\xE9s sans ambigu\xEFt\xE9 sont ajout\xE9s automatiquement. Les autres restent \xE0 examiner.</p></div><button class="btn" data-f-action="review">Examiner les propositions</button></div>
       <details class="forecast-method"><summary>Comprendre les montants et les rapprochements</summary><p>Comparaison des montants HT par activit\xE9 et ID client en priorit\xE9. Sans ID, le nom complet sert de repli : seules les majuscules et les espaces sont ignor\xE9s. Un nom associ\xE9 \xE0 plusieurs ID reste \xE0 v\xE9rifier. Chaque facture est utilis\xE9e au plus une fois. Les acomptes, avoirs et correspondances ambigu\xEBs demandent une v\xE9rification. Une date d\u2019accord valide ajoute automatiquement un devis confirm\xE9 si son reste \xE0 facturer est identifiable. Les cas ambigus restent \xE0 examiner. Tes choix manuels priment sur cet automatisme.</p><p>La marge brute, le r\xE9sultat, le salaire et la tr\xE9sorerie ne sont pas recalcul\xE9s \xE0 partir de ces devis. Les montants confirm\xE9s sont s\xE9par\xE9s de la projection statistique.</p><p>Les choix restent sur ce navigateur. Un nouvel import ne remplace jamais un montant saisi manuellement.</p></details>`;
       if (cap) cap.innerHTML = `<div class="forecast-cap"><h3>CA r\xE9alis\xE9 + confirm\xE9 pr\xE9vu \xB7 ${esc2(summary.year)}</h3><div class="forecast-cap-values"><div><span>R\xE9alis\xE9 RES</span><strong>${money3(summary.actual)}</strong></div><span aria-hidden="true">+</span><div><span>Confirm\xE9 apr\xE8s ${esc2(monthName(summary.cutoff))}</span><strong>${money3(summary.annualConfirmed)}</strong></div><span aria-hidden="true">=</span><div><span>R\xE9alis\xE9 + confirm\xE9 pr\xE9vu</span><strong>${money3(summary.actualPlusConfirmed)}</strong></div><div><span>${summary.gap !== null && summary.gap < 0 ? "Au-del\xE0 de l\u2019objectif" : "Reste \xE0 couvrir"}</span><strong>${money3(summary.gap === null ? null : Math.abs(summary.gap))}</strong></div></div><p class="small">Base partielle : seuls les devis confirm\xE9s, v\xE9rifi\xE9s et dat\xE9s apr\xE8s les mois couverts par le RES et avant fin ${esc2(summary.year)} sont ajout\xE9s. Ne s\u2019ajoute pas \xE0 la projection statistique.</p>${summary.unintegrated.length ? `<details class="forecast-method"><summary>${summary.unintegrated.length} facture(s) / avoir(s) dat\xE9s apr\xE8s la p\xE9riode RES \xB7 ${money3(summary.unintegrated.reduce((n, d) => n + (d.amount ?? 0), 0))}</summary><p>Rep\xE8re \xE0 rapprocher du prochain RES. Ce montant n\u2019est pas ajout\xE9 automatiquement : il pourrait recouper les devis s\xE9lectionn\xE9s.</p><ul>${summary.unintegrated.map((d) => `<li>${esc2(d.date)} \xB7 ${esc2(d.number || d.type)} \xB7 ${esc2(d.client)} : ${money3(d.amount)}</li>`).join("")}</ul></details>` : ""}</div>`;
+    }
+    function dashboardTable(situation) {
+      const list = rows.filter((r) => selected(r) && r.choice.situation === situation && (situation === "waiting" || !dashboardMonth || (r.choice.month || "none") === dashboardMonth)).filter((r) => `${r.client} ${r.number} ${r.title}`.toLocaleLowerCase("fr").includes(dashboardSearch.toLocaleLowerCase("fr"))).sort((a, b) => (a.choice.month || "9999").localeCompare(b.choice.month || "9999") || a.client.localeCompare(b.client));
+      const total = list.filter((r) => !r.review && !r.missing).reduce((n, r) => n + r.choice.remaining, 0);
+      return `<section aria-label="${situation === "confirmed" ? "Devis confirm\xE9s" : "Devis en attente"}"><div class="forecast-table-head"><h3>${situation === "confirmed" ? "Confirm\xE9s" : "En attente client"} <span class="small">\xB7 ${list.length}</span></h3><strong>${money3(total)}</strong></div><div class="forecast-table-note small">${situation === "waiting" ? "Sans date \xB7 hors graphique" : dashboardMonth ? esc2(monthName(dashboardMonth === "none" ? null : dashboardMonth)) : "Reste \xE0 facturer"}${situation === "confirmed" && dashboardMonth ? '<button class="forecast-link" data-f-action="reset-month">Tout afficher</button>' : ""}</div><div class="forecast-table-scroll"><table><thead><tr><th>Client</th>${situation === "confirmed" ? "<th>Mois</th>" : ""}<th>HT</th><th><span class="sr-only">Action</span></th></tr></thead><tbody>${list.map((r) => `<tr><td>${esc2(r.client || "Client non renseign\xE9")}${r.review || r.missing ? "<small>\xC0 v\xE9rifier \xB7 hors totaux</small>" : ""}</td>${situation === "confirmed" ? `<td>${r.choice.month ? esc2((/* @__PURE__ */ new Date(r.choice.month + "-01T12:00:00")).toLocaleDateString("fr-FR", { month: "short", year: "2-digit" })) : "\xC0 dater"}</td>` : ""}<td class="forecast-table-amount">${formatMoney(r.choice.remaining)}</td><td><button class="forecast-link" ${r.missing ? 'data-f-action="selected"' : `data-f-edit="${rows.indexOf(r)}"`} aria-label="${r.review || r.missing ? "V\xE9rifier" : "Modifier"} ${esc2(r.client)} \xB7 ${esc2(r.number)}">${r.review || r.missing ? "V\xE9rifier" : "Modifier"}</button></td></tr>`).join("") || `<tr><td colspan="4" class="small">Aucun devis</td></tr>`}</tbody></table></div></section>`;
+    }
+    function syncMonthInput() {
+      const waiting = el("forecast-situation").value === "waiting";
+      el("forecast-month-field").hidden = waiting;
+      el("forecast-waiting-note").hidden = !waiting;
+      el("forecast-month").disabled = waiting;
+      if (waiting) el("forecast-month").value = "";
     }
     function renderList() {
       const yearSelect = el("forecast-year"), previousYear = yearSelect.value;
@@ -3034,14 +3098,33 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       el("forecast-history").innerHTML = `<details class="forecast-method" ${row.status === "ambiguous" ? "open" : ""}><summary>Historique du client et correspondances possibles \xB7 ${history.length} pi\xE8ces</summary><p>M\xEAme activit\xE9 et m\xEAme ID client, ou m\xEAme nom complet (majuscules et espaces ignor\xE9s). Un nom identique ne prouve pas qu\u2019il s\u2019agit du m\xEAme client. Les brouillons sont exclus de l\u2019import.</p><div class="forecast-history-scroll" role="region" aria-label="Historique des pi\xE8ces du client" tabindex="0"><table class="forecast-history-table"><thead><tr><th>Pi\xE8ce / date</th><th>Client / ID</th><th>Titre</th><th>\xC9tat / accord</th><th>Montant HT</th><th>Montant TTC</th><th>D\xE9j\xE0 r\xE9gl\xE9 TTC</th><th>En attente TTC</th></tr></thead><tbody>${history.map((d) => `<tr ${d.type === row.type && d.number === row.number && d.date === row.date ? 'class="forecast-history-current"' : ""}><td>${esc2(d.type)} ${esc2(d.number)}<br>${esc2(d.date || "Date absente")}${d.type === row.type && d.number === row.number && d.date === row.date ? "<br><strong>Devis examin\xE9</strong>" : ""}</td><td>${esc2(d.client)}<br>${esc2(d.client_id || "ID absent")}${d.client_id && row.client_id && d.client_id !== row.client_id ? '<br><strong class="forecast-badge warn">ID diff\xE9rent</strong>' : ""}</td><td>${esc2(d.title)}</td><td>${esc2(d.state)}${d.agreement_date ? "<br>Accord : " + esc2(d.agreement_date) : ""}</td><td>${exactMoney(d.amount)} HT</td><td>${ttc(d.amount_ttc)}</td><td>${ttc(d.paid)}</td><td>${ttc(d.pending)}</td></tr>`).join("")}</tbody></table></div><p>\xAB En attente \xBB indique le reste \xE0 encaisser sur une pi\xE8ce, pas le reste du chantier \xE0 facturer. Les montants de cet historique ne sont pas additionn\xE9s au pr\xE9visionnel.</p></details>`;
       renderAdvances(row);
       el("forecast-form-error").textContent = "";
+      syncMonthInput();
+      el("forecast-remove-editor").hidden = !selected(row);
       editor.showModal();
     }
+    host.addEventListener("input", (e) => {
+      if (e.target.id !== "forecast-dashboard-search") return;
+      dashboardSearch = e.target.value;
+      el("forecast-dashboard-tables").innerHTML = dashboardTable("confirmed") + dashboardTable("waiting");
+    });
     host.addEventListener("click", (e) => {
       const b = e.target.closest("button");
       if (!b) return;
+      if (b.dataset.fEdit !== void 0) {
+        returnFocus = b;
+        openEditor(Number(b.dataset.fEdit));
+        return;
+      }
+      if (b.dataset.fAction === "reset-month") {
+        dashboardMonth = "";
+        renderSummary();
+        return;
+      }
       if (b.dataset.fAction === "import") el("forecast-input").click();
-      else if (b.dataset.fMonth) openManager("selected", b.dataset.fMonth);
-      else openManager(b.dataset.fAction === "selected" ? "selected" : "review");
+      else if (b.dataset.fMonth) {
+        dashboardMonth = b.dataset.fMonth;
+        renderSummary();
+      } else openManager(b.dataset.fAction === "selected" ? "selected" : "review");
     });
     manager.addEventListener("click", (e) => {
       const b = e.target.closest("button");
@@ -3064,6 +3147,11 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     });
     editor.addEventListener("click", (e) => {
       if (e.target.closest('[data-f-action="close-editor"]')) editor.close();
+      if (e.target.closest('[data-f-action="remove-editor"]')) {
+        const row = rows.find((r) => r.key === editingKey);
+        if (row) commit(row, { action: "exclude", fingerprint: row.fingerprint, quote: quoteSnapshot(row) }, "Devis retir\xE9 du pr\xE9visionnel.");
+        editor.close();
+      }
       if (e.target.closest('[data-f-action="confirm-billed"]')) {
         const row = rows.find((r) => r.key === editingKey);
         if (!row || !row.probableInvoices?.length) return;
@@ -3071,6 +3159,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         editor.close();
       }
     });
+    el("forecast-situation").addEventListener("change", syncMonthInput);
     el("forecast-year").addEventListener("change", renderList);
     el("forecast-advances").addEventListener("change", () => {
       const row = rows.find((r) => r.key === editingKey);
@@ -3098,7 +3187,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         quote: quoteSnapshot(row),
         remaining: Math.round(remaining * 100) / 100,
         situation: el("forecast-situation").value,
-        month: el("forecast-month").value || null
+        month: el("forecast-situation").value === "waiting" ? null : el("forecast-month").value || null
       }, "Pr\xE9vision enregistr\xE9e.");
       editor.close();
     });
@@ -3106,7 +3195,10 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       const target = returnFocus?.isConnected ? returnFocus : host.querySelector('[data-f-action="manage"]');
       target?.focus();
     });
-    editor.addEventListener("close", () => el("forecast-search").focus());
+    editor.addEventListener("close", () => {
+      if (manager.open) el("forecast-search").focus();
+      else host.querySelector('[data-f-action="manage"]')?.focus();
+    });
     return {
       render(nextData, nextGoal) {
         if (data && data !== nextData && editor.open) editor.close();
@@ -5968,7 +6060,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var spb = document.querySelector(".sp-body");
     if (spb) spb.addEventListener("scroll", hide);
   })();
-  var APP_VERSION = "20261007-210000";
+  var APP_VERSION = "20261007-220000";
   function showUpdateBanner(base, v) {
     if (document.getElementById("update-banner")) return;
     var d = document.createElement("div");
