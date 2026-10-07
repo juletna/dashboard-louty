@@ -35,6 +35,7 @@ try {
   const shot = async name => {
     if (!process.env.SMOKE_SCREENSHOT_DIR) return;
     mkdirSync(process.env.SMOKE_SCREENSHOT_DIR, { recursive:true });
+    await page.waitForTimeout(1600);
     await page.screenshot({ path:resolve(process.env.SMOKE_SCREENSHOT_DIR, name + '.png') });
   };
   await page.locator('[data-f-action="manage"]').click();
@@ -63,6 +64,22 @@ try {
   assert.match(await page.locator('#cap-forecast').innerText(), /600/);
   const chartForecast = await page.evaluate(() => window.Chart.getChart(document.querySelector('#chart-ca-mb')).data.datasets.find(d => d.label === 'CA confirmé à facturer HT (sélection)').data);
   assert.equal(chartForecast[10], 600); assert.equal(chartForecast[9], null, 'waiting quotes do not join confirmed forecast');
+  const projectedSeries = () => page.evaluate(() => Chart.getChart(document.querySelector('#chart-cumul')).data.datasets.find(d => d.label.includes('Réalisé +'))?.data);
+  const marginSeries = await projectedSeries();
+  assert.ok(marginSeries[10] !== null);
+  assert.equal(marginSeries[11],null,'no extension beyond last dated confirmed quote');
+  await page.locator('[data-pilotage-metric=ca]').click();
+  const caSeries = await projectedSeries();
+  assert.equal(caSeries[10]-caSeries[6],600,'only confirmed revenue added to actual once');
+  const annualRows = await page.locator('#chart-annual-progress').getAttribute('data-rows');
+  assert.equal(JSON.parse(annualRows)[0].projected,caSeries[10]);
+  await page.locator('[data-pilotage-metric=mb]').click();
+  await page.locator('#chart-annual-progress').scrollIntoViewIfNeeded();
+  await shot('outlook-desktop-light');
+  await page.locator('.forecast-outlook summary').click();
+  assert.match(await page.locator('.forecast-outlook').innerText(),/Coûts déjà comptabilisés/);
+  await shot('outlook-calculation');
+  await page.locator('.forecast-outlook summary').click();
   await page.locator('#revenue-forecast').scrollIntoViewIfNeeded();
   assert.equal(await page.locator('.forecast-dashboard-tables table').count(),2);
   await page.getByLabel('Rechercher les devis suivis').fill('DEV-PARTIAL');
@@ -89,6 +106,8 @@ try {
   await page.locator('#toggle-theme').click();
   await page.locator('#revenue-forecast').scrollIntoViewIfNeeded();
   await shot('forecast-desktop-dark');
+  await page.locator('#chart-annual-progress').scrollIntoViewIfNeeded();
+  await shot('outlook-desktop-dark');
   await page.reload();
   await page.locator('[data-f-action="manage"]').waitFor();
   assert.match(await page.locator('#revenue-forecast').innerText(), /600/);
@@ -112,9 +131,15 @@ try {
   await page.locator('[data-f-action=close-manager]').click();
   await page.locator('#revenue-forecast').scrollIntoViewIfNeeded();
   await shot('forecast-mobile-dark');
+  await page.locator('#chart-annual-progress').scrollIntoViewIfNeeded();
+  await shot('outlook-mobile-dark');
+  await page.locator('#chart-cumul').scrollIntoViewIfNeeded();
+  await shot('outlook-cumul-mobile-dark');
   await page.locator('#toggle-theme').click();
   await page.locator('#revenue-forecast').scrollIntoViewIfNeeded();
   await shot('forecast-mobile-light');
+  await page.locator('#chart-annual-progress').scrollIntoViewIfNeeded();
+  await shot('outlook-mobile-light');
   await page.locator('[data-f-action=manage]').click();
   await page.locator('[data-f-tab=all]').click();
   await shot('forecast-mobile-manager-light');
@@ -148,6 +173,8 @@ try {
   await page.locator('section[aria-label="Devis confirmés"] button').click();
   await page.getByRole('button',{name:'Retirer du prévisionnel',exact:true}).click();
   assert.equal(await page.locator('.forecast-column').count(),0);
+  assert.equal(await projectedSeries(),undefined,'removal also clears cumulative forecast');
+  assert.equal(await page.locator('.forecast-outlook').count(),0);
   assert.match(await page.locator('section[aria-label="Devis confirmés"]').innerText(),/Aucun devis/);
   assert.deepEqual(errors, []);
   console.log('Prévisionnel : import, rapprochement, ajout manuel, modification, cache, réimport, thèmes et mobile validés.');

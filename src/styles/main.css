@@ -1262,3 +1262,8 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
   .forecast-table-toolbar { display:flex; gap:15px; justify-content:space-between; align-items:center; margin-top:16px; }
   .forecast-table-toolbar h3 { font-size:13px; }
   #forecast-dashboard-search { width:190px; max-width:55%; border:1px solid var(--border); border-radius:6px; padding:7px 10px; font:inherit; font-size:12px; background:var(--bg-card); color:var(--text); }
+
+.forecast-outlook{font-size:12px;color:var(--text-dim);line-height:1.6;margin-top:10px}
+.forecast-outlook p{margin:6px 0}
+.forecast-outlook strong{font-size:16px;color:var(--text)}
+.forecast-outlook summary{cursor:pointer;color:var(--violet)}

@@ -1271,6 +1271,11 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
   .forecast-table-toolbar { display:flex; gap:15px; justify-content:space-between; align-items:center; margin-top:16px; }
   .forecast-table-toolbar h3 { font-size:13px; }
   #forecast-dashboard-search { width:190px; max-width:55%; border:1px solid var(--border); border-radius:6px; padding:7px 10px; font:inherit; font-size:12px; background:var(--bg-card); color:var(--text); }
+
+.forecast-outlook{font-size:12px;color:var(--text-dim);line-height:1.6;margin-top:10px}
+.forecast-outlook p{margin:6px 0}
+.forecast-outlook strong{font-size:16px;color:var(--text)}
+.forecast-outlook summary{cursor:pointer;color:var(--violet)}
 </style>
 <script>try{var _t=localStorage.getItem("cabestan_dashboard_theme");if(_t==="dark"||_t==="light")document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 </head>
@@ -1898,6 +1903,222 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   }
   function isCompleteHistoricalYear(year) {
     return isPeriodCovered(year, 12) && HISTORICAL_METRICS.every((key) => hasObservedValue(getMetricSeries(year, key), 1, 12));
+  }
+
+  // src/app/domain/metrics.js
+  var round2 = (value) => value === null ? null : Math.round(value * 100) / 100;
+  var HEALTH_RESULT_KEYS = ["marge_brute", "charges_fonct", "contribution_coop", "remunerations"];
+  function sumPeriod(year, key, endMonth = 12) {
+    const series = getMetricSeries(year, key);
+    if (!hasObservedValue(series, 1, endMonth)) return null;
+    return series.slice(0, endMonth).reduce((sum, value) => sum + (isFiniteNumber(value) ? value : 0), 0);
+  }
+  function lastObservedMonth(year, key) {
+    const series = getMetricSeries(year, key);
+    if (!series) return 0;
+    let last = 0;
+    series.forEach((value, index) => {
+      if (isFiniteNumber(value)) last = index + 1;
+    });
+    return last;
+  }
+  function canComparePeriod(year, endMonth, keys) {
+    return isPeriodCovered(year, endMonth) && keys.every((key) => hasObservedValue(getMetricSeries(year, key), 1, 12));
+  }
+  function coveredPeriodTotal(year, key, endMonth) {
+    return sumPeriod(year, key, endMonth) ?? 0;
+  }
+  function samePeriodTotals(year, endMonth) {
+    const keys = ["marge_brute", "ca", "achats_matieres"];
+    if (!canComparePeriod(year, endMonth, keys)) return null;
+    return {
+      mb_ytd: coveredPeriodTotal(year, "marge_brute", endMonth),
+      mb_full: sumPeriod(year, "marge_brute"),
+      ca_ytd: coveredPeriodTotal(year, "ca", endMonth),
+      ca_full: sumPeriod(year, "ca"),
+      achats_ytd: coveredPeriodTotal(year, "achats_matieres", endMonth),
+      achats_full: sumPeriod(year, "achats_matieres")
+    };
+  }
+  function metricProjection(years, referenceKeys, key, endMonth, ytd) {
+    const usableReferences = referenceKeys.filter((yearKey) => hasObservedValue(getMetricSeries(years[yearKey], key), 1, 12));
+    if (ytd === null || !usableReferences.length) return null;
+    const remaining = usableReferences.reduce((sum, yearKey) => sum + sumPeriod(years[yearKey], key, 12) - coveredPeriodTotal(years[yearKey], key, endMonth), 0);
+    return ytd + remaining / usableReferences.length;
+  }
+  function healthResultForPeriod(year, endMonth) {
+    if (!isPeriodCovered(year, endMonth) || !HEALTH_RESULT_KEYS.every((key) => hasObservedValue(getMetricSeries(year, key), 1, 12))) return null;
+    return coveredPeriodTotal(year, "marge_brute", endMonth) - coveredPeriodTotal(year, "charges_fonct", endMonth) - coveredPeriodTotal(year, "contribution_coop", endMonth) - coveredPeriodTotal(year, "remunerations", endMonth);
+  }
+  function computeSnapshot(data, config) {
+    const years = data && data.years;
+    const yearKeys = years ? Object.keys(years).sort() : [];
+    if (!yearKeys.length) return null;
+    const currentYear = yearKeys[yearKeys.length - 1];
+    const currentIndex = yearKeys.indexOf(currentYear);
+    const current = years[currentYear];
+    const endMonth = lastObservedMonth(current, "marge_brute");
+    const ytdMB = sumPeriod(current, "marge_brute", endMonth || 12);
+    const ytdCA = sumPeriod(current, "ca", endMonth || 12);
+    const ytdPurchases = sumPeriod(current, "achats_matieres", endMonth || 12);
+    const mb = getMetricSeries(current, "marge_brute") || [];
+    const purchases = getMetricSeries(current, "achats_matieres") || [];
+    const samePeriod = {};
+    for (let index = 0; index < currentIndex; index += 1) {
+      const key = yearKeys[index];
+      const totals = samePeriodTotals(years[key], endMonth);
+      if (totals) samePeriod[key] = totals;
+    }
+    const referenceYears = yearKeys.slice(0, currentIndex).filter((yearKey) => isCompleteHistoricalYear(years[yearKey])).slice(-2);
+    const referenceYear = referenceYears[referenceYears.length - 1] || null;
+    const previousYear = currentIndex > 0 ? yearKeys[currentIndex - 1] : null;
+    const previous = referenceYear ? samePeriod[referenceYear] : null;
+    const projectionMB = endMonth ? metricProjection(years, referenceYears, "marge_brute", endMonth, ytdMB) : null;
+    const projectionCA = endMonth ? metricProjection(years, referenceYears, "ca", endMonth, ytdCA) : null;
+    const projectionPurchases = endMonth ? metricProjection(years, referenceYears, "achats_matieres", endMonth, ytdPurchases) : null;
+    return {
+      year: currentYear,
+      ytd_ca: round2(ytdCA),
+      ytd_mb: round2(ytdMB),
+      ytd_achats: round2(ytdPurchases),
+      taux_mb: ytdMB !== null && ytdCA !== null && ytdCA !== 0 ? Math.round(ytdMB / ytdCA * 1e4) / 1e4 : null,
+      mois_renseignes: endMonth,
+      mb_par_mois: mb.filter(isFiniteNumber),
+      achats_par_mois: purchases.filter(isFiniteNumber),
+      mois_alerte: mb.filter((value) => isFiniteNumber(value) && value < config.MB_MIN).length,
+      projection_mb_annuelle: endMonth && ytdMB !== null ? round2(ytdMB / endMonth * 12) : null,
+      projection_mb_seasonal: round2(projectionMB),
+      projection_ca_seasonal: round2(projectionCA),
+      projection_achats_seasonal: round2(projectionPurchases),
+      growth_rate_mb: ytdMB !== null && previous && previous.mb_ytd ? ytdMB / previous.mb_ytd : null,
+      growth_rate_ca: ytdCA !== null && previous && previous.ca_ytd ? ytdCA / previous.ca_ytd : null,
+      reference_year: referenceYear,
+      reference_years: referenceYears,
+      previous_year: previousYear,
+      same_period: samePeriod
+    };
+  }
+  function historicalReferenceKeys(years) {
+    const keys = Object.keys(years || {}).sort();
+    const currentKey = keys[keys.length - 1];
+    const prior = keys.slice(0, -1).filter((key) => isCompleteHistoricalYear(years[key]));
+    const references = prior.slice(-2);
+    if (!references.length && currentKey && isCompleteHistoricalYear(years[currentKey])) return [currentKey];
+    return references;
+  }
+  function historicalPlanReference(data, config) {
+    const years = data && data.years ? data.years : {};
+    const references = historicalReferenceKeys(years);
+    const hasHistoricalReference = references.length > 0;
+    const totals = { ca: 0, mb: 0, achats: 0, remuneration: 0, charges: 0, contribution: 0 };
+    references.forEach((key) => {
+      const year = years[key];
+      totals.ca += sumPeriod(year, "ca") ?? 0;
+      totals.mb += sumPeriod(year, "marge_brute") ?? 0;
+      totals.achats += sumPeriod(year, "achats_matieres") ?? 0;
+      totals.remuneration += sumPeriod(year, "remunerations") ?? 0;
+      totals.charges += sumPeriod(year, "charges_fonct") ?? 0;
+      totals.contribution += sumPeriod(year, "contribution_coop") ?? 0;
+    });
+    const count = references.length || 1;
+    const annualCharges = (totals.charges + totals.contribution) / count;
+    const annualSalary = totals.remuneration / count;
+    const annualMB = totals.mb / count;
+    const latestKey = references[references.length - 1] || null;
+    const latest = latestKey ? years[latestKey] : null;
+    const n1ChargesFonct = sumPeriod(latest, "charges_fonct") ?? 0;
+    const n1Contribution = sumPeriod(latest, "contribution_coop") ?? 0;
+    const n1CA = sumPeriod(latest, "ca") ?? 0;
+    const n1MB = sumPeriod(latest, "marge_brute") ?? 0;
+    const n1Salary = sumPeriod(latest, "remunerations") ?? 0;
+    const n1Charges = n1ChargesFonct + n1Contribution;
+    const n1NetResult = n1MB - n1Salary - n1Charges;
+    return {
+      years: references,
+      label: references.length > 1 ? `${references[0]}\u2013${references[references.length - 1]}` : references[0] || "historique indisponible",
+      salary: hasHistoricalReference ? n1Salary : config.MB_MIN * 12,
+      surplus: Math.max(0, n1NetResult),
+      ca: hasHistoricalReference ? totals.ca / count : config.CA_OBJ,
+      margin: hasHistoricalReference && totals.ca !== 0 ? totals.mb / totals.ca : config.TAUX_OBJ,
+      purchases: hasHistoricalReference && totals.ca !== 0 ? totals.achats / totals.ca : config.RATIO_CIBLE,
+      charges: hasHistoricalReference ? annualCharges : Math.max(0, config.MB_AN_OBJ - config.MB_MIN * 12),
+      n1: {
+        year: latestKey || "N-1",
+        charges: n1Charges,
+        chargesFonct: n1ChargesFonct,
+        contribution: n1Contribution,
+        salary: n1Salary,
+        netResult: n1NetResult,
+        surplus: Math.max(0, n1NetResult),
+        margin: n1CA > 0 ? n1MB / n1CA : totals.ca > 0 ? totals.mb / totals.ca : config.TAUX_OBJ
+      }
+    };
+  }
+
+  // src/app/domain/forecast-outlook.js
+  var round = (value) => Math.round(value * 100) / 100;
+  function forecastOutlook(data) {
+    const forecast = data?.forecast;
+    if (!forecast?.cutoff || !isFiniteNumber(forecast.actual)) return null;
+    const end = Number(forecast.cutoff.slice(5));
+    const source = data.years?.[forecast.year];
+    if (!end || !isPeriodCovered(source, end)) return null;
+    const monthly = Array.from({ length: 12 }, (_, i) => i >= end && isFiniteNumber(forecast.monthly?.[i]) ? forecast.monthly[i] : 0);
+    const futureCA = monthly.reduce((sum, value) => sum + value, 0);
+    if (!(futureCA > 0)) return null;
+    const last = monthly.findLastIndex((value) => value !== 0);
+    const actualMB = sumPeriod(source, "marge_brute", end);
+    const reference = historicalPlanReference(data, {});
+    const referenceCA = reference.years.reduce((sum, year) => sum + sumPeriod(data.years[year], "ca"), 0);
+    const rate = referenceCA > 0 ? reference.margin : null;
+    const validRate = isFiniteNumber(rate) && rate >= 0 && rate <= 1;
+    const totalCA = forecast.actual + futureCA;
+    const actualCosts = actualMB === null ? null : forecast.actual - actualMB;
+    const annualCosts = validRate ? totalCA * (1 - rate) : null;
+    const futureCosts = actualCosts !== null && annualCosts !== null ? Math.max(0, annualCosts - actualCosts) : null;
+    const totalMB = futureCosts === null ? null : actualMB + futureCA - futureCosts;
+    const ca = Array(12).fill(null), mb = Array(12).fill(null);
+    ca[end - 1] = forecast.actual;
+    if (totalMB !== null) mb[end - 1] = actualMB;
+    let added = 0;
+    for (let i = end; i <= last; i++) {
+      added += monthly[i];
+      ca[i] = round(forecast.actual + added);
+      if (totalMB !== null) mb[i] = round(actualMB + added - futureCosts * added / futureCA);
+    }
+    return {
+      ca,
+      mb,
+      end,
+      last,
+      actualCA: forecast.actual,
+      actualMB,
+      futureCA: round(futureCA),
+      totalCA: round(totalCA),
+      totalMB: totalMB === null ? null : round(totalMB),
+      actualCosts,
+      annualCosts,
+      futureCosts,
+      rate: validRate ? rate : null,
+      reference: reference.label,
+      unavailable: actualMB === null ? "Marge r\xE9alis\xE9e indisponible sur la p\xE9riode." : !validRate ? "Taux de marge historique exploitable indisponible." : null
+    };
+  }
+
+  // src/app/views/forecast-outlook.js
+  function forecastOutlookHTML(outlook, isCA, money3, escape) {
+    if (!outlook) return "";
+    const total = isCA ? outlook.totalCA : outlook.totalMB;
+    const result = total === null ? escape(outlook.unavailable) : "<strong>" + money3(total) + " HT</strong> \xB7 r\xE9alis\xE9 + " + (isCA ? "CA confirm\xE9" : "marge estim\xE9e sur le confirm\xE9");
+    let calculation = "CA r\xE9alis\xE9 (" + money3(outlook.actualCA) + ") + confirm\xE9 restant (" + money3(outlook.futureCA) + ") = " + money3(outlook.totalCA) + " HT.";
+    if (!isCA && outlook.totalMB !== null) {
+      calculation += "<br>Taux de marge pond\xE9r\xE9 " + escape(outlook.reference) + " : " + (outlook.rate * 100).toLocaleString("fr-FR", { maximumFractionDigits: 1 }) + " % (total des marges / total des CA).";
+      calculation += "<br>Enveloppe de co\xFBts : " + money3(outlook.totalCA) + " \xD7 (1 \u2212 taux de marge) = " + money3(outlook.annualCosts) + ".";
+      calculation += "<br>Co\xFBts d\xE9j\xE0 comptabilis\xE9s : CA \u2212 marge r\xE9alis\xE9e = " + money3(outlook.actualCosts) + ". Co\xFBts encore estim\xE9s : " + money3(outlook.futureCosts) + " (minimum z\xE9ro).";
+      calculation += "<br>Marge estim\xE9e totale : " + money3(outlook.actualMB) + " + " + money3(outlook.futureCA) + " \u2212 " + money3(outlook.futureCosts) + " = " + money3(outlook.totalMB) + " HT.";
+      calculation += "<br>Les co\xFBts futurs sont r\xE9partis au prorata du CA confirm\xE9 par mois. Les achats d\xE9j\xE0 engag\xE9s sont pris en compte, sans mesure du stock disponible.";
+    }
+    return '<div class="forecast-outlook"><p>' + result + "</p><details><summary>Comprendre le pr\xE9visionnel</summary><p>" + calculation + "</p><p>Chantiers confirm\xE9s, dat\xE9s apr\xE8s la p\xE9riode import\xE9e et dans l\u2019exercice. En attente et sans date exclus. Ce sc\xE9nario ne s\u2019ajoute pas \xE0 la projection statistique du cap annuel.</p></details></div>";
   }
 
   // src/app/domain/clients.js
@@ -2708,156 +2929,6 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     return `<section class="customer-advances" aria-label="Acomptes clients"><h4>Acomptes clients \xE0 v\xE9rifier</h4><div class="forecast-cap-values"><div><span>Solde d\u2019acomptes dans la Balance</span><strong>${known ? money3(sante.dettes_acomptes_clients) : "Indisponible"}</strong></div><div><span>Acomptes encaiss\xE9s dans les Pi\xE8ces \xB7 historique</span><strong>${details ? money3(total) + " TTC" : "Pi\xE8ces non import\xE9es"}</strong></div></div><p class="small">${!sante ? "Importe la Balance pour conna\xEEtre le solde comptable." : !known ? sante.acompte_accounts_present === void 0 ? "R\xE9importe la Balance pour v\xE9rifier la pr\xE9sence des comptes d\u2019acomptes dans cet ancien cache." : "Les comptes d\u2019acomptes ne sont pas renseign\xE9s dans cette Balance." : sante.dettes_acomptes_clients <= 0.5 ? "Le solde comptable est nul. Cela ne permet pas de conclure que tous les travaux sont termin\xE9s." : "Le solde comptable indique les acomptes restant \xE0 r\xE9gulariser."} Les encaissements historiques peuvent concerner des travaux d\xE9j\xE0 factur\xE9s : ils ne sont pas ajout\xE9s \xE0 la dette ni au CA. Le solde comptable et les paiements TTC peuvent avoir des bases diff\xE9rentes.</p><details><summary>Voir les acomptes d\xE9tect\xE9s (${clients.reduce((n, c) => n + (c.documents || []).length, 0)})</summary>${clients.length ? "<ul>" + clients.flatMap((c) => (c.documents || []).map((d) => `<li><strong>${esc2(c.client)}</strong>${c.client_id ? " \xB7 client " + esc2(c.client_id) : ""}${c.activity ? " \xB7 " + esc2(c.activity) : ""} \xB7 ${esc2(d.number || "Sans num\xE9ro")} \xB7 ${esc2(d.date?.slice(0, 10) || "Date absente")} : ${money3(d.amount)} TTC${d.duplicate ? " \xB7 doublon \xE0 v\xE9rifier" : ""}${c.identity_ambiguous ? " \xB7 identit\xE9 \xE0 v\xE9rifier" : ""}</li>`)).join("") + "</ul>" : '<p class="small">Aucun acompte encaiss\xE9 identifiable dans les Pi\xE8ces charg\xE9es.</p>'}<p class="small">Dans \xAB G\xE9rer les devis \xBB, ouvre le chantier concern\xE9 pour rattacher un acompte. Le d\xE9but et la fin des travaux restent \xE0 v\xE9rifier avec ton suivi chantier.</p></details></section>`;
   }
 
-  // src/app/domain/metrics.js
-  var round2 = (value) => value === null ? null : Math.round(value * 100) / 100;
-  var HEALTH_RESULT_KEYS = ["marge_brute", "charges_fonct", "contribution_coop", "remunerations"];
-  function sumPeriod(year, key, endMonth = 12) {
-    const series = getMetricSeries(year, key);
-    if (!hasObservedValue(series, 1, endMonth)) return null;
-    return series.slice(0, endMonth).reduce((sum, value) => sum + (isFiniteNumber(value) ? value : 0), 0);
-  }
-  function lastObservedMonth(year, key) {
-    const series = getMetricSeries(year, key);
-    if (!series) return 0;
-    let last = 0;
-    series.forEach((value, index) => {
-      if (isFiniteNumber(value)) last = index + 1;
-    });
-    return last;
-  }
-  function canComparePeriod(year, endMonth, keys) {
-    return isPeriodCovered(year, endMonth) && keys.every((key) => hasObservedValue(getMetricSeries(year, key), 1, 12));
-  }
-  function coveredPeriodTotal(year, key, endMonth) {
-    return sumPeriod(year, key, endMonth) ?? 0;
-  }
-  function samePeriodTotals(year, endMonth) {
-    const keys = ["marge_brute", "ca", "achats_matieres"];
-    if (!canComparePeriod(year, endMonth, keys)) return null;
-    return {
-      mb_ytd: coveredPeriodTotal(year, "marge_brute", endMonth),
-      mb_full: sumPeriod(year, "marge_brute"),
-      ca_ytd: coveredPeriodTotal(year, "ca", endMonth),
-      ca_full: sumPeriod(year, "ca"),
-      achats_ytd: coveredPeriodTotal(year, "achats_matieres", endMonth),
-      achats_full: sumPeriod(year, "achats_matieres")
-    };
-  }
-  function metricProjection(years, referenceKeys, key, endMonth, ytd) {
-    const usableReferences = referenceKeys.filter((yearKey) => hasObservedValue(getMetricSeries(years[yearKey], key), 1, 12));
-    if (ytd === null || !usableReferences.length) return null;
-    const remaining = usableReferences.reduce((sum, yearKey) => sum + sumPeriod(years[yearKey], key, 12) - coveredPeriodTotal(years[yearKey], key, endMonth), 0);
-    return ytd + remaining / usableReferences.length;
-  }
-  function healthResultForPeriod(year, endMonth) {
-    if (!isPeriodCovered(year, endMonth) || !HEALTH_RESULT_KEYS.every((key) => hasObservedValue(getMetricSeries(year, key), 1, 12))) return null;
-    return coveredPeriodTotal(year, "marge_brute", endMonth) - coveredPeriodTotal(year, "charges_fonct", endMonth) - coveredPeriodTotal(year, "contribution_coop", endMonth) - coveredPeriodTotal(year, "remunerations", endMonth);
-  }
-  function computeSnapshot(data, config) {
-    const years = data && data.years;
-    const yearKeys = years ? Object.keys(years).sort() : [];
-    if (!yearKeys.length) return null;
-    const currentYear = yearKeys[yearKeys.length - 1];
-    const currentIndex = yearKeys.indexOf(currentYear);
-    const current = years[currentYear];
-    const endMonth = lastObservedMonth(current, "marge_brute");
-    const ytdMB = sumPeriod(current, "marge_brute", endMonth || 12);
-    const ytdCA = sumPeriod(current, "ca", endMonth || 12);
-    const ytdPurchases = sumPeriod(current, "achats_matieres", endMonth || 12);
-    const mb = getMetricSeries(current, "marge_brute") || [];
-    const purchases = getMetricSeries(current, "achats_matieres") || [];
-    const samePeriod = {};
-    for (let index = 0; index < currentIndex; index += 1) {
-      const key = yearKeys[index];
-      const totals = samePeriodTotals(years[key], endMonth);
-      if (totals) samePeriod[key] = totals;
-    }
-    const referenceYears = yearKeys.slice(0, currentIndex).filter((yearKey) => isCompleteHistoricalYear(years[yearKey])).slice(-2);
-    const referenceYear = referenceYears[referenceYears.length - 1] || null;
-    const previousYear = currentIndex > 0 ? yearKeys[currentIndex - 1] : null;
-    const previous = referenceYear ? samePeriod[referenceYear] : null;
-    const projectionMB = endMonth ? metricProjection(years, referenceYears, "marge_brute", endMonth, ytdMB) : null;
-    const projectionCA = endMonth ? metricProjection(years, referenceYears, "ca", endMonth, ytdCA) : null;
-    const projectionPurchases = endMonth ? metricProjection(years, referenceYears, "achats_matieres", endMonth, ytdPurchases) : null;
-    return {
-      year: currentYear,
-      ytd_ca: round2(ytdCA),
-      ytd_mb: round2(ytdMB),
-      ytd_achats: round2(ytdPurchases),
-      taux_mb: ytdMB !== null && ytdCA !== null && ytdCA !== 0 ? Math.round(ytdMB / ytdCA * 1e4) / 1e4 : null,
-      mois_renseignes: endMonth,
-      mb_par_mois: mb.filter(isFiniteNumber),
-      achats_par_mois: purchases.filter(isFiniteNumber),
-      mois_alerte: mb.filter((value) => isFiniteNumber(value) && value < config.MB_MIN).length,
-      projection_mb_annuelle: endMonth && ytdMB !== null ? round2(ytdMB / endMonth * 12) : null,
-      projection_mb_seasonal: round2(projectionMB),
-      projection_ca_seasonal: round2(projectionCA),
-      projection_achats_seasonal: round2(projectionPurchases),
-      growth_rate_mb: ytdMB !== null && previous && previous.mb_ytd ? ytdMB / previous.mb_ytd : null,
-      growth_rate_ca: ytdCA !== null && previous && previous.ca_ytd ? ytdCA / previous.ca_ytd : null,
-      reference_year: referenceYear,
-      reference_years: referenceYears,
-      previous_year: previousYear,
-      same_period: samePeriod
-    };
-  }
-  function historicalReferenceKeys(years) {
-    const keys = Object.keys(years || {}).sort();
-    const currentKey = keys[keys.length - 1];
-    const prior = keys.slice(0, -1).filter((key) => isCompleteHistoricalYear(years[key]));
-    const references = prior.slice(-2);
-    if (!references.length && currentKey && isCompleteHistoricalYear(years[currentKey])) return [currentKey];
-    return references;
-  }
-  function historicalPlanReference(data, config) {
-    const years = data && data.years ? data.years : {};
-    const references = historicalReferenceKeys(years);
-    const hasHistoricalReference = references.length > 0;
-    const totals = { ca: 0, mb: 0, achats: 0, remuneration: 0, charges: 0, contribution: 0 };
-    references.forEach((key) => {
-      const year = years[key];
-      totals.ca += sumPeriod(year, "ca") ?? 0;
-      totals.mb += sumPeriod(year, "marge_brute") ?? 0;
-      totals.achats += sumPeriod(year, "achats_matieres") ?? 0;
-      totals.remuneration += sumPeriod(year, "remunerations") ?? 0;
-      totals.charges += sumPeriod(year, "charges_fonct") ?? 0;
-      totals.contribution += sumPeriod(year, "contribution_coop") ?? 0;
-    });
-    const count = references.length || 1;
-    const annualCharges = (totals.charges + totals.contribution) / count;
-    const annualSalary = totals.remuneration / count;
-    const annualMB = totals.mb / count;
-    const latestKey = references[references.length - 1] || null;
-    const latest = latestKey ? years[latestKey] : null;
-    const n1ChargesFonct = sumPeriod(latest, "charges_fonct") ?? 0;
-    const n1Contribution = sumPeriod(latest, "contribution_coop") ?? 0;
-    const n1CA = sumPeriod(latest, "ca") ?? 0;
-    const n1MB = sumPeriod(latest, "marge_brute") ?? 0;
-    const n1Salary = sumPeriod(latest, "remunerations") ?? 0;
-    const n1Charges = n1ChargesFonct + n1Contribution;
-    const n1NetResult = n1MB - n1Salary - n1Charges;
-    return {
-      years: references,
-      label: references.length > 1 ? `${references[0]}\u2013${references[references.length - 1]}` : references[0] || "historique indisponible",
-      salary: hasHistoricalReference ? n1Salary : config.MB_MIN * 12,
-      surplus: Math.max(0, n1NetResult),
-      ca: hasHistoricalReference ? totals.ca / count : config.CA_OBJ,
-      margin: hasHistoricalReference && totals.ca !== 0 ? totals.mb / totals.ca : config.TAUX_OBJ,
-      purchases: hasHistoricalReference && totals.ca !== 0 ? totals.achats / totals.ca : config.RATIO_CIBLE,
-      charges: hasHistoricalReference ? annualCharges : Math.max(0, config.MB_AN_OBJ - config.MB_MIN * 12),
-      n1: {
-        year: latestKey || "N-1",
-        charges: n1Charges,
-        chargesFonct: n1ChargesFonct,
-        contribution: n1Contribution,
-        salary: n1Salary,
-        netResult: n1NetResult,
-        surplus: Math.max(0, n1NetResult),
-        margin: n1CA > 0 ? n1MB / n1CA : totals.ca > 0 ? totals.mb / totals.ca : config.TAUX_OBJ
-      }
-    };
-  }
-
   // src/app/domain/annual-cap.js
   function salaryCapacityAtDate(year, yearKey, endMonth, exportISO, netCoefficient) {
     const unavailable = { monthlyNet: null, availableGross: null, elapsedMonths: null };
@@ -3004,7 +3075,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       <div class="forecast-table-toolbar"><h3>Devis suivis</h3><input id="forecast-dashboard-search" type="search" aria-label="Rechercher les devis suivis" placeholder="Rechercher\u2026" value="${esc2(dashboardSearch)}"></div>
       <div id="forecast-dashboard-tables" class="forecast-dashboard-tables">${dashboardTable("confirmed")}${dashboardTable("waiting")}</div>
       <div class="forecast-footer"><div><strong>${rows.filter(candidate).length} devis \xE0 examiner</strong><p class="small">Les devis accept\xE9s sans ambigu\xEFt\xE9 sont ajout\xE9s automatiquement. Les autres restent \xE0 examiner.</p></div><button class="btn" data-f-action="review">Examiner les propositions</button></div>
-      <details class="forecast-method"><summary>Comprendre les montants et les rapprochements</summary><p>Comparaison des montants HT par activit\xE9 et ID client en priorit\xE9. Sans ID, le nom complet sert de repli : seules les majuscules et les espaces sont ignor\xE9s. Un nom associ\xE9 \xE0 plusieurs ID reste \xE0 v\xE9rifier. Chaque facture est utilis\xE9e au plus une fois. Les acomptes, avoirs et correspondances ambigu\xEBs demandent une v\xE9rification. Une date d\u2019accord valide ajoute automatiquement un devis confirm\xE9 si son reste \xE0 facturer est identifiable. Les cas ambigus restent \xE0 examiner. Tes choix manuels priment sur cet automatisme.</p><p>La marge brute, le r\xE9sultat, le salaire et la tr\xE9sorerie ne sont pas recalcul\xE9s \xE0 partir de ces devis. Les montants confirm\xE9s sont s\xE9par\xE9s de la projection statistique.</p><p>Les choix restent sur ce navigateur. Un nouvel import ne remplace jamais un montant saisi manuellement.</p></details>`;
+      <details class="forecast-method"><summary>Comprendre les montants et les rapprochements</summary><p>Comparaison des montants HT par activit\xE9 et ID client en priorit\xE9. Sans ID, le nom complet sert de repli : seules les majuscules et les espaces sont ignor\xE9s. Un nom associ\xE9 \xE0 plusieurs ID reste \xE0 v\xE9rifier. Chaque facture est utilis\xE9e au plus une fois. Les acomptes, avoirs et correspondances ambigu\xEBs demandent une v\xE9rification. Une date d\u2019accord valide ajoute automatiquement un devis confirm\xE9 si son reste \xE0 facturer est identifiable. Les cas ambigus restent \xE0 examiner. Tes choix manuels priment sur cet automatisme.</p><p>Les montants r\xE9alis\xE9s restent inchang\xE9s. Les graphiques de pilotage ajoutent le CA confirm\xE9 et une marge estim\xE9e, au taux historique pond\xE9r\xE9 et apr\xE8s prise en compte des co\xFBts d\xE9j\xE0 comptabilis\xE9s. Le r\xE9sultat, le salaire et la tr\xE9sorerie ne sont pas recalcul\xE9s \xE0 partir de ces devis. Ce sc\xE9nario reste s\xE9par\xE9 de la projection statistique.</p><p>Les choix restent sur ce navigateur. Un nouvel import ne remplace jamais un montant saisi manuellement.</p></details>`;
       if (cap) cap.innerHTML = `<div class="forecast-cap"><h3>CA r\xE9alis\xE9 + confirm\xE9 pr\xE9vu \xB7 ${esc2(summary.year)}</h3><div class="forecast-cap-values"><div><span>R\xE9alis\xE9 RES</span><strong>${money3(summary.actual)}</strong></div><span aria-hidden="true">+</span><div><span>Confirm\xE9 apr\xE8s ${esc2(monthName(summary.cutoff))}</span><strong>${money3(summary.annualConfirmed)}</strong></div><span aria-hidden="true">=</span><div><span>R\xE9alis\xE9 + confirm\xE9 pr\xE9vu</span><strong>${money3(summary.actualPlusConfirmed)}</strong></div><div><span>${summary.gap !== null && summary.gap < 0 ? "Au-del\xE0 de l\u2019objectif" : "Reste \xE0 couvrir"}</span><strong>${money3(summary.gap === null ? null : Math.abs(summary.gap))}</strong></div></div><p class="small">Base partielle : seuls les devis confirm\xE9s, v\xE9rifi\xE9s et dat\xE9s apr\xE8s les mois couverts par le RES et avant fin ${esc2(summary.year)} sont ajout\xE9s. Ne s\u2019ajoute pas \xE0 la projection statistique.</p>${summary.unintegrated.length ? `<details class="forecast-method"><summary>${summary.unintegrated.length} facture(s) / avoir(s) dat\xE9s apr\xE8s la p\xE9riode RES \xB7 ${money3(summary.unintegrated.reduce((n, d) => n + (d.amount ?? 0), 0))}</summary><p>Rep\xE8re \xE0 rapprocher du prochain RES. Ce montant n\u2019est pas ajout\xE9 automatiquement : il pourrait recouper les devis s\xE9lectionn\xE9s.</p><ul>${summary.unintegrated.map((d) => `<li>${esc2(d.date)} \xB7 ${esc2(d.number || d.type)} \xB7 ${esc2(d.client)} : ${money3(d.amount)}</li>`).join("")}</ul></details>` : ""}</div>`;
     }
     function dashboardTable(situation) {
@@ -3544,7 +3615,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       });
     }
     function renderCumulChart2(years, currentYear, metric) {
-      const { C: C2 } = getContext();
+      const { C: C2, DATA: DATA2 } = getContext();
       var isCA = metric === "ca";
       var metricKey = isCA ? "ca" : "marge_brute";
       var metricName = isCA ? "Chiffre d'affaires" : "Marge brute";
@@ -3581,6 +3652,21 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       const datasets = [
         { label: currentYear + " (en cours)", data: curCum, borderColor: currentColor, backgroundColor: "transparent", borderWidth: 3, pointRadius: 0, pointHoverRadius: 6, tension: 0.4, spanGaps: false }
       ];
+      const outlook = forecastOutlook(DATA2);
+      if (outlook && (isCA || outlook.totalMB !== null)) {
+        datasets.push({
+          label: isCA ? "R\xE9alis\xE9 + CA confirm\xE9 HT" : "R\xE9alis\xE9 + marge estim\xE9e HT",
+          data: isCA ? outlook.ca : outlook.mb,
+          borderColor: currentColor,
+          backgroundColor: "transparent",
+          borderDash: [6, 5],
+          borderWidth: 3,
+          pointRadius: 2,
+          pointHoverRadius: 6,
+          tension: 0,
+          spanGaps: false
+        });
+      }
       if (hasPreviousYear) {
         datasets.push({ label: previousYear + " (N\u22121)", data: cumOf(previousYear), borderColor: COLORS2.gray, backgroundColor: "transparent", borderWidth: 2, pointRadius: 0, pointHoverRadius: 6, tension: 0.4, spanGaps: false });
       }
@@ -4243,6 +4329,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     DATA.forecast = summary;
     const year = DATA.snapshot.current.year;
     renderCAMB(DATA.years[year], year, DATA.years);
+    renderBanner(DATA, DATA.snapshot.current, DATA.snapshot.previous);
+    renderCumulChart(DATA.years, year, pilotageMetric);
   } });
   var { renderCAMB, renderTauxAnnuel, renderCumulChart, renderAchatsCAChart, renderRepartYears } = createCartesianCharts({
     MONTH_NAMES,
@@ -5014,6 +5102,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     });
     var previousYear = cfg.referenceYear && cfg.samePeriod[cfg.referenceYear] ? cfg.referenceYear : refs.length ? refs[refs.length - 1] : null;
     var rows = [{ year: cfg.currentYear, sublabel: "\xC0 date", realized: cfg.value, total: cfg.goal, totalLabel: "Objectif annuel", current: true }];
+    var projected = cfg.outlook && (cfg.shortLabel === "CA" ? cfg.outlook.totalCA : cfg.outlook.totalMB);
+    if (projected != null) rows[0].projected = projected;
     var average = null;
     if (refs.length > 1) {
       average = {
@@ -5031,9 +5121,9 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     if (average) deltas.push('<span class="annual-progress-delta average"><strong>' + (cfg.value - average.realized >= 0 ? "+" : "\u2212") + fmtEUR(Math.abs(cfg.value - average.realized)) + "</strong>vs " + esc(refs[0] + "\u2013" + refs[refs.length - 1]) + "</span>");
     if (previousYear) deltas.push('<span class="annual-progress-delta previous"><strong>' + (cfg.value - cfg.samePeriod[previousYear].ytd >= 0 ? "+" : "\u2212") + fmtEUR(Math.abs(cfg.value - cfg.samePeriod[previousYear].ytd)) + "</strong>vs " + esc(previousYear) + "</span>");
     var accessible = rows.map(function(row) {
-      return esc(row.year + " : " + fmtEUR(row.realized) + " r\xE9alis\xE9 \xE0 date, " + row.totalLabel + " " + fmtEUR(row.total));
+      return esc(row.year + " : " + fmtEUR(row.realized) + " r\xE9alis\xE9 \xE0 date, " + row.totalLabel + " " + fmtEUR(row.total) + (row.projected != null ? ", r\xE9alis\xE9 et pr\xE9visionnel " + fmtEUR(row.projected) : ""));
     }).join(". ");
-    return '<section class="card annual-progress-card"><h2>Comparatif d\u2019avancement annuel</h2><p class="annual-progress-subtitle">' + esc(cfg.title) + " \u2014 \xE0 fin " + esc(cfg.asOfLabel) + "</p>" + (deltas.length ? '<div class="annual-progress-deltas">' + deltas.join("") + "</div>" : "") + '<div class="annual-progress-chart" style="height:' + (rows.length * 68 + 28) + 'px"><div style="height:100%" id="chart-annual-progress" role="img" aria-label="' + accessible + '" data-rows="' + esc(JSON.stringify(rows)) + '" data-metric="' + esc(cfg.shortLabel) + '"></div></div></section>';
+    return '<section class="card annual-progress-card"><h2>Comparatif d\u2019avancement annuel</h2><p class="annual-progress-subtitle">' + esc(cfg.title) + " \u2014 \xE0 fin " + esc(cfg.asOfLabel) + "</p>" + (deltas.length ? '<div class="annual-progress-deltas">' + deltas.join("") + "</div>" : "") + '<div class="annual-progress-chart" style="height:' + (rows.length * 68 + 28) + 'px"><div style="height:100%" id="chart-annual-progress" role="img" aria-label="' + accessible + '" data-rows="' + esc(JSON.stringify(rows)) + '" data-metric="' + esc(cfg.shortLabel) + '"></div></div>' + forecastOutlookHTML(cfg.outlook, cfg.shortLabel === "CA", fmtEUR, esc) + "</section>";
   }
   function _renderAnnualProgressChart() {
     var host = document.getElementById("chart-annual-progress");
@@ -5046,10 +5136,10 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       };
       var compact = host.clientWidth < 550;
       var maxTotal = Math.max.apply(null, rows.map(function(row) {
-        return Math.max(row.total || 0, row.realized || 0);
+        return Math.max(row.total || 0, row.realized || 0, row.projected ?? 0);
       }).concat([1]));
       var minValue = Math.min.apply(null, rows.map(function(row) {
-        return Math.min(row.total || 0, row.realized || 0);
+        return Math.min(row.total || 0, row.realized || 0, row.projected ?? 0);
       }).concat([0]));
       var rich = {
         value: { fontSize: compact ? 12 : 16, fontWeight: 800, color: color("--text"), lineHeight: 22 },
@@ -5059,7 +5149,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         grid: { left: compact ? 82 : 120, right: compact ? 92 : 130, top: 0, bottom: 30, outerBoundsMode: "none" },
         tooltip: { trigger: "axis", confine: true, formatter: function(params) {
           var row = rows[params[0].dataIndex];
-          return esc(String(row.year)) + "<br>R\xE9alis\xE9 \xE0 date : " + fmtEUR(row.realized) + "<br>" + row.totalLabel + " : " + fmtEUR(row.total);
+          return esc(String(row.year)) + "<br>R\xE9alis\xE9 \xE0 date : " + fmtEUR(row.realized) + "<br>" + row.totalLabel + " : " + fmtEUR(row.total) + (row.projected != null ? "<br>R\xE9alis\xE9 + pr\xE9visionnel : " + fmtEUR(row.projected) + " HT" : "");
         } },
         xAxis: {
           type: "value",
@@ -5090,6 +5180,17 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
           };
         }),
         series: [
+          {
+            name: "R\xE9alis\xE9 + pr\xE9visionnel",
+            type: "bar",
+            barWidth: 14,
+            barGap: "-100%",
+            z: 3,
+            itemStyle: { color: "transparent", borderColor: color(host.dataset.metric === "CA" ? "--ca-blue" : "--violet"), borderWidth: 1.5, borderType: "dashed", borderRadius: 4 },
+            data: rows.map(function(row) {
+              return row.projected ?? null;
+            })
+          },
           {
             name: "Total annuel",
             type: "bar",
@@ -5187,6 +5288,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         referenceYear: refYear,
         currentYear: cur.year,
         shortLabel: isCA ? "CA" : "MB",
+        outlook: Number(data.forecast?.cutoff?.slice(5)) === cur.mois_renseignes ? forecastOutlook(data) : null,
         asOfLabel: monthLabels[Math.max(0, cur.mois_renseignes - 1)] || "la p\xE9riode"
       });
       _renderAnnualProgressChart();
@@ -6060,7 +6162,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var spb = document.querySelector(".sp-body");
     if (spb) spb.addEventListener("scroll", hide);
   })();
-  var APP_VERSION = "20261007-220000";
+  var APP_VERSION = "20261007-230000";
   function showUpdateBanner(base, v) {
     if (document.getElementById("update-banner")) return;
     var d = document.createElement("div");

@@ -1,3 +1,5 @@
+import { forecastOutlook } from './domain/forecast-outlook.js';
+import { forecastOutlookHTML } from './views/forecast-outlook.js';
 import './parser.js';
 import { advanceMatches, paymentDetails as derivePaymentDetails } from './domain/payments.js';
 import { customerModalRows, renderCustomerAdvances } from './views/customer-payments.js';
@@ -136,6 +138,8 @@ const forecastView = createForecastView({ money: fmtEUR, escape: esc, onChange: 
   DATA.forecast = summary;
   const year = DATA.snapshot.current.year;
   renderCAMB(DATA.years[year], year, DATA.years);
+  renderBanner(DATA, DATA.snapshot.current, DATA.snapshot.previous);
+  renderCumulChart(DATA.years, year, pilotageMetric);
 } });
 const { renderCAMB, renderTauxAnnuel, renderCumulChart, renderAchatsCAChart, renderRepartYears } = createCartesianCharts({
   MONTH_NAMES, COLORS, CHART_FONT, Chart: window.Chart, fmtEUR, fmtPct, makeChart, historicalPlanReference,
@@ -723,6 +727,8 @@ function _annualProgressCardHTML(cfg) {
   var refs = (cfg.referenceYears || []).filter(function (year) { return cfg.samePeriod && cfg.samePeriod[year]; });
   var previousYear = cfg.referenceYear && cfg.samePeriod[cfg.referenceYear] ? cfg.referenceYear : (refs.length ? refs[refs.length - 1] : null);
   var rows = [{ year:cfg.currentYear, sublabel:'À date', realized:cfg.value, total:cfg.goal, totalLabel:'Objectif annuel', current:true }];
+  var projected = cfg.outlook && (cfg.shortLabel === 'CA' ? cfg.outlook.totalCA : cfg.outlook.totalMB);
+  if (projected != null) rows[0].projected = projected;
   var average = null;
   if (refs.length > 1) {
     average = {
@@ -736,11 +742,11 @@ function _annualProgressCardHTML(cfg) {
   if (average) deltas.push('<span class="annual-progress-delta average"><strong>' + (cfg.value - average.realized >= 0 ? '+' : '−') + fmtEUR(Math.abs(cfg.value - average.realized)) + '</strong>vs ' + esc(refs[0] + '–' + refs[refs.length - 1]) + '</span>');
   if (previousYear) deltas.push('<span class="annual-progress-delta previous"><strong>' + (cfg.value - cfg.samePeriod[previousYear].ytd >= 0 ? '+' : '−') + fmtEUR(Math.abs(cfg.value - cfg.samePeriod[previousYear].ytd)) + '</strong>vs ' + esc(previousYear) + '</span>');
   var accessible = rows.map(function (row) {
-    return esc(row.year + ' : ' + fmtEUR(row.realized) + ' réalisé à date, ' + row.totalLabel + ' ' + fmtEUR(row.total));
+    return esc(row.year + ' : ' + fmtEUR(row.realized) + ' réalisé à date, ' + row.totalLabel + ' ' + fmtEUR(row.total) + (row.projected != null ? ', réalisé et prévisionnel ' + fmtEUR(row.projected) : ''));
   }).join('. ');
   return '<section class="card annual-progress-card"><h2>Comparatif d’avancement annuel</h2><p class="annual-progress-subtitle">' + esc(cfg.title) + ' — à fin ' + esc(cfg.asOfLabel) + '</p>' +
     (deltas.length ? '<div class="annual-progress-deltas">' + deltas.join('') + '</div>' : '') +
-    '<div class="annual-progress-chart" style="height:' + (rows.length * 68 + 28) + 'px"><div style="height:100%" id="chart-annual-progress" role="img" aria-label="' + accessible + '" data-rows="' + esc(JSON.stringify(rows)) + '" data-metric="' + esc(cfg.shortLabel) + '">' + '</div></div></section>';
+    '<div class="annual-progress-chart" style="height:' + (rows.length * 68 + 28) + 'px"><div style="height:100%" id="chart-annual-progress" role="img" aria-label="' + accessible + '" data-rows="' + esc(JSON.stringify(rows)) + '" data-metric="' + esc(cfg.shortLabel) + '">' + '</div></div>' + forecastOutlookHTML(cfg.outlook, cfg.shortLabel === 'CA', fmtEUR, esc) + '</section>';
 }
 
 function _renderAnnualProgressChart() {
@@ -751,15 +757,15 @@ function _renderAnnualProgressChart() {
     var style = getComputedStyle(document.documentElement);
     var color = function (name) { return style.getPropertyValue(name).trim(); };
     var compact = host.clientWidth < 550;
-    var maxTotal = Math.max.apply(null, rows.map(function (row) { return Math.max(row.total || 0, row.realized || 0); }).concat([1]));
-    var minValue = Math.min.apply(null, rows.map(function (row) { return Math.min(row.total || 0, row.realized || 0); }).concat([0]));
+    var maxTotal = Math.max.apply(null, rows.map(function (row) { return Math.max(row.total || 0, row.realized || 0, row.projected ?? 0); }).concat([1]));
+    var minValue = Math.min.apply(null, rows.map(function (row) { return Math.min(row.total || 0, row.realized || 0, row.projected ?? 0); }).concat([0]));
     var rich = { value:{ fontSize:compact ? 12 : 16, fontWeight:800, color:color('--text'), lineHeight:22 },
       caption:{ fontSize:compact ? 8 : 10, color:color('--text-faint'), lineHeight:12 } };
     return {
       grid:{ left:compact ? 82 : 120, right:compact ? 92 : 130, top:0, bottom:30, outerBoundsMode:'none' },
       tooltip:{ trigger:'axis', confine:true, formatter:function (params) {
         var row = rows[params[0].dataIndex];
-        return esc(String(row.year)) + '<br>Réalisé à date : ' + fmtEUR(row.realized) + '<br>' + row.totalLabel + ' : ' + fmtEUR(row.total);
+        return esc(String(row.year)) + '<br>Réalisé à date : ' + fmtEUR(row.realized) + '<br>' + row.totalLabel + ' : ' + fmtEUR(row.total) + (row.projected != null ? '<br>Réalisé + prévisionnel : ' + fmtEUR(row.projected) + ' HT' : '');
       } },
       xAxis:{ type:'value', min:minValue, max:maxTotal, splitNumber:compact ? 2 : 3,
         axisLine:{ show:false }, axisTick:{ show:false }, splitLine:{ lineStyle:{ color:color('--border') } },
@@ -774,6 +780,9 @@ function _renderAnnualProgressChart() {
         } }
       }; }),
       series:[
+        { name:'Réalisé + prévisionnel', type:'bar', barWidth:14, barGap:'-100%', z:3,
+          itemStyle:{ color:'transparent', borderColor:color(host.dataset.metric === 'CA' ? '--ca-blue' : '--violet'), borderWidth:1.5, borderType:'dashed', borderRadius:4 },
+          data:rows.map(function (row) { return row.projected ?? null; }) },
         { name:'Total annuel', type:'bar', barWidth:14, barGap:'-100%', silent:true, z:1,
           itemStyle:{ color:color('--bg-soft'), borderRadius:7 }, data:rows.map(function (row) { return row.total; }) },
         { name:'Réalisé à date', type:'bar', barWidth:14, z:2,
@@ -898,6 +907,7 @@ function renderBanner(data, cur, prev) {
     pilotageCard.innerHTML = _annualProgressCardHTML({
       title:isCA ? "Chiffre d'affaires" : 'Marge brute', value:isCA ? cur.ytd_ca : cur.ytd_mb, goal:isCA ? C.CA_OBJ : C.MB_AN_OBJ,
       samePeriod:period, referenceYears:cur.reference_years, referenceYear:refYear, currentYear:cur.year, shortLabel:isCA ? 'CA' : 'MB',
+      outlook:Number(data.forecast?.cutoff?.slice(5)) === cur.mois_renseignes ? forecastOutlook(data) : null,
       asOfLabel:monthLabels[Math.max(0, cur.mois_renseignes - 1)] || 'la période'
     });
     _renderAnnualProgressChart();
@@ -1677,7 +1687,7 @@ document.getElementById('welcome-back').addEventListener('click', function () {
 })();
 
 // Mise à jour automatique : si le fichier hébergé est plus récent, on recharge la dernière version
-var APP_VERSION = "20261007-220000";
+var APP_VERSION = "20261007-230000";
 function showUpdateBanner(base, v) {
   if (document.getElementById('update-banner')) return;
   var d = document.createElement('div');

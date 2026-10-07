@@ -1,3 +1,4 @@
+import { forecastOutlook } from '../domain/forecast-outlook.js';
 // Chart.js views that share the dashboard's current colors, targets and formatters.
 // Dynamic settings are read for each render so theme and cap edits stay in sync.
 export function createCartesianCharts({
@@ -233,7 +234,7 @@ function renderTauxAnnuel(cur, years) {
   });
 }
 function renderCumulChart(years, currentYear, metric) {
-  const { C } = getContext();
+  const { C, DATA } = getContext();
   var isCA = metric === 'ca';
   var metricKey = isCA ? 'ca' : 'marge_brute';
   var metricName = isCA ? "Chiffre d'affaires" : 'Marge brute';
@@ -269,6 +270,12 @@ function renderCumulChart(years, currentYear, metric) {
   const datasets = [
     { label: currentYear + ' (en cours)', data: curCum, borderColor: currentColor, backgroundColor: 'transparent', borderWidth: 3, pointRadius: 0, pointHoverRadius: 6, tension: 0.4, spanGaps: false },
   ];
+  const outlook = forecastOutlook(DATA);
+  if (outlook && (isCA || outlook.totalMB !== null)) {
+    datasets.push({ label:isCA ? 'Réalisé + CA confirmé HT' : 'Réalisé + marge estimée HT', data:isCA ? outlook.ca : outlook.mb,
+      borderColor:currentColor, backgroundColor:'transparent', borderDash:[6, 5], borderWidth:3,
+      pointRadius:2, pointHoverRadius:6, tension:0, spanGaps:false });
+  }
   if (hasPreviousYear) {
     datasets.push({ label: previousYear + ' (N−1)', data: cumOf(previousYear), borderColor: COLORS.gray, backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, pointHoverRadius: 6, tension: 0.4, spanGaps: false });
   }
