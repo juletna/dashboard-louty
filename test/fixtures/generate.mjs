@@ -196,7 +196,9 @@ export function createAcceptedFixtureFiles(directory) {
   const rows = [header,q('AUTO',1000,'Client Automatique'),q('PART',2000,'Client Partiel'),f('INV-PART',500,'Client Partiel'),
     q('REPEAT-1',100,'Client Répété'),q('REPEAT-2',100,'Client Répété'),f('INV-1',100,'Client Répété'),f('INV-2',100,'Client Répété'),
     q('ADV',3000,'Client Acompte'),q('ADV-OTHER',4000,'Client Acompte'),f('DEP',900,'Client Acompte',"Facture d'acompte"),
-    q('OLD',600,'Client Ancien','2024-06-01',null)];
+    q('OLD',600,'Client Ancien','2024-06-01',null),
+    ['Devis','2025-06-01','Cliente TTC',90,'Validé & imp.','ID-A','Q-TTC','Chantier TVA','ACT',99,0,0,'2025-06-01'],
+    ['Facture','2025-06-08','Cliente TTC',82.5,'Confirmé','ID-B','F-TTC','Facture TVA','ACT',99,99,0,null]];
   for (const [key, paid] of [['accepted',1080],['unpaid',0]]) {
     const copy = rows.map(r => [...r]);
     const deposit = copy.find(r=>r[6]==='DEP'); deposit[10] = paid; deposit[11] = 1080-paid;

@@ -285,3 +285,28 @@ test('an advance potentially settled in another complete quote cannot cover the 
   ]);
   assert.equal(rows[0].status,'complete');assert.equal(rows[1].status,'ambiguous');
 });
+
+test('different IDs with identical name and TTC require manual confirmation despite agreement', () => {
+  const q = doc('Q-TTC', 90, 'Devis', { amount_ttc:99, agreement_date:'2026-01-01' });
+  const f = doc('F-TTC', 82.5, 'Facture', { client_id:'002', amount_ttc:99, state:'Confirmé' });
+  const documents = prepareDocuments([q,f]);
+  const [row] = reconcileForecast(documents, new Map());
+  assert.equal(row.reason,'same-name-ttc');
+  assert.equal(row.billingRisk,true);
+  assert.equal(row.status,'ambiguous');
+  assert.equal(row.choice,undefined);
+  assert.equal(row.probableInvoices[0].number,'F-TTC');
+  assert.equal(row.proposed,90);
+  const choices = new Map([[row.key,{action:'exclude',fingerprint:row.fingerprint,quote:row}]]);
+  assert.equal(reconcileForecast(documents,choices)[0].choice.action,'exclude');
+  const old = match([q])[0];
+  const reviewed = reconcileForecast(documents,new Map([[old.key,choice(old)]]))[0];
+  assert.equal(reviewed.review,true);
+  assert.equal(reviewed.choice.remaining,100);
+  for (const extra of [{amount_ttc:100},{date:'2025-01-01'},{activity:'OTHER'},{state:'Brouillon'},{type:"Facture d'acompte"},{client:'Autre client'},{amount_ttc:null},{state:'Non confirmé'}]) {
+    assert.equal(match([q,{...f,...extra}])[0].probableInvoices,undefined);
+  }
+  const alreadyMatched = match([q, f, doc('Q-OTHER',82.5,'Devis',{client_id:'002',amount_ttc:99})]);
+  assert.equal(alreadyMatched[0].probableInvoices,undefined);
+  assert.equal(alreadyMatched[1].status,'complete');
+});

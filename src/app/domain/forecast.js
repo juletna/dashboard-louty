@@ -140,10 +140,30 @@ export function matchQuotes(documents = []) {
       }
     }
   }
+  // Cross-ID evidence is a suggestion only: never merge client identities or
+  // turn equal TTC into an automatic HT allocation.
+  const allocated = new Set([...results.values()].flatMap(r => r.matched.map(b => b.key)));
+  for (const row of results.values()) {
+    if (!['unmatched', 'partial'].includes(row.status) || !row.client_id || !normalizedName(row.client) ||
+        !validDate(row.date) || !Number.isFinite(row.amount_ttc) || row.amount_ttc <= 0) continue;
+    const probableInvoices = bills.filter(b => b.type === 'Facture' && isConfirmed(b) && !b.duplicate &&
+      !allocated.has(b.key) && b.activity === row.activity && b.client_id && b.client_id !== row.client_id &&
+      normalizedName(b.client) === normalizedName(row.client) && validDate(b.date) && b.date >= row.date &&
+      Number.isFinite(b.amount) && b.amount > 0 && Number.isFinite(b.amount_ttc) &&
+      cents(b.amount_ttc) === cents(row.amount_ttc)).sort((a,b) => a.key.localeCompare(b.key));
+    if (!probableInvoices.length) continue;
+    row.probableInvoices = probableInvoices;
+    row.billingRisk = true;
+    row.status = 'ambiguous';
+    row.reason = 'same-name-ttc';
+    row.fingerprint = JSON.stringify([row.fingerprint, 'same-name-ttc-v1',
+      probableInvoices.map(b => [b.key, b.client_id, b.amount, b.amount_ttc, b.date, b.state])]);
+  }
   return quotes.map(q => results.get(q.key));
 }
 
 export const REASON_LABELS = {
+  'same-name-ttc': 'Facture probable : même nom et même TTC, ID client différent',
   'settled-with-advance': 'Couverture complète probable : facture et acomptes',
   'client-conflict': 'Nom associé à plusieurs clients', 'client-missing': 'Client non identifiable',
   'duplicate-document': 'Document présent plusieurs fois', 'credit-history': 'Avoir dans l’historique client',

@@ -45,7 +45,7 @@
   .forecast-warning:empty { display:none; }
   .forecast-dialog { background:var(--bg-card); color:var(--text); border:1px solid var(--border); padding:26px; border-radius:var(--radius); width:min(1060px,calc(100% - 32px)); max-height:90vh; overflow:auto; box-shadow:var(--shadow-md); font:inherit; }
   .forecast-dialog::backdrop { background:rgba(15,12,23,.5); }
-  .forecast-editor { width:min(540px,calc(100% - 24px)); }
+  .forecast-editor { width:min(1060px,calc(100% - 24px)); }
   .forecast-tabs { display:flex; gap:22px; flex-wrap:wrap; border-bottom:1px solid var(--border); margin:22px 0 16px; }
   .forecast-tabs button { font:inherit; font-size:13px; background:none; border:0; border-bottom:3px solid transparent; padding:12px 0; color:var(--text-dim); cursor:pointer; }
   .forecast-tabs button[aria-pressed="true"] { color:var(--violet); border-bottom-color:var(--violet); font-weight:800; }
@@ -1211,3 +1211,10 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
   .forecast-situation { display:block; width:fit-content; border-radius:6px; padding:5px 8px; margin-bottom:8px; font-size:12px; font-weight:800; background:var(--bg-inset); color:var(--text-dim); }
   .forecast-situation.confirmed { background:var(--violet-bg); color:var(--violet); }
   .forecast-situation.waiting { background:var(--amber-bg); color:var(--text); }
+
+  .forecast-history-scroll { overflow:auto; max-height:340px; }
+  .forecast-history-table { width:100%; min-width:900px; border-collapse:collapse; font-size:12px; }
+  .forecast-history-table th, .forecast-history-table td { text-align:left; padding:10px; border-bottom:1px solid var(--border); vertical-align:top; }
+  .forecast-history-table th { background:var(--bg-inset); position:sticky; top:0; }
+  .forecast-history-table td { overflow-wrap:anywhere; }
+  .forecast-history-current { background:var(--violet-bg); }

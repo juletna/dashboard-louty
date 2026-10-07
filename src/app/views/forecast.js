@@ -1,8 +1,10 @@
 import { reconcileForecast, forecastSummary, MATCH_LABELS, REASON_LABELS } from '../domain/forecast.js';
+import { normalizedName } from '../domain/clients.js';
 import { forecastAdvances } from '../domain/forecast-advances.js';
 import { createForecastStorage } from '../state/forecast.js';
 
 export function createForecastView({ money: formatMoney, escape: esc, onChange }) {
+  const exactMoney = value => Number.isFinite(value) ? value.toLocaleString('fr-FR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' €' : 'Non renseigné';
   const money = value => `${formatMoney(value)} HT`;
   const storage = createForecastStorage({ getItem: key => localStorage.getItem(key), setItem: (key, value) => localStorage.setItem(key, value) });
   const host = document.getElementById('revenue-forecast');
@@ -127,6 +129,12 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
     el('forecast-note').textContent = row.review ? 'Le rapprochement a changé. Ton montant saisi a été conservé. Vérifie-le avant de réactiver cette prévision.' : row.status === 'complete' ? 'Une correspondance complète est probable. Saisis le montant restant si tu souhaites ajouter ce devis manuellement.' : 'Vérifie le montant restant et la situation réelle du chantier avant de confirmer.';
     el('forecast-evidence').innerHTML = `<p>${esc(matchingLabel(row))}. ${row.status === 'no-id' ? 'ID et nom client exploitables absents.' : 'Les montants rapprochés ne prouvent pas le rattachement au devis.'}</p>${row.groupMatch ? '<p>Les factures couvrent collectivement les devis de même montant. La pièce affichée est une attribution indicative, pas un lien établi.</p>' : ''}${row.duplicate ? '<p>Plusieurs pièces portent cette même identité. Elles sont regroupées ici et demandent une vérification.</p>' : ''}<ul>${(row.matched || []).map(b => `<li>${esc(b.type)} ${esc(b.number)} · ${esc(b.date || 'date absente')} : ${money(b.amount)}</li>`).join('')}</ul>`;
     el('forecast-evidence').closest('details').open = false;
+    el('forecast-probable-invoices').innerHTML = row.probableInvoices?.length ? `<div class="forecast-warning"><strong>Facturation complète à confirmer</strong><p>Devis : ${exactMoney(row.amount)} HT · ${exactMoney(row.amount_ttc)} TTC · client ${esc(row.client_id)}.</p><ul>${row.probableInvoices.map(b => `<li>Facture ${esc(b.number)} · ${esc(b.date)} · ${esc(b.client)} · client ${esc(b.client_id)} : ${exactMoney(b.amount)} HT · ${exactMoney(b.amount_ttc)} TTC.</li>`).join('')}</ul><p>Les ID clients diffèrent. Le même TTC peut masquer un changement de TVA. Vérifie que ce chantier est entièrement facturé. La confirmation retire ce devis du prévisionnel et reste mémorisée aux prochains imports.</p><button type="button" class="btn" data-f-action="confirm-billed">Confirmer : chantier entièrement facturé</button></div>` : '';
+    const history = (data.revenue_distribution?.documents || []).filter(d => d.activity === row.activity &&
+      ((row.client_id && d.client_id === row.client_id) || (normalizedName(row.client) && normalizedName(d.client) === normalizedName(row.client))))
+      .sort((a,b) => (b.date || '').localeCompare(a.date || '') || String(a.number).localeCompare(String(b.number)));
+    const ttc = value => Number.isFinite(value) ? exactMoney(value) + ' TTC' : 'Non renseigné';
+    el('forecast-history').innerHTML = `<details class="forecast-method" ${row.status === 'ambiguous' ? 'open' : ''}><summary>Historique du client et correspondances possibles · ${history.length} pièces</summary><p>Même activité et même ID client, ou même nom complet (majuscules et espaces ignorés). Un nom identique ne prouve pas qu’il s’agit du même client. Les brouillons sont exclus de l’import.</p><div class="forecast-history-scroll" role="region" aria-label="Historique des pièces du client" tabindex="0"><table class="forecast-history-table"><thead><tr><th>Pièce / date</th><th>Client / ID</th><th>Titre</th><th>État / accord</th><th>Montant HT</th><th>Montant TTC</th><th>Déjà réglé TTC</th><th>En attente TTC</th></tr></thead><tbody>${history.map(d => `<tr ${d.type === row.type && d.number === row.number && d.date === row.date ? 'class="forecast-history-current"' : ''}><td>${esc(d.type)} ${esc(d.number)}<br>${esc(d.date || 'Date absente')}${d.type === row.type && d.number === row.number && d.date === row.date ? '<br><strong>Devis examiné</strong>' : ''}</td><td>${esc(d.client)}<br>${esc(d.client_id || 'ID absent')}${d.client_id && row.client_id && d.client_id !== row.client_id ? '<br><strong class="forecast-badge warn">ID différent</strong>' : ''}</td><td>${esc(d.title)}</td><td>${esc(d.state)}${d.agreement_date ? '<br>Accord : ' + esc(d.agreement_date) : ''}</td><td>${exactMoney(d.amount)} HT</td><td>${ttc(d.amount_ttc)}</td><td>${ttc(d.paid)}</td><td>${ttc(d.pending)}</td></tr>`).join('')}</tbody></table></div><p>« En attente » indique le reste à encaisser sur une pièce, pas le reste du chantier à facturer. Les montants de cet historique ne sont pas additionnés au prévisionnel.</p></details>`;
     renderAdvances(row);
     el('forecast-form-error').textContent = '';
     editor.showModal();
@@ -152,7 +160,15 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
     }
     if (b.dataset.fAction === 'close-manager') manager.close();
   });
-  editor.addEventListener('click', e => { if (e.target.closest('[data-f-action="close-editor"]')) editor.close(); });
+  editor.addEventListener('click', e => {
+    if (e.target.closest('[data-f-action="close-editor"]')) editor.close();
+    if (e.target.closest('[data-f-action="confirm-billed"]')) {
+      const row = rows.find(r => r.key === editingKey);
+      if (!row || !row.probableInvoices?.length) return;
+      commit(row, { action: 'exclude', fingerprint: row.fingerprint, quote: quoteSnapshot(row) }, 'Chantier confirmé entièrement facturé. Devis retiré du prévisionnel.');
+      editor.close();
+    }
+  });
   el('forecast-year').addEventListener('change', renderList);
   el('forecast-advances').addEventListener('change', () => {
     const row = rows.find(r => r.key === editingKey);

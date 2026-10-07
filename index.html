@@ -54,7 +54,7 @@
   .forecast-warning:empty { display:none; }
   .forecast-dialog { background:var(--bg-card); color:var(--text); border:1px solid var(--border); padding:26px; border-radius:var(--radius); width:min(1060px,calc(100% - 32px)); max-height:90vh; overflow:auto; box-shadow:var(--shadow-md); font:inherit; }
   .forecast-dialog::backdrop { background:rgba(15,12,23,.5); }
-  .forecast-editor { width:min(540px,calc(100% - 24px)); }
+  .forecast-editor { width:min(1060px,calc(100% - 24px)); }
   .forecast-tabs { display:flex; gap:22px; flex-wrap:wrap; border-bottom:1px solid var(--border); margin:22px 0 16px; }
   .forecast-tabs button { font:inherit; font-size:13px; background:none; border:0; border-bottom:3px solid transparent; padding:12px 0; color:var(--text-dim); cursor:pointer; }
   .forecast-tabs button[aria-pressed="true"] { color:var(--violet); border-bottom-color:var(--violet); font-weight:800; }
@@ -1220,6 +1220,13 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
   .forecast-situation { display:block; width:fit-content; border-radius:6px; padding:5px 8px; margin-bottom:8px; font-size:12px; font-weight:800; background:var(--bg-inset); color:var(--text-dim); }
   .forecast-situation.confirmed { background:var(--violet-bg); color:var(--violet); }
   .forecast-situation.waiting { background:var(--amber-bg); color:var(--text); }
+
+  .forecast-history-scroll { overflow:auto; max-height:340px; }
+  .forecast-history-table { width:100%; min-width:900px; border-collapse:collapse; font-size:12px; }
+  .forecast-history-table th, .forecast-history-table td { text-align:left; padding:10px; border-bottom:1px solid var(--border); vertical-align:top; }
+  .forecast-history-table th { background:var(--bg-inset); position:sticky; top:0; }
+  .forecast-history-table td { overflow-wrap:anywhere; }
+  .forecast-history-current { background:var(--violet-bg); }
 </style>
 <script>try{var _t=localStorage.getItem("cabestan_dashboard_theme");if(_t==="dark"||_t==="light")document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 </head>
@@ -1370,6 +1377,8 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 <dialog id="forecast-editor" class="forecast-dialog forecast-editor" aria-labelledby="forecast-editor-title">
   <form id="forecast-form"><div class="forecast-head"><h2 id="forecast-editor-title">Ajouter au prévisionnel</h2><button class="btn" type="button" data-f-action="close-editor" aria-label="Fermer la fiche">Fermer</button></div><p id="forecast-editor-subtitle" class="small"></p>
   <p id="forecast-note" class="forecast-warning"></p>
+  <div id="forecast-probable-invoices"></div>
+  <div id="forecast-history"></div>
   <div id="forecast-advances"></div>
   <label for="forecast-situation">Situation du chantier</label><select id="forecast-situation"><option value="confirmed">Travaux confirmés</option><option value="waiting">En attente client</option></select>
   <label for="forecast-amount">Montant HT restant à facturer (€)</label><input id="forecast-amount" type="number" min="0" step="0.01" required>
@@ -2043,9 +2052,25 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         }
       }
     }
+    const allocated = new Set([...results.values()].flatMap((r) => r.matched.map((b) => b.key)));
+    for (const row of results.values()) {
+      if (!["unmatched", "partial"].includes(row.status) || !row.client_id || !normalizedName(row.client) || !validDate(row.date) || !Number.isFinite(row.amount_ttc) || row.amount_ttc <= 0) continue;
+      const probableInvoices = bills.filter((b) => b.type === "Facture" && isConfirmed(b) && !b.duplicate && !allocated.has(b.key) && b.activity === row.activity && b.client_id && b.client_id !== row.client_id && normalizedName(b.client) === normalizedName(row.client) && validDate(b.date) && b.date >= row.date && Number.isFinite(b.amount) && b.amount > 0 && Number.isFinite(b.amount_ttc) && cents(b.amount_ttc) === cents(row.amount_ttc)).sort((a, b) => a.key.localeCompare(b.key));
+      if (!probableInvoices.length) continue;
+      row.probableInvoices = probableInvoices;
+      row.billingRisk = true;
+      row.status = "ambiguous";
+      row.reason = "same-name-ttc";
+      row.fingerprint = JSON.stringify([
+        row.fingerprint,
+        "same-name-ttc-v1",
+        probableInvoices.map((b) => [b.key, b.client_id, b.amount, b.amount_ttc, b.date, b.state])
+      ]);
+    }
     return quotes.map((q) => results.get(q.key));
   }
   var REASON_LABELS = {
+    "same-name-ttc": "Facture probable : m\xEAme nom et m\xEAme TTC, ID client diff\xE9rent",
     "settled-with-advance": "Couverture compl\xE8te probable : facture et acomptes",
     "client-conflict": "Nom associ\xE9 \xE0 plusieurs clients",
     "client-missing": "Client non identifiable",
@@ -2872,6 +2897,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
 
   // src/app/views/forecast.js
   function createForecastView({ money: formatMoney, escape: esc2, onChange }) {
+    const exactMoney = (value) => Number.isFinite(value) ? value.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " \u20AC" : "Non renseign\xE9";
     const money3 = (value) => `${formatMoney(value)} HT`;
     const storage = createForecastStorage({ getItem: (key) => localStorage.getItem(key), setItem: (key, value) => localStorage.setItem(key, value) });
     const host = document.getElementById("revenue-forecast");
@@ -3002,6 +3028,10 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       el("forecast-note").textContent = row.review ? "Le rapprochement a chang\xE9. Ton montant saisi a \xE9t\xE9 conserv\xE9. V\xE9rifie-le avant de r\xE9activer cette pr\xE9vision." : row.status === "complete" ? "Une correspondance compl\xE8te est probable. Saisis le montant restant si tu souhaites ajouter ce devis manuellement." : "V\xE9rifie le montant restant et la situation r\xE9elle du chantier avant de confirmer.";
       el("forecast-evidence").innerHTML = `<p>${esc2(matchingLabel(row))}. ${row.status === "no-id" ? "ID et nom client exploitables absents." : "Les montants rapproch\xE9s ne prouvent pas le rattachement au devis."}</p>${row.groupMatch ? "<p>Les factures couvrent collectivement les devis de m\xEAme montant. La pi\xE8ce affich\xE9e est une attribution indicative, pas un lien \xE9tabli.</p>" : ""}${row.duplicate ? "<p>Plusieurs pi\xE8ces portent cette m\xEAme identit\xE9. Elles sont regroup\xE9es ici et demandent une v\xE9rification.</p>" : ""}<ul>${(row.matched || []).map((b) => `<li>${esc2(b.type)} ${esc2(b.number)} \xB7 ${esc2(b.date || "date absente")} : ${money3(b.amount)}</li>`).join("")}</ul>`;
       el("forecast-evidence").closest("details").open = false;
+      el("forecast-probable-invoices").innerHTML = row.probableInvoices?.length ? `<div class="forecast-warning"><strong>Facturation compl\xE8te \xE0 confirmer</strong><p>Devis : ${exactMoney(row.amount)} HT \xB7 ${exactMoney(row.amount_ttc)} TTC \xB7 client ${esc2(row.client_id)}.</p><ul>${row.probableInvoices.map((b) => `<li>Facture ${esc2(b.number)} \xB7 ${esc2(b.date)} \xB7 ${esc2(b.client)} \xB7 client ${esc2(b.client_id)} : ${exactMoney(b.amount)} HT \xB7 ${exactMoney(b.amount_ttc)} TTC.</li>`).join("")}</ul><p>Les ID clients diff\xE8rent. Le m\xEAme TTC peut masquer un changement de TVA. V\xE9rifie que ce chantier est enti\xE8rement factur\xE9. La confirmation retire ce devis du pr\xE9visionnel et reste m\xE9moris\xE9e aux prochains imports.</p><button type="button" class="btn" data-f-action="confirm-billed">Confirmer : chantier enti\xE8rement factur\xE9</button></div>` : "";
+      const history = (data.revenue_distribution?.documents || []).filter((d) => d.activity === row.activity && (row.client_id && d.client_id === row.client_id || normalizedName(row.client) && normalizedName(d.client) === normalizedName(row.client))).sort((a, b) => (b.date || "").localeCompare(a.date || "") || String(a.number).localeCompare(String(b.number)));
+      const ttc = (value) => Number.isFinite(value) ? exactMoney(value) + " TTC" : "Non renseign\xE9";
+      el("forecast-history").innerHTML = `<details class="forecast-method" ${row.status === "ambiguous" ? "open" : ""}><summary>Historique du client et correspondances possibles \xB7 ${history.length} pi\xE8ces</summary><p>M\xEAme activit\xE9 et m\xEAme ID client, ou m\xEAme nom complet (majuscules et espaces ignor\xE9s). Un nom identique ne prouve pas qu\u2019il s\u2019agit du m\xEAme client. Les brouillons sont exclus de l\u2019import.</p><div class="forecast-history-scroll" role="region" aria-label="Historique des pi\xE8ces du client" tabindex="0"><table class="forecast-history-table"><thead><tr><th>Pi\xE8ce / date</th><th>Client / ID</th><th>Titre</th><th>\xC9tat / accord</th><th>Montant HT</th><th>Montant TTC</th><th>D\xE9j\xE0 r\xE9gl\xE9 TTC</th><th>En attente TTC</th></tr></thead><tbody>${history.map((d) => `<tr ${d.type === row.type && d.number === row.number && d.date === row.date ? 'class="forecast-history-current"' : ""}><td>${esc2(d.type)} ${esc2(d.number)}<br>${esc2(d.date || "Date absente")}${d.type === row.type && d.number === row.number && d.date === row.date ? "<br><strong>Devis examin\xE9</strong>" : ""}</td><td>${esc2(d.client)}<br>${esc2(d.client_id || "ID absent")}${d.client_id && row.client_id && d.client_id !== row.client_id ? '<br><strong class="forecast-badge warn">ID diff\xE9rent</strong>' : ""}</td><td>${esc2(d.title)}</td><td>${esc2(d.state)}${d.agreement_date ? "<br>Accord : " + esc2(d.agreement_date) : ""}</td><td>${exactMoney(d.amount)} HT</td><td>${ttc(d.amount_ttc)}</td><td>${ttc(d.paid)}</td><td>${ttc(d.pending)}</td></tr>`).join("")}</tbody></table></div><p>\xAB En attente \xBB indique le reste \xE0 encaisser sur une pi\xE8ce, pas le reste du chantier \xE0 facturer. Les montants de cet historique ne sont pas additionn\xE9s au pr\xE9visionnel.</p></details>`;
       renderAdvances(row);
       el("forecast-form-error").textContent = "";
       editor.showModal();
@@ -3034,6 +3064,12 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     });
     editor.addEventListener("click", (e) => {
       if (e.target.closest('[data-f-action="close-editor"]')) editor.close();
+      if (e.target.closest('[data-f-action="confirm-billed"]')) {
+        const row = rows.find((r) => r.key === editingKey);
+        if (!row || !row.probableInvoices?.length) return;
+        commit(row, { action: "exclude", fingerprint: row.fingerprint, quote: quoteSnapshot(row) }, "Chantier confirm\xE9 enti\xE8rement factur\xE9. Devis retir\xE9 du pr\xE9visionnel.");
+        editor.close();
+      }
     });
     el("forecast-year").addEventListener("change", renderList);
     el("forecast-advances").addEventListener("change", () => {
@@ -5932,7 +5968,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var spb = document.querySelector(".sp-body");
     if (spb) spb.addEventListener("scroll", hide);
   })();
-  var APP_VERSION = "20261007-200000";
+  var APP_VERSION = "20261007-210000";
   function showUpdateBanner(base, v) {
     if (document.getElementById("update-banner")) return;
     var d = document.createElement("div");
