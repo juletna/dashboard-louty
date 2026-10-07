@@ -59,7 +59,7 @@ try {
   await page.locator('#forecast-form button[type=submit]').click();
   await page.locator('[data-f-action=close-manager]').click();
   assert.match(await page.locator('#cap-forecast').innerText(), /600/);
-  const chartForecast = await page.evaluate(() => window.Chart.getChart(document.querySelector('#chart-ca-mb')).data.datasets.find(d => d.label === 'CA confirmé à facturer (sélection)').data);
+  const chartForecast = await page.evaluate(() => window.Chart.getChart(document.querySelector('#chart-ca-mb')).data.datasets.find(d => d.label === 'CA confirmé à facturer HT (sélection)').data);
   assert.equal(chartForecast[10], 600); assert.equal(chartForecast[9], null, 'waiting quotes do not join confirmed forecast');
   await page.locator('#revenue-forecast').scrollIntoViewIfNeeded();
   await shot('forecast-desktop-light');

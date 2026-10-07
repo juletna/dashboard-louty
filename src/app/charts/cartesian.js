@@ -57,7 +57,7 @@ function renderCAMB(cy, curYear, years) {
       borderRadius: { topLeft: R, topRight: R, bottomLeft: 0, bottomRight: 0 }, borderSkipped: false }
   ];
   if (DATA?.forecast?.monthly.some(value => value !== null)) {
-    datasets.push({ type: 'bar', label: 'CA confirmé à facturer (sélection)', data: DATA.forecast.monthly,
+    datasets.push({ type: 'bar', label: 'CA confirmé à facturer HT (sélection)', data: DATA.forecast.monthly,
       backgroundColor: COLORS.blue, stack: 'forecast', order: 3, borderRadius: R, borderSkipped: false });
   }
   // La fin de mois projetée est une vraie pile Chart.js, et non plus une

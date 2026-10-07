@@ -2622,7 +2622,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   }
 
   // src/app/views/forecast.js
-  function createForecastView({ money: money2, escape: esc2, onChange }) {
+  function createForecastView({ money: formatMoney, escape: esc2, onChange }) {
+    const money2 = (value) => `${formatMoney(value)} HT`;
     const storage = createForecastStorage({ getItem: (key) => localStorage.getItem(key), setItem: (key, value) => localStorage.setItem(key, value) });
     const host = document.getElementById("revenue-forecast");
     const manager = document.getElementById("forecast-manager");
@@ -2671,7 +2672,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       <div class="forecast-months">${monthValues.map((v) => `<button class="forecast-month" data-f-month="${esc2(v.month || "none")}" aria-label="${esc2(monthName(v.month))} : ${money2(v.confirmed)} confirm\xE9s, ${money2(v.waiting)} en attente"><span>${esc2(monthName(v.month))}</span><div class="forecast-bars" aria-hidden="true"><i style="height:${v.confirmed / max * 64}px"></i><i class="waiting" style="height:${v.waiting / max * 64}px"></i></div><strong>${money2(v.confirmed)}</strong><small>+ ${money2(v.waiting)} en attente</small></button>`).join("")}</div>
       <div class="forecast-footer"><div><strong>${rows.filter(candidate).length} devis \xE0 examiner</strong><p class="small">Le rapprochement propose, tu choisis ce qui entre au pr\xE9visionnel.</p></div><button class="btn" data-f-action="review">Examiner les propositions</button></div>
       <details class="forecast-method"><summary>Comprendre les montants et les rapprochements</summary><p>Comparaison des montants HT par ID client et activit\xE9. Chaque facture est utilis\xE9e au plus une fois. Les acomptes, avoirs et correspondances ambigu\xEBs demandent une v\xE9rification. Les statuts d\u2019accord Louty ne d\xE9cident pas de ta s\xE9lection.</p><p>La marge brute, le r\xE9sultat, le salaire et la tr\xE9sorerie ne sont pas recalcul\xE9s \xE0 partir de ces devis. Les montants confirm\xE9s sont s\xE9par\xE9s de la projection statistique.</p><p>Les choix restent sur ce navigateur. Un nouvel import ne remplace jamais un montant saisi manuellement.</p></details>`;
-      if (cap) cap.innerHTML = `<div class="forecast-cap"><h3>CA r\xE9alis\xE9 + confirm\xE9 pr\xE9vu \xB7 ${esc2(summary.year)}</h3><div class="forecast-cap-values"><div><span>R\xE9alis\xE9 RES</span><strong>${money2(summary.actual)}</strong></div><span aria-hidden="true">+</span><div><span>Confirm\xE9 apr\xE8s ${esc2(monthName(summary.cutoff))}</span><strong>${money2(summary.annualConfirmed)}</strong></div><span aria-hidden="true">=</span><div><span>R\xE9alis\xE9 + confirm\xE9 pr\xE9vu</span><strong>${money2(summary.actualPlusConfirmed)}</strong></div><div><span>${summary.gap !== null && summary.gap < 0 ? "Au-del\xE0 de l\u2019objectif" : "Reste \xE0 couvrir"}</span><strong>${money2(summary.gap === null ? null : Math.abs(summary.gap))}</strong></div></div><p class="small">Base partielle : seuls les devis confirm\xE9s, v\xE9rifi\xE9s et dat\xE9s apr\xE8s les mois couverts par le RES et avant fin ${esc2(summary.year)} sont ajout\xE9s. Ne s\u2019ajoute pas \xE0 la projection statistique.</p>${summary.unintegrated.length ? `<details class="forecast-method"><summary>${summary.unintegrated.length} facture(s) / avoir(s) dat\xE9s apr\xE8s la p\xE9riode RES \xB7 ${money2(summary.unintegrated.reduce((n, d) => n + (d.amount ?? 0), 0))} HT</summary><p>Rep\xE8re \xE0 rapprocher du prochain RES. Ce montant n\u2019est pas ajout\xE9 automatiquement : il pourrait recouper les devis s\xE9lectionn\xE9s.</p><ul>${summary.unintegrated.map((d) => `<li>${esc2(d.date)} \xB7 ${esc2(d.number || d.type)} \xB7 ${esc2(d.client)} : ${money2(d.amount)}</li>`).join("")}</ul></details>` : ""}</div>`;
+      if (cap) cap.innerHTML = `<div class="forecast-cap"><h3>CA r\xE9alis\xE9 + confirm\xE9 pr\xE9vu \xB7 ${esc2(summary.year)}</h3><div class="forecast-cap-values"><div><span>R\xE9alis\xE9 RES</span><strong>${money2(summary.actual)}</strong></div><span aria-hidden="true">+</span><div><span>Confirm\xE9 apr\xE8s ${esc2(monthName(summary.cutoff))}</span><strong>${money2(summary.annualConfirmed)}</strong></div><span aria-hidden="true">=</span><div><span>R\xE9alis\xE9 + confirm\xE9 pr\xE9vu</span><strong>${money2(summary.actualPlusConfirmed)}</strong></div><div><span>${summary.gap !== null && summary.gap < 0 ? "Au-del\xE0 de l\u2019objectif" : "Reste \xE0 couvrir"}</span><strong>${money2(summary.gap === null ? null : Math.abs(summary.gap))}</strong></div></div><p class="small">Base partielle : seuls les devis confirm\xE9s, v\xE9rifi\xE9s et dat\xE9s apr\xE8s les mois couverts par le RES et avant fin ${esc2(summary.year)} sont ajout\xE9s. Ne s\u2019ajoute pas \xE0 la projection statistique.</p>${summary.unintegrated.length ? `<details class="forecast-method"><summary>${summary.unintegrated.length} facture(s) / avoir(s) dat\xE9s apr\xE8s la p\xE9riode RES \xB7 ${money2(summary.unintegrated.reduce((n, d) => n + (d.amount ?? 0), 0))}</summary><p>Rep\xE8re \xE0 rapprocher du prochain RES. Ce montant n\u2019est pas ajout\xE9 automatiquement : il pourrait recouper les devis s\xE9lectionn\xE9s.</p><ul>${summary.unintegrated.map((d) => `<li>${esc2(d.date)} \xB7 ${esc2(d.number || d.type)} \xB7 ${esc2(d.client)} : ${money2(d.amount)}</li>`).join("")}</ul></details>` : ""}</div>`;
     }
     function renderList() {
       const text = el("forecast-search").value.toLocaleLowerCase("fr");
@@ -2684,7 +2685,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       el("forecast-filter").textContent = monthFilter ? `Filtre : ${monthName(monthFilter === "none" ? null : monthFilter)}. Cliquer sur un onglet pour effacer.` : tab === "all" ? "Ajout manuel possible, m\xEAme si une facturation compl\xE8te semble correspondre." : "Brouillons exclus \xB7 rapprochements indicatifs";
       el("forecast-list").innerHTML = filtered.length ? filtered.map((r) => {
         const index = rows.indexOf(r);
-        return `<article class="forecast-row"><div><strong>${esc2(r.client || "Client non renseign\xE9")}</strong><p class="small">${esc2(r.number || "Sans num\xE9ro")} \xB7 ${esc2(r.date || "Date absente")}</p><p class="small">${esc2(r.title)}</p></div><div class="forecast-row-amount">${money2(tab === "selected" ? r.choice.remaining : r.amount)}<small>${tab === "selected" ? "restant HT" : "devis HT"}</small></div><div><span class="forecast-badge ${r.review || ["ambiguous", "no-id"].includes(r.status) ? "warn" : ""}">${esc2(describe(r))}</span>${selected(r) ? `<p class="small">${r.choice.situation === "confirmed" ? "Travaux confirm\xE9s" : "En attente client"} \xB7 ${esc2(monthName(r.choice.month))}</p>` : ""}</div><div class="forecast-row-actions">${!r.missing ? `<button class="btn" data-f-edit="${index}">${selected(r) ? r.review ? "V\xE9rifier" : "Modifier" : "Ajouter"}</button>` : ""}${selected(r) ? `<button class="forecast-link" data-f-remove="${index}">Retirer</button>` : tab === "review" ? `<button class="forecast-link" data-f-exclude="${index}">\xC9carter</button>` : ""}</div></article>`;
+        return `<article class="forecast-row"><div><strong>${esc2(r.client || "Client non renseign\xE9")}</strong><p class="small">${esc2(r.number || "Sans num\xE9ro")} \xB7 ${esc2(r.date || "Date absente")}</p><p class="small">${esc2(r.title)}</p></div><div class="forecast-row-amount">${money2(tab === "selected" ? r.choice.remaining : r.amount)}<small>${tab === "selected" ? "restant \xE0 facturer" : "montant du devis"}</small></div><div><span class="forecast-badge ${r.review || ["ambiguous", "no-id"].includes(r.status) ? "warn" : ""}">${esc2(describe(r))}</span>${selected(r) ? `<p class="small">${r.choice.situation === "confirmed" ? "Travaux confirm\xE9s" : "En attente client"} \xB7 ${esc2(monthName(r.choice.month))}</p>` : ""}</div><div class="forecast-row-actions">${!r.missing ? `<button class="btn" data-f-edit="${index}">${selected(r) ? r.review ? "V\xE9rifier" : "Modifier" : "Ajouter"}</button>` : ""}${selected(r) ? `<button class="forecast-link" data-f-remove="${index}">Retirer</button>` : tab === "review" ? `<button class="forecast-link" data-f-exclude="${index}">\xC9carter</button>` : ""}</div></article>`;
       }).join("") : '<p class="forecast-empty">Aucun devis dans cette vue.</p>';
       el("forecast-storage-message").textContent = storage.warning;
     }
@@ -2715,12 +2716,12 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       if (!row || row.missing) return;
       editingKey = row.key;
       el("forecast-editor-title").textContent = selected(row) ? "Modifier la pr\xE9vision" : "Ajouter au pr\xE9visionnel";
-      el("forecast-editor-subtitle").textContent = `${row.client} \xB7 ${row.number || "Sans num\xE9ro"} \xB7 ${money2(row.amount)} HT`;
+      el("forecast-editor-subtitle").textContent = `${row.client} \xB7 ${row.number || "Sans num\xE9ro"} \xB7 ${money2(row.amount)}`;
       el("forecast-situation").value = row.choice?.situation || "confirmed";
       el("forecast-amount").value = selected(row) ? row.choice.remaining : row.proposed ?? "";
       el("forecast-month").value = row.choice?.month || "";
       el("forecast-note").textContent = row.review ? "Les pi\xE8ces ont chang\xE9. Ton montant saisi a \xE9t\xE9 conserv\xE9. V\xE9rifie-le avant de r\xE9activer cette pr\xE9vision." : row.status === "complete" ? "Une correspondance compl\xE8te est probable. Saisis le montant restant si tu souhaites ajouter ce devis manuellement." : "V\xE9rifie le montant restant et la situation r\xE9elle du chantier avant de confirmer.";
-      el("forecast-evidence").innerHTML = `<p>${esc2(MATCH_LABELS[row.status])}. ${row.status === "no-id" ? "Aucun rapprochement automatique sans ID client." : "Les montants rapproch\xE9s ne prouvent pas le rattachement au devis."}</p>${row.duplicate ? "<p>Plusieurs pi\xE8ces portent cette m\xEAme identit\xE9. Elles sont regroup\xE9es ici et demandent une v\xE9rification.</p>" : ""}<ul>${(row.matched || []).map((b) => `<li>${esc2(b.type)} ${esc2(b.number)} \xB7 ${esc2(b.date || "date absente")} : ${money2(b.amount)} HT</li>`).join("")}</ul>`;
+      el("forecast-evidence").innerHTML = `<p>${esc2(MATCH_LABELS[row.status])}. ${row.status === "no-id" ? "Aucun rapprochement automatique sans ID client." : "Les montants rapproch\xE9s ne prouvent pas le rattachement au devis."}</p>${row.duplicate ? "<p>Plusieurs pi\xE8ces portent cette m\xEAme identit\xE9. Elles sont regroup\xE9es ici et demandent une v\xE9rification.</p>" : ""}<ul>${(row.matched || []).map((b) => `<li>${esc2(b.type)} ${esc2(b.number)} \xB7 ${esc2(b.date || "date absente")} : ${money2(b.amount)}</li>`).join("")}</ul>`;
       el("forecast-evidence").closest("details").open = false;
       el("forecast-form-error").textContent = "";
       editor.showModal();
@@ -2862,7 +2863,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       if (DATA2?.forecast?.monthly.some((value) => value !== null)) {
         datasets.push({
           type: "bar",
-          label: "CA confirm\xE9 \xE0 facturer (s\xE9lection)",
+          label: "CA confirm\xE9 \xE0 facturer HT (s\xE9lection)",
           data: DATA2.forecast.monthly,
           backgroundColor: COLORS2.blue,
           stack: "forecast",
@@ -5675,7 +5676,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var spb = document.querySelector(".sp-body");
     if (spb) spb.addEventListener("scroll", hide);
   })();
-  var APP_VERSION = "20261007-170000";
+  var APP_VERSION = "20261007-171000";
   function showUpdateBanner(base, v) {
     if (document.getElementById("update-banner")) return;
     var d = document.createElement("div");
