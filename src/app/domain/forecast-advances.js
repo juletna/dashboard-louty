@@ -28,3 +28,11 @@ export function openAdvances(rows) {
       remainingHT: r.proposed, numbers: advances.map(d => d.number) };
   }).sort((a, b) => b.advanceHT - a.advanceHT);
 }
+
+// Compares the deposits booked as revenue in the Balance (7040) with the open deposits found in the Pièces.
+export function advanceReconciliation(balanceHT, open) {
+  if (!Number.isFinite(balanceHT)) return null;
+  const piecesHT = Math.round(open.reduce((n, a) => n + a.advanceHT, 0) * 100) / 100;
+  const gapHT = Math.round((balanceHT - piecesHT) * 100) / 100;
+  return { balanceHT, piecesHT, gapHT, status: Math.abs(gapHT) <= 1 ? 'match' : gapHT > 0 ? 'balance-higher' : 'pieces-higher' };
+}

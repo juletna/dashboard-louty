@@ -507,16 +507,20 @@
   @media (max-width: 700px) {
     #bloc-sante .grid.grid-3 > .kpi + .kpi { border-left: none; border-top: 1px solid var(--border); }
   }
-  /* Santé : jauge à gauche sur deux rangées, 4 KPI en grille 2×2 */
-  .sante-oneline { display: grid; grid-template-columns: 1.4fr 1fr 1fr; align-items: stretch; gap: 14px; margin-top: 8px; }
+  /* Santé sur une seule ligne : jauge compacte + 4 KPI */
+  .sante-oneline { display: grid; grid-template-columns: 1.3fr repeat(4, minmax(0, 1fr)); align-items: stretch; gap: 14px; margin-top: 8px; }
   .sante-oneline > * { min-width: 0; }
-  .sante-oneline .sante-gauge { display: flex; flex-direction: column; justify-content: center; grid-row: span 2; }
+  .sante-oneline .sante-gauge { display: flex; flex-direction: column; justify-content: center; }
   .sante-oneline .financial-health-chart { margin: 12px 0 10px; }
   /* 4 indicateurs en cartes grises distinctes (spécificité qui bat #bloc-sante .card .kpi{background:transparent}) */
   #bloc-sante .card .sante-oneline > .kpi { display: flex; flex-direction: column; justify-content: center; background: var(--bg-inset); border-radius: var(--radius-sm); padding: 14px 16px; }
+  @media (max-width: 1180px) {
+    .sante-oneline { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .sante-oneline .sante-gauge { grid-column: 1 / -1; }
+  }
   @media (max-width: 900px) {
     .sante-oneline { grid-template-columns: 1fr 1fr; }
-    .sante-oneline .sante-gauge { grid-column: 1 / -1; grid-row: auto; }
+    .sante-oneline .sante-gauge { grid-column: 1 / -1; }
   }
   @media (max-width: 520px) {
     .sante-oneline { grid-template-columns: 1fr; }
@@ -1212,12 +1216,6 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
   .forecast-dialog .forecast-advance-option input { width:18px; flex:0 0 18px; margin-top:3px; }
   #forecast-advance-balance { padding:10px; border-radius:8px; background:var(--bg-inset); line-height:1.6; }
 
-  .customer-advances { margin-top:20px; padding:16px; border:1px solid var(--border); border-radius:12px; }
-  .customer-advances h4 { margin:0 0 12px; }
-  .customer-advances details { margin-top:12px; font-size:12px; }
-  .customer-advances summary { cursor:pointer; }
-  .customer-advances ul { padding-left:18px; max-height:260px; overflow:auto; }
-  .customer-advances li { margin:10px 0; overflow-wrap:anywhere; }
 
   .forecast-situation-filters { display:flex; gap:8px; flex-wrap:wrap; margin:12px 0; }
   .forecast-situation-filters button { font:inherit; font-size:12px; color:var(--text-dim); background:var(--bg-inset); border:1px solid var(--border); border-radius:20px; padding:9px 12px; cursor:pointer; }
@@ -1239,7 +1237,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .forecast-outlook{font-size:12px;color:var(--text-dim);line-height:1.6;margin-top:10px}
 .forecast-outlook p{margin:6px 0}.forecast-outlook strong{font-size:16px;color:var(--text)}.forecast-outlook summary{cursor:pointer;color:var(--violet)}
 .revenue-forecast{width:100%;max-width:none;margin:18px auto;box-sizing:border-box}
-.forecast-future-layout{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:36px;align-items:center;margin:26px 0}
+.forecast-future-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.9fr);gap:36px;align-items:center;margin:26px 0}
 .forecast-coverage{min-width:0}
 .forecast-estimated{font-size:14px;color:var(--text-dim)}
 .forecast-estimated strong{font-size:38px;font-weight:800;letter-spacing:-1px;color:var(--text);font-variant-numeric:tabular-nums}
@@ -1280,9 +1278,6 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .revenue-forecast .forecast-link{color:var(--violet);text-decoration:none}
 .revenue-forecast .forecast-link:hover{color:var(--text);text-decoration:underline}
 .forecast-details-row{position:relative;border-top:1px solid var(--border);padding-top:12px}
-.forecast-followed>summary{cursor:pointer;list-style:none;display:table;font-size:13px;font-weight:600;color:var(--text);padding:10px 0;max-width:50%}
-.forecast-followed>summary::-webkit-details-marker{display:none}.forecast-followed>summary:before{content:none}
-.forecast-followed:not([open]) .forecast-hide-label,.forecast-followed[open] .forecast-show-label{display:none}
 .forecast-help{position:absolute;right:0;top:15px;width:auto!important;height:auto!important;max-width:48%;font:inherit;font-size:12px!important;border:0!important;background:none!important;border-radius:0!important}
 .forecast-table-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:16px 0 12px}
 .forecast-quick-filters{display:flex;align-items:flex-end;gap:22px;max-width:100%;overflow-x:auto;scrollbar-width:none}
@@ -1334,6 +1329,10 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 @media(min-width:1101px){.forecast-dashboard-tables td:first-child{width:38%}.forecast-dashboard-tables .forecast-table-amount{width:10%}}
 .forecast-dashboard-tables .forecast-mobile-note{display:none}
 @media(max-width:650px){.forecast-dashboard-tables th:nth-child(2),.forecast-dashboard-tables th:nth-child(3),.forecast-dashboard-tables td:nth-child(2),.forecast-dashboard-tables td:nth-child(3){display:none}.forecast-dashboard-tables .forecast-mobile-note{display:block}}
+.forecast-dialog.forecast-quotes{width:min(1200px,calc(100% - 32px))}
+.forecast-quotes .forecast-table-toolbar{padding-top:8px}
+.forecast-open-quotes{font-size:13px;font-weight:600;color:var(--text);padding:10px 0}
+@media(max-width:650px){.forecast-potentials{grid-template-columns:1fr}}
 </style>
 <script>try{var _t=localStorage.getItem("cabestan_dashboard_theme");if(_t==="dark"||_t==="light")document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 </head>
@@ -1471,6 +1470,10 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 
 </div>
 
+<dialog id="forecast-quotes" class="forecast-dialog forecast-quotes" aria-labelledby="forecast-quotes-title">
+  <div class="forecast-head"><div><h2 id="forecast-quotes-title">Devis du prévisionnel</h2><p class="small">Montants HT. Le CA prévisionnel retenu déduit les acomptes déjà comptés dans le CA réalisé.</p></div><button class="btn" type="button" data-f-action="close-quotes" aria-label="Fermer la liste des devis">Fermer</button></div>
+  <div id="forecast-quotes-body"></div>
+</dialog>
 <dialog id="forecast-manager" class="forecast-dialog" aria-labelledby="forecast-manager-title">
   <div class="forecast-head"><div><h2 id="forecast-manager-title">Tous les devis</h2><p class="small">Les devis acceptés et rapprochés sans ambiguïté sont ajoutés automatiquement. Tes choix manuels restent prioritaires.</p></div><button class="btn" type="button" data-f-action="close-manager">Fermer</button></div>
   <div class="forecast-situation-filters" role="group" aria-label="Situation du devis"><button type="button" data-f-situation="" aria-pressed="true">Toutes les situations</button><button type="button" data-f-situation="waiting" aria-pressed="false">En attente client</button><button type="button" data-f-situation="validation" aria-pressed="false">En attente de validation</button><button type="button" data-f-situation="confirmed" aria-pressed="false">À facturer (estimation)</button><button type="button" data-f-situation="complete" aria-pressed="false">Entièrement facturés</button>
@@ -3236,6 +3239,15 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   var API = { TARGET_LABELS, POSITIVE_AS_ABS, sheetToMatrix, toFloat, parseRES, parseBAL, parsePieces, parsePiecesDate };
   if (typeof window !== "undefined") window.CabestanParser = API;
 
+  // src/app/views/customer-payments.js
+  function customerModalRows(items, kind) {
+    return items.map((item) => {
+      const docs = item.documents || [];
+      const due = kind === "receivables" ? docs.map((d) => d.due_date).filter(Boolean).sort()[0] : null;
+      return { label: `${item.client}${item.client_id ? " \xB7 client " + item.client_id : ""}${item.activity ? " \xB7 " + item.activity : ""} \xB7 ${due ? "\xC9ch\xE9ance " + due.slice(0, 10) : docs.length + (kind === "receivables" ? " facture(s)" : " acompte(s) encaiss\xE9(s)")}${item.identity_ambiguous ? " \xB7 identit\xE9 \xE0 v\xE9rifier" : ""}`, amount: item.amount };
+    });
+  }
+
   // src/app/domain/forecast-advances.js
   function forecastAdvances(row2, rows, keys = row2.choice?.advanceKeys || []) {
     const candidates = row2.advanceCandidates || [];
@@ -3266,32 +3278,11 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       };
     }).sort((a, b) => b.advanceHT - a.advanceHT);
   }
-
-  // src/app/views/customer-payments.js
-  function customerModalRows(items, kind) {
-    return items.map((item) => {
-      const docs = item.documents || [];
-      const due = kind === "receivables" ? docs.map((d) => d.due_date).filter(Boolean).sort()[0] : null;
-      return { label: `${item.client}${item.client_id ? " \xB7 client " + item.client_id : ""}${item.activity ? " \xB7 " + item.activity : ""} \xB7 ${due ? "\xC9ch\xE9ance " + due.slice(0, 10) : docs.length + (kind === "receivables" ? " facture(s)" : " acompte(s) encaiss\xE9(s)")}${item.identity_ambiguous ? " \xB7 identit\xE9 \xE0 v\xE9rifier" : ""}`, amount: item.amount };
-    });
-  }
-  function renderCustomerAdvances(sante, details, { money: money3, escape: esc2, documents, open: precomputed }) {
-    const clients = details?.advances || [];
-    const total2 = clients.reduce((sum, c) => sum + c.amount, 0);
-    const historyCount = clients.reduce((n, c) => n + (c.documents || []).length, 0);
-    const known = sante && sante.acompte_ca_accounts_present === true && Number.isFinite(sante.acomptes_en_ca);
-    const hasPieces = Array.isArray(documents) && documents.length > 0;
-    const open = precomputed || (hasPieces ? openAdvances(matchQuotes(documents)) : []);
-    const openHT = Math.round(open.reduce((n, a) => n + a.advanceHT, 0) * 100) / 100;
-    const gap = known && hasPieces ? Math.round((sante.acomptes_en_ca - openHT) * 100) / 100 : null;
-    const note = !sante ? "Importe la Balance pour comparer avec les comptes d\u2019acomptes." : sante.acompte_ca_accounts_present === void 0 ? "R\xE9importe la Balance pour lire les comptes d\u2019acomptes de cet ancien cache." : !known ? "Aucun compte d\u2019acompte (7040) dans cette Balance." : !hasPieces ? "Importe les Pi\xE8ces pour retrouver les devis concern\xE9s." : Math.abs(gap) <= 1 ? "La Balance et les Pi\xE8ces concordent." : `\xC9cart de ${money3(Math.abs(gap))} HT entre la Balance et les devis rapproch\xE9s : ${gap > 0 ? "un acompte n\u2019est rattach\xE9 \xE0 aucun devis" : "un acompte rapproch\xE9 est d\xE9j\xE0 repris en Balance"}.`;
-    const rows = open.length ? "<ul>" + open.map((a) => `<li><strong>${esc2(a.client)}</strong>${a.client_id ? " \xB7 client " + esc2(a.client_id) : ""} \xB7 devis ${esc2(a.quote || "sans num\xE9ro")} \xB7 acompte ${esc2(a.numbers.join(", "))} : ${money3(a.advanceHT)} HT (${money3(a.advanceTTC)} TTC) \xB7 reste \xE0 facturer net d\u2019acompte ${money3(a.remainingHT)} HT</li>`).join("") + "</ul>" : `<p class="small">${hasPieces ? "Aucun acompte encaiss\xE9 en attente de reprise dans les Pi\xE8ces." : "Pi\xE8ces non import\xE9es."}</p>`;
-    const past = historyCount - open.reduce((n, a) => n + a.numbers.length, 0);
-    const balanceText = known ? money3(sante.acomptes_en_ca) : "indisponible";
-    const piecesText = hasPieces ? money3(openHT) : "non import\xE9es";
-    const status = known && hasPieces ? Math.abs(gap) <= 1 ? " \xB7 concordent" : " \xB7 \xE9cart \xE0 v\xE9rifier" : "";
-    const history = historyCount ? `<details><summary>Historique des acomptes encaiss\xE9s (${historyCount})</summary><p class="small">${past > 0 ? past + " d\xE9j\xE0 repris ou non rattach\xE9(s) \xE0 un devis ouvert. " : ""}Total encaiss\xE9 dans les Pi\xE8ces : ${money3(total2)} TTC.</p><ul>${clients.flatMap((c) => (c.documents || []).map((d) => `<li><strong>${esc2(c.client)}</strong>${c.client_id ? " \xB7 client " + esc2(c.client_id) : ""} \xB7 ${esc2(d.number || "Sans num\xE9ro")} \xB7 ${esc2(d.date?.slice(0, 10) || "Date absente")} : ${money3(d.amount)} TTC${d.duplicate ? " \xB7 doublon \xE0 v\xE9rifier" : ""}${c.identity_ambiguous ? " \xB7 identit\xE9 \xE0 v\xE9rifier" : ""}</li>`)).join("")}</ul></details>` : "";
-    return `<section class="customer-advances" aria-label="Acomptes clients"><details><summary>Rapprochement des acomptes \xB7 Balance ${balanceText} \xB7 Pi\xE8ces ${piecesText}${status}</summary><p class="small">Un acompte factur\xE9 est d\xE9j\xE0 compt\xE9 dans le CA r\xE9alis\xE9. Il reste \xE0 reprendre sur la facture finale, qui sera donc du montant du devis moins l\u2019acompte. Montants HT. ${esc2(note)}</p>${rows}${hasPieces ? history : ""}</details></section>`;
+  function advanceReconciliation(balanceHT, open) {
+    if (!Number.isFinite(balanceHT)) return null;
+    const piecesHT = Math.round(open.reduce((n, a) => n + a.advanceHT, 0) * 100) / 100;
+    const gapHT = Math.round((balanceHT - piecesHT) * 100) / 100;
+    return { balanceHT, piecesHT, gapHT, status: Math.abs(gapHT) <= 1 ? "match" : gapHT > 0 ? "balance-higher" : "pieces-higher" };
   }
 
   // src/app/domain/annual-cap.js
@@ -3465,13 +3456,17 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   }
 
   // src/app/views/forecast-summary.js
-  function renderForecastSummary({ summary, goal, reviewCount, reviewAmount, reviewUnknown, warning, expanded, search, tables, activeTab, counts, money: money3, escape: esc2 }) {
+  var FORECAST_TAB_LABELS = { confirmed: "\xC0 facturer (estimation)", waiting: "En attente client", validation: "En attente de validation", review: "\xC0 examiner" };
+  function renderQuotesPanel({ search, tables, activeTab, counts, escape: esc2 }) {
+    return `<div class="forecast-table-toolbar"><nav class="forecast-quick-filters" role="tablist" aria-label="Situation des devis">${Object.entries(FORECAST_TAB_LABELS).map(([kind, label]) => `<button type="button" role="tab" class="${counts[kind] ? "" : "is-zero"}" id="forecast-tab-${kind}" data-f-filter="${kind}" aria-controls="forecast-dashboard-tables" aria-selected="${activeTab === kind}" tabindex="${activeTab === kind ? 0 : -1}">${label} <span class="forecast-count">${counts[kind]}</span></button>`).join("")}</nav><input id="forecast-dashboard-search" type="search" aria-label="Rechercher dans les devis de cet onglet" placeholder="Client, num\xE9ro ou titre\u2026" value="${esc2(search)}"></div><div id="forecast-dashboard-tables" class="forecast-dashboard-tables" role="tabpanel" aria-labelledby="forecast-tab-${activeTab}">${tables}</div><p id="forecast-quick-message" class="small" role="status"></p>`;
+  }
+  function renderForecastSummary({ summary, goal, reviewCount, reviewAmount, reviewUnknown, warning, counts, money: money3, escape: esc2 }) {
     const coverage = forecastCoverage(summary, goal);
     const estimated = summary.confirmed;
     const scale = coverage ? Math.max(coverage.need, estimated) : 0;
     const covered = coverage ? Math.min(coverage.need, estimated) : 0;
     const surplus = coverage ? -coverage.balance : 0;
-    const labels = { confirmed: "\xC0 facturer (estimation)", waiting: "En attente client", validation: "En attente de validation", review: "\xC0 examiner" };
+    const labels = FORECAST_TAB_LABELS;
     const help = "Montants HT. Le besoin restant correspond \xE0 l\u2019objectif annuel moins le CA r\xE9alis\xE9. Les devis accept\xE9s et v\xE9rifi\xE9s alimentent le montant \xE0 facturer estim\xE9, qui reste susceptible d\u2019ajustements. Les attentes et les devis \xE0 examiner restent hors estimation. Pour les devis \xE0 examiner, le montant saisi ou le reste candidat est affich\xE9 lorsqu\u2019il est connu ; sinon, le montant total du devis sert de rep\xE8re, sans constituer un reste \xE0 facturer valid\xE9. Les montants inconnus sont signal\xE9s. Le sc\xE9nario annuel r\xE9partit l\u2019estimation uniform\xE9ment apr\xE8s la p\xE9riode RES jusqu\u2019\xE0 d\xE9cembre ; il ne constitue pas un calendrier de facturation et alimente les projections du cap annuel.";
     const potential = (kind, amount, note) => {
       const empty = amount === 0 && !counts[kind];
@@ -3479,7 +3474,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       return `<aside class="forecast-potential forecast-potential-${kind}${empty ? " is-empty" : ""}" aria-label="${labels[kind]}"${empty ? ' aria-disabled="true"' : ""}><h3>${labels[kind]}</h3><strong>${money3(amount)} <small>HT</small></strong><div class="forecast-potential-foot">${foot}</div></aside>`;
     };
     const showReview = reviewAmount !== 0 || reviewUnknown > 0;
-    const columns = 2;
+    const columns = 3;
     return `<div class="forecast-head"><div><h2 id="forecast-title">Chiffre d\u2019affaires pr\xE9visionnel</h2><p class="small">Restant \xE0 facturer \xB7 exercice ${esc2(summary.year)} \xB7 montants HT</p></div></div>${warning}
     <div class="forecast-future-layout" data-potential-columns="${columns}">
       <section id="cap-forecast" class="forecast-coverage" aria-label="Couverture du CA restant \xE0 produire">
@@ -3492,7 +3487,6 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       </section>
       ${`<div class="forecast-potentials" style="--potential-columns:${columns}">
         ${potential("waiting", summary.waiting, "Hors estimation")}
-        <div class="forecast-potential-stack">
         ${potential("validation", summary.validation, "Hors estimation")}
         ${(() => {
       const empty = !showReview;
@@ -3500,15 +3494,13 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       const foot = empty ? "<span>Aucun devis</span>" : `<span>Montants indicatifs \xB7 hors totaux${reviewUnknown ? ` \xB7 ${reviewUnknown} non renseign\xE9(s)` : ""}</span><button class="forecast-link" data-f-jump="review">V\xE9rifier ${reviewCount} devis \u2192</button>`;
       return `<aside class="forecast-potential forecast-review-card${empty ? " is-empty" : ""}" aria-label="\xC0 examiner"${empty ? ' aria-disabled="true"' : ""}><h3>\xC0 examiner</h3><strong>${amount}</strong><div class="forecast-potential-foot">${foot}</div></aside>`;
     })()}
-        </div>
       </div>`}
     </div>
     ${summary.reviewCount ? `<p class="forecast-warning">${summary.reviewCount} devis s\xE9lectionn\xE9(s) \xE0 v\xE9rifier apr\xE8s actualisation du rapprochement. Leurs montants saisis sont conserv\xE9s, mais suspendus des totaux. <button class="forecast-link" data-f-jump="review">V\xE9rifier</button></p>` : ""}
-    <div class="forecast-details-row"><details id="forecast-followed" class="forecast-followed" ${expanded ? "open" : ""}><summary><span class="forecast-show-label">Afficher les devis \u2192</span><span class="forecast-hide-label">Masquer les devis \u2191</span></summary>
-      <div class="forecast-table-toolbar"><nav class="forecast-quick-filters" role="tablist" aria-label="Situation des devis">${Object.entries(labels).map(([kind, label]) => `<button type="button" role="tab" class="${counts[kind] ? "" : "is-zero"}" id="forecast-tab-${kind}" data-f-filter="${kind}" aria-controls="forecast-dashboard-tables" aria-selected="${activeTab === kind}" tabindex="${activeTab === kind ? 0 : -1}">${label} <span class="forecast-count">${counts[kind]}</span></button>`).join("")}</nav><input id="forecast-dashboard-search" type="search" aria-label="Rechercher dans les devis de cet onglet" placeholder="Client, num\xE9ro ou titre\u2026" value="${esc2(search)}"></div><div id="forecast-dashboard-tables" class="forecast-dashboard-tables" role="tabpanel" aria-labelledby="forecast-tab-${activeTab}">${tables}</div></details>
+    <div class="forecast-details-row"><button type="button" class="forecast-link forecast-open-quotes" data-f-action="quotes" aria-haspopup="dialog">Afficher les devis \u2192</button>
       <button type="button" class="forecast-link sp-help forecast-help" data-tip="${esc2(help)}" aria-label="Comprendre le pr\xE9visionnel">Comprendre le calcul \u24D8</button>
     </div>
-    <p id="forecast-quick-message" class="small" role="status"></p><div class="forecast-all"><button class="forecast-link" data-f-action="manage">Ajouter ou retrouver un devis</button></div>
+    <div class="forecast-all"><button class="forecast-link" data-f-action="manage">Ajouter ou retrouver un devis</button></div>
     ${summary.unintegrated.length ? `<details class="forecast-method"><summary>${summary.unintegrated.length} facture(s) / avoir(s) apr\xE8s la p\xE9riode RES \xB7 \xE0 rapprocher</summary><p>Ces pi\xE8ces ne sont pas ajout\xE9es automatiquement : elles pourraient recouper les devis s\xE9lectionn\xE9s.</p><ul>${summary.unintegrated.map((d) => `<li>${esc2(d.date)} \xB7 ${esc2(d.number || d.type)} \xB7 ${esc2(d.client)} : ${money3(d.amount)} HT</li>`).join("")}</ul></details>` : ""}`;
   }
 
@@ -3568,8 +3560,9 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     const host = document.getElementById("revenue-forecast");
     const manager = document.getElementById("forecast-manager");
     const editor = document.getElementById("forecast-editor");
+    const quotes = document.getElementById("forecast-quotes");
     const el = (id) => document.getElementById(id);
-    let data, goal, rows = [], summary, editingKey = null, returnFocus;
+    let data, goal, rows = [], summary, editingKey = null, returnFocus, quotesOpener;
     let situationFilter = "", dashboardSearch = "", dashboardTab = "confirmed";
     const situationOf = (r) => forecastStatus(r) === "Enti\xE8rement factur\xE9" ? "complete" : forecastStatus(r) === "\xC0 v\xE9rifier" ? "review" : r.choice?.action === "include" ? r.choice.remaining === 0 ? "complete" : r.choice.situation : r.status === "complete" ? "complete" : quoteSituation(r) || "review";
     const selected = (r) => r.choice?.action === "include";
@@ -3585,12 +3578,12 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       summary = forecastSummary(rows, data, goal);
       data.forecast = summary;
     }
-    function renderSummary(expand = false) {
-      const expanded = expand || !!el("forecast-followed")?.open;
+    function renderSummary() {
       const hasDocuments = Array.isArray(data.revenue_distribution?.documents);
       const legacyPieces = hasDocuments && data.revenue_distribution.documents.some((d) => !Object.hasOwn(d, "agreement_date"));
       const warning = (legacyPieces ? '<p class="forecast-warning">R\xE9importe les Pi\xE8ces pour lire les dates d\u2019accord, montants TTC et r\xE8glements n\xE9cessaires aux nouveaux rapprochements.</p>' : "") + (storage.warning ? `<p class="forecast-warning" role="alert">${esc2(storage.warning)}</p>` : "");
       if (!hasDocuments) {
+        if (quotes.open) quotes.close();
         host.innerHTML = `<div class="forecast-head"><div><h2 id="forecast-title">Chiffre d\u2019affaires pr\xE9visionnel</h2></div><button class="btn" data-f-action="import">Importer les Pi\xE8ces</button></div><p class="small">Ajoute un export Pi\xE8ces incluant tous les devis, m\xEAme non factur\xE9s. Les brouillons sont exclus automatiquement.</p>${warning}${summary.included.length ? '<p class="forecast-warning">Tes choix sont conserv\xE9s. R\xE9importe les Pi\xE8ces pour les rapprocher et r\xE9activer le pr\xE9visionnel.</p>' : ""}`;
         return;
       }
@@ -3601,22 +3594,37 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         reviewCount: review.length,
         reviewAmount: review.reduce((n, r) => n + (reviewValue(r) ?? 0), 0),
         reviewUnknown: review.filter((r) => !Number.isFinite(reviewValue(r))).length,
-        counts: Object.fromEntries(["confirmed", "waiting", "validation", "review"].map((k) => [k, dashboardRows(k).length])),
-        activeTab: dashboardTab,
+        counts: quoteCounts(),
         warning,
-        expanded,
-        search: dashboardSearch,
-        tables: dashboardTable(dashboardTab),
         money: formatMoney,
         escape: esc2
       });
+      renderQuotes();
+    }
+    const quoteCounts = () => Object.fromEntries(["confirmed", "waiting", "validation", "review"].map((k) => [k, dashboardRows(k).length]));
+    function renderQuotes() {
+      el("forecast-quotes-body").innerHTML = renderQuotesPanel({
+        counts: quoteCounts(),
+        activeTab: dashboardTab,
+        search: dashboardSearch,
+        tables: dashboardTable(dashboardTab),
+        escape: esc2
+      });
+    }
+    function openQuotes(tab, opener) {
+      dashboardTab = tab || dashboardTab;
+      dashboardSearch = "";
+      quotesOpener = opener;
+      renderQuotes();
+      if (!quotes.open) quotes.showModal();
+      el("forecast-tab-" + dashboardTab).focus();
     }
     function dashboardTable(situation) {
       const label = { confirmed: "\xC0 facturer (estimation)", waiting: "En attente client", validation: "En attente de validation", review: "\xC0 examiner" }[situation];
       const list = dashboardRows(situation).filter((r) => `${r.client} ${r.number} ${r.title}`.toLocaleLowerCase("fr").includes(dashboardSearch.toLocaleLowerCase("fr"))).sort((a, b) => a.client.localeCompare(b.client) || String(a.number).localeCompare(String(b.number)));
       const review = situation === "review";
       const total2 = list.reduce((n, r) => n + (review ? reviewValue(r) ?? 0 : r.choice.remaining), 0);
-      return `<section aria-label="Devis ${esc2(label.toLocaleLowerCase("fr"))}"><div class="forecast-table-head"><span class="small">${review ? "\xC0 v\xE9rifier \xB7 hors totaux" : situation === "confirmed" ? "Reste \xE0 facturer estim\xE9" : "Hors estimation"}</span><strong>${review ? "Montants \xE0 v\xE9rifier" : money3(total2)}</strong></div><div class="forecast-table-scroll"><table><thead><tr><th scope="col">Client / devis</th><th scope="col" class="forecast-table-amount">Devis HT</th><th scope="col" class="forecast-table-amount">Acompte repris HT</th><th scope="col" class="forecast-table-amount">${review ? "CA pr\xE9visionnel indicatif HT" : "CA pr\xE9visionnel retenu HT"}</th><th scope="col"><span class="sr-only">Action</span></th></tr></thead><tbody>${list.map((r) => {
+      return `<section aria-label="Devis ${esc2(label.toLocaleLowerCase("fr"))}"><div class="forecast-table-head"><span class="small">${review ? "\xC0 v\xE9rifier \xB7 hors totaux" : situation === "confirmed" ? "Reste \xE0 facturer estim\xE9" : "Hors estimation"}</span><strong>${review ? "Montants \xE0 v\xE9rifier" : money3(total2)}</strong></div><div class="forecast-table-scroll"><table><thead><tr><th scope="col">Client / devis</th><th scope="col" class="forecast-table-amount">Devis HT</th><th scope="col" class="forecast-table-amount">Acompte repris HT</th><th scope="col" class="forecast-table-amount">${review ? "CA pr\xE9visionnel indicatif HT" : situation === "confirmed" ? "CA pr\xE9visionnel retenu HT" : "Reste HT \xB7 hors estimation"}</th><th scope="col"><span class="sr-only">Action</span></th></tr></thead><tbody>${list.map((r) => {
         const value = review ? reviewValue(r) : r.choice.remaining;
         return `<tr><td><strong>${esc2(r.client || "Client non renseign\xE9")}</strong><small>${esc2(r.number || "Sans num\xE9ro")} \xB7 ${esc2(r.title || "")}</small>${review ? `<small>${esc2(describe(r))}${!Number.isFinite(r.choice?.remaining) && !Number.isFinite(r.proposed) && Number.isFinite(r.amount) ? " \xB7 Montant total du devis, reste \xE0 d\xE9terminer" : ""}</small>` : ""}</td><td class="forecast-table-amount">${Number.isFinite(r.amount) ? formatMoney(r.amount) : "\u2014"}</td><td class="forecast-table-amount">${r.advanceDeductedHT > 0 ? "\u2212 " + formatMoney(r.advanceDeductedHT) : "\u2014"}</td><td class="forecast-table-amount">${Number.isFinite(value) ? formatMoney(value) : "\xC0 d\xE9terminer"}${Number.isFinite(r.amount) && r.advanceDeductedHT > 0 ? `<small class="forecast-mobile-note">devis ${formatMoney(r.amount)} \u2212 acompte ${formatMoney(r.advanceDeductedHT)}</small>` : ""}${(r.billedHT ?? 0) - (r.advanceDeductedHT || 0) > 5e-3 && r.status === "partial" ? `<small>apr\xE8s ${formatMoney(r.billedHT - (r.advanceDeductedHT || 0))} d\xE9j\xE0 factur\xE9</small>` : ""}</td><td><div class="forecast-table-actions"><div class="forecast-row-menu"><button type="button" class="forecast-link forecast-actions-toggle" data-f-menu aria-expanded="false" aria-controls="forecast-actions-${rows.indexOf(r)}" aria-label="Actions pour ${esc2(r.client)} \xB7 ${esc2(r.number)}">Actions</button><div class="forecast-row-menu-items" id="forecast-actions-${rows.indexOf(r)}">${Object.entries({ ...FORECAST_STATES, exclude: "Exclure" }).filter(([target]) => target !== situation).map(([target, text]) => `<button type="button" data-f-transition="${rows.indexOf(r)}" data-f-target="${target}" ${r.missing && target !== "exclude" ? 'disabled title="Devis absent : r\xE9importe les Pi\xE8ces avant de le reclasser"' : ""}>${text}</button>`).join("")}</div></div>${r.missing ? "" : `<button class="forecast-link" data-f-edit="${rows.indexOf(r)}" aria-label="${review ? "V\xE9rifier" : "Voir le d\xE9tail de"} ${esc2(r.client)} \xB7 ${esc2(r.number)}">${review ? "V\xE9rifier le devis" : "Voir le d\xE9tail"} \u2192</button>`}</div></td></tr>`;
       }).join("") || '<tr><td colspan="5" class="small">Aucun devis</td></tr>'}</tbody></table></div></section>`;
@@ -3697,20 +3705,32 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       el("forecast-remove-editor").hidden = !selected(row2);
       editor.showModal();
     }
-    host.addEventListener("input", (e) => {
+    quotes.addEventListener("input", (e) => {
       if (e.target.id !== "forecast-dashboard-search") return;
       dashboardSearch = e.target.value;
       el("forecast-dashboard-tables").innerHTML = dashboardTable(dashboardTab);
     });
-    host.addEventListener("click", (e) => {
+    const onDashboardClick = (e) => {
       const b = e.target.closest("button");
       if (!b) return;
       if (b.classList.contains("sp-help")) return;
-      if (b.dataset.fFilter || b.dataset.fJump) {
-        dashboardTab = b.dataset.fFilter || b.dataset.fJump;
+      if (b.dataset.fJump) {
+        openQuotes(b.dataset.fJump, b);
+        return;
+      }
+      if (b.dataset.fFilter) {
+        dashboardTab = b.dataset.fFilter;
         dashboardSearch = "";
-        renderSummary(true);
+        renderQuotes();
         el("forecast-tab-" + dashboardTab).focus();
+        return;
+      }
+      if (b.dataset.fAction === "quotes") {
+        openQuotes(dashboardTab, b);
+        return;
+      }
+      if (b.dataset.fAction === "close-quotes") {
+        quotes.close();
         return;
       }
       if (b.hasAttribute("data-f-menu")) {
@@ -3741,15 +3761,17 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       }
       if (b.dataset.fAction === "import") el("forecast-input").click();
       else if (b.dataset.fAction === "manage") openManager();
-    });
-    host.addEventListener("keydown", (e) => {
+    };
+    host.addEventListener("click", onDashboardClick);
+    quotes.addEventListener("click", onDashboardClick);
+    quotes.addEventListener("keydown", (e) => {
       if (!e.target.matches("[role=tab]") || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
       e.preventDefault();
       const tabs = ["confirmed", "waiting", "validation", "review"];
       const index = tabs.indexOf(dashboardTab);
       dashboardTab = tabs[e.key === "Home" ? 0 : e.key === "End" ? 3 : (index + (e.key === "ArrowRight" ? 1 : 3)) % 4];
       dashboardSearch = "";
-      renderSummary(true);
+      renderQuotes();
       el("forecast-tab-" + dashboardTab).focus();
     });
     manager.addEventListener("click", (e) => {
@@ -3820,9 +3842,12 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       const target = returnFocus?.isConnected ? returnFocus : host.querySelector('[data-f-action="manage"]');
       target?.focus();
     });
+    quotes.addEventListener("close", () => {
+      (quotesOpener?.isConnected ? quotesOpener : host.querySelector('[data-f-action="quotes"]') || host.querySelector('[data-f-action="manage"]'))?.focus();
+    });
     editor.addEventListener("close", () => {
       if (manager.open) el("forecast-search").focus();
-      else (returnFocus?.isConnected ? returnFocus : el("forecast-tab-" + dashboardTab) || host.querySelector('[data-f-action="manage"]'))?.focus();
+      else (returnFocus?.isConnected ? returnFocus : quotes.open ? el("forecast-tab-" + dashboardTab) : host.querySelector('[data-f-action="quotes"]') || host.querySelector('[data-f-action="manage"]'))?.focus();
     });
     return {
       render(nextData, nextGoal) {
@@ -6134,6 +6159,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var advanceMatchesFound = advanceMatches(advanceClients, dAccLiab);
     var matchedAdvanceClients = advanceMatchesFound.solutions.length === 1 && !advanceMatchesFound.truncated ? advanceMatchesFound.solutions[0] : [];
     var openAdv = Array.isArray(paymentSource.documents) && paymentSource.documents.length ? openAdvances(matchQuotes(paymentSource.documents)) : [];
+    var acompteKnownBalance = sante.acompte_ca_accounts_present === true && Number.isFinite(sante.acomptes_en_ca);
+    var acompteKnown = acompteKnownBalance;
     var dexpl = tva + dFourn + dSoc + dAcc;
     var cca = -(sante.comptes_courants_associes || 0);
     var cca_cls = cca < 0 ? "accent-red" : "accent-blue";
@@ -6176,16 +6203,17 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     } else {
       advancesModal = { title: "Acompte client \xE0 honorer", subtitle: "\xC9galit\xE9 de montants indicative, bases comptable et TTC \xE0 v\xE9rifier", rows: customerModalRows(matchedAdvanceClients, "advances"), total: dAccLiab, totalLabel: "Solde d\u2019acomptes Balance" };
     }
+    var acompteRecon = acompteKnownBalance && openAdv.length ? advanceReconciliation(sante.acomptes_en_ca, openAdv) : null;
+    var acompteReconciliationText = !acompteRecon ? "Importe les Pi\xE8ces pour retrouver les devis concern\xE9s." : acompteRecon.status === "match" ? "La Balance et les Pi\xE8ces concordent." : "\xC9cart de " + fmtEUR(Math.abs(acompteRecon.gapHT)) + " entre la Balance (" + fmtEUR(acompteRecon.balanceHT) + ") et les devis rapproch\xE9s (" + fmtEUR(acompteRecon.piecesHT) + ") : " + (acompteRecon.status === "balance-higher" ? "un acompte n\u2019est rattach\xE9 \xE0 aucun devis." : "un acompte rapproch\xE9 est d\xE9j\xE0 repris en Balance.");
     var customerModalData = {
       advances: advancesModal,
-      "open-advances": { title: "Acomptes \xE0 honorer", subtitle: "Acomptes factur\xE9s d\xE9j\xE0 compt\xE9s dans le CA r\xE9alis\xE9, \xE0 reprendre sur la facture finale \xB7 montants HT", rows: openAdv.map(function(a) {
+      "open-advances": { title: "Acomptes \xE0 honorer", subtitle: "Acomptes factur\xE9s d\xE9j\xE0 compt\xE9s dans le CA r\xE9alis\xE9, \xE0 reprendre sur la facture finale \xB7 montants HT \xB7 " + acompteReconciliationText, rows: openAdv.map(function(a) {
         return { label: a.client + (a.client_id ? " \xB7 client " + a.client_id : "") + " \xB7 devis " + (a.quote || "sans num\xE9ro") + " \xB7 reste \xE0 facturer " + fmtEUR(a.remainingHT) + " HT", amount: a.advanceHT };
       }), total: dAccCA, totalLabel: "Acomptes en CA r\xE9alis\xE9 (Balance)" },
       receivables: { title: "Impay\xE9s clients", subtitle: "Factures confirm\xE9es avec un solde \xAB En attente \xBB positif \xB7 montants TTC", rows: customerModalRows(receivableClients, "receivables"), total: receivableClients.reduce(function(sum, item) {
         return sum + item.amount;
       }, 0), totalLabel: "Total des impay\xE9s dans l\u2019export" }
     };
-    var acompteKnown = sante.acompte_ca_accounts_present === true && Number.isFinite(sante.acomptes_en_ca);
     var acompteKpi = '<div class="kpi accent-orange" data-kpi="acomptes-a-honorer"><div class="kpi-top"><span class="kpi-ico">' + ICON.debt + '</span><div class="kpi-label">Acomptes \xE0 honorer</div></div><div class="kpi-value">' + (acompteKnown ? fmtEUR(dAccCA) : "Indisponible") + '</div><div class="kpi-sub">' + (acompteKnown ? "Encaiss\xE9s, d\xE9j\xE0 en CA \xB7 travaux restant \xE0 r\xE9aliser" : sante.acompte_ca_accounts_present === void 0 ? "R\xE9importe la Balance pour les calculer" : "Aucun compte d\u2019acompte dans cette Balance") + "</div>" + (openAdv.length ? '<button type="button" class="sante-detail-link" data-customer-detail="open-advances">D\xE9tail des acomptes \u2192</button>' : "") + "</div>";
     var kpis = '<div class="kpi ' + cca_cls + '"><div class="kpi-top"><span class="kpi-ico">' + ICON.reserve + '</span><div class="kpi-label">Compte courant associ\xE9</div></div><div class="kpi-value">' + fmtEUR(cca) + '</div><div class="kpi-sub">Tes r\xE9serves dans la scop</div></div><div class="kpi ' + creances_cls + '"><div class="kpi-top"><span class="kpi-ico">' + ICON.receipt + '</span><div class="kpi-label">Cr\xE9ances clients</div></div><div class="kpi-value">' + fmtEUR(sante.creances_clients) + '</div><div class="kpi-sub">' + (dsoRatio !== null ? fmtPct(dsoRatio, 0) + " du CA cumul\xE9 \xB7 \xE0 relancer si vieux" : "\xE0 relancer si vieux") + "</div>" + (receivableClients.length ? '<button type="button" class="sante-detail-link" data-customer-detail="receivables">D\xE9tail des impay\xE9s \u2192</button>' : "") + '</div><div class="kpi ' + mn_cls + '"><div class="kpi-top"><span class="kpi-ico">' + ICON.trending + '</span><div class="kpi-label">R\xE9sultat</div></div><div class="kpi-main"><div class="kpi-value">' + fmtEUR(margeNette) + "</div>" + resultatPill + '</div><div class="kpi-sub">' + resultatSub + "</div></div>" + acompteKpi;
     var detailHTML = detailLines.map(function(l) {
@@ -6193,8 +6221,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       return '<div class="sd-row"><span>' + l.label + '</span><span class="sd-eur">' + fmtEUR(l.amount) + "</span></div>" + link;
     }).join("");
     var detailBlock = detailLines.length ? '<div class="sante-detail"><button type="button" class="sante-detail-toggle">D\xE9tail des dettes exigibles \u2192</button><div class="sante-detail-body" style="display:none">' + detailHTML + "</div></div>" : "";
-    var acomptesAlert = renderCustomerAdvances(sante, paymentDetails2, { money: fmtEUR, escape: esc, documents: paymentSource.documents, open: openAdv });
-    wrap.innerHTML = '<div class="card sante-card"><h3>Sant\xE9 financi\xE8re<span class="sp-help" data-tip="Photo de ta tr\xE9sorerie \xE0 la date de la balance : ce qui est vraiment \xE0 toi (position nette) une fois les dettes exigibles retir\xE9es, plus tes r\xE9serves, cr\xE9ances et r\xE9sultat.">?</span>' + (asOfDate !== "\u2014" ? '<span class="sante-asof">Balance arr\xEAt\xE9e au ' + asOfDate + "</span>" : "") + '</h3><div class="sante-oneline"><div class="sante-gauge"><div class="pn-top"><div><div class="pn-label">Tr\xE9sorerie</div><div class="pn-value">' + fmtEUR(treso) + '</div></div></div><div class="financial-health-chart"><canvas id="chart-financial-health" role="img" aria-label="' + esc(chartDescription) + '">' + esc(chartDescription) + '</canvas></div><div class="pn-legend"><span class="pn-leg"><span class="pn-dot pos"></span>Position nette <strong>' + fmtEUR(position) + '</strong></span><span class="pn-leg"><span class="pn-dot debt"></span>Dettes exigibles <strong>' + fmtEUR(dexpl) + "</strong></span></div>" + detailBlock + "</div>" + kpis + "</div>" + acomptesAlert + "</div>";
+    wrap.innerHTML = '<div class="card sante-card"><h3>Sant\xE9 financi\xE8re<span class="sp-help" data-tip="Photo de ta tr\xE9sorerie \xE0 la date de la balance : ce qui est vraiment \xE0 toi (position nette) une fois les dettes exigibles retir\xE9es, plus tes r\xE9serves, cr\xE9ances et r\xE9sultat.">?</span>' + (asOfDate !== "\u2014" ? '<span class="sante-asof">Balance arr\xEAt\xE9e au ' + asOfDate + "</span>" : "") + '</h3><div class="sante-oneline"><div class="sante-gauge"><div class="pn-top"><div><div class="pn-label">Tr\xE9sorerie</div><div class="pn-value">' + fmtEUR(treso) + '</div></div></div><div class="financial-health-chart"><canvas id="chart-financial-health" role="img" aria-label="' + esc(chartDescription) + '">' + esc(chartDescription) + '</canvas></div><div class="pn-legend"><span class="pn-leg"><span class="pn-dot pos"></span>Position nette <strong>' + fmtEUR(position) + '</strong></span><span class="pn-leg"><span class="pn-dot debt"></span>Dettes exigibles <strong>' + fmtEUR(dexpl) + "</strong></span></div>" + detailBlock + "</div>" + kpis + "</div></div>";
     _renderFinancialHealthChart(treso, position, dexpl);
     var _tog = wrap.querySelector(".sante-detail-toggle");
     if (_tog) _tog.addEventListener("click", function() {
@@ -6552,7 +6579,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   function injectSanteUpload(errMsg) {
     var wrap = document.getElementById("bloc-sante");
     if (!wrap) return;
-    wrap.innerHTML = '<div class="card sante-card"><h3>Sant\xE9 financi\xE8re</h3><div class="sante-empty"><div class="se-drop" id="bal-drop"><div class="se-ico">' + UPLOAD_SVG + '</div><div class="se-title">Ajoute ta Balance Analytique</div><div class="se-sub">D\xE9pose <code>BAL_A_Balance Analytique</code> ici pour afficher tr\xE9sorerie, dettes et position nette.<br>T\xE9l\xE9chargeable dans Louty \u203A <strong>Rapports de gestion</strong>.</div><button type="button" class="btn primary" id="bal-browse">Choisir le fichier Balance</button><input type="file" id="bal-input" accept=".xlsx" style="display:none">' + (errMsg ? '<div class="welcome-err" style="display:block;margin-top:14px">\u26A0 ' + esc(errMsg) + "</div>" : "") + "</div></div>" + renderCustomerAdvances(null, DATA?.revenue_distribution?.payment_details, { money: fmtEUR, escape: esc, documents: DATA?.revenue_distribution?.documents }) + "</div>";
+    wrap.innerHTML = '<div class="card sante-card"><h3>Sant\xE9 financi\xE8re</h3><div class="sante-empty"><div class="se-drop" id="bal-drop"><div class="se-ico">' + UPLOAD_SVG + '</div><div class="se-title">Ajoute ta Balance Analytique</div><div class="se-sub">D\xE9pose <code>BAL_A_Balance Analytique</code> ici pour afficher tr\xE9sorerie, dettes et position nette.<br>T\xE9l\xE9chargeable dans Louty \u203A <strong>Rapports de gestion</strong>.</div><button type="button" class="btn primary" id="bal-browse">Choisir le fichier Balance</button><input type="file" id="bal-input" accept=".xlsx" style="display:none">' + (errMsg ? '<div class="welcome-err" style="display:block;margin-top:14px">\u26A0 ' + esc(errMsg) + "</div>" : "") + "</div></div></div>";
     var drop = document.getElementById("bal-drop");
     var inp = document.getElementById("bal-input");
     document.getElementById("bal-browse").addEventListener("click", function(e) {
@@ -6784,7 +6811,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var spb = document.querySelector(".sp-body");
     if (spb) spb.addEventListener("scroll", hide);
   })();
-  var APP_VERSION = "20261008-233054";
+  var APP_VERSION = "20261008-235056";
   function showUpdateBanner(base, v) {
     if (document.getElementById("update-banner")) return;
     var d = document.createElement("div");

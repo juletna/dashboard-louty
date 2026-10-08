@@ -24,7 +24,7 @@ export function renderForecastSummary({ summary, goal, reviewCount, reviewAmount
     return `<aside class="forecast-potential forecast-potential-${kind}${empty ? ' is-empty' : ''}" aria-label="${labels[kind]}"${empty ? ' aria-disabled="true"' : ''}><h3>${labels[kind]}</h3><strong>${money(amount)} <small>HT</small></strong><div class="forecast-potential-foot">${foot}</div></aside>`;
   };
   const showReview = reviewAmount !== 0 || reviewUnknown > 0;
-  const columns = 2;
+  const columns = 3;
   return `<div class="forecast-head"><div><h2 id="forecast-title">Chiffre d’affaires prévisionnel</h2><p class="small">Restant à facturer · exercice ${esc(summary.year)} · montants HT</p></div></div>${warning}
     <div class="forecast-future-layout" data-potential-columns="${columns}">
       <section id="cap-forecast" class="forecast-coverage" aria-label="Couverture du CA restant à produire">
@@ -37,7 +37,6 @@ export function renderForecastSummary({ summary, goal, reviewCount, reviewAmount
       </section>
       ${`<div class="forecast-potentials" style="--potential-columns:${columns}">
         ${potential('waiting', summary.waiting, 'Hors estimation')}
-        <div class="forecast-potential-stack">
         ${potential('validation', summary.validation, 'Hors estimation')}
         ${(() => {
           const empty = !showReview;
@@ -47,7 +46,6 @@ export function renderForecastSummary({ summary, goal, reviewCount, reviewAmount
             : `<span>Montants indicatifs · hors totaux${reviewUnknown ? ` · ${reviewUnknown} non renseigné(s)` : ''}</span><button class="forecast-link" data-f-jump="review">Vérifier ${reviewCount} devis →</button>`;
           return `<aside class="forecast-potential forecast-review-card${empty ? ' is-empty' : ''}" aria-label="À examiner"${empty ? ' aria-disabled="true"' : ''}><h3>À examiner</h3><strong>${amount}</strong><div class="forecast-potential-foot">${foot}</div></aside>`;
         })()}
-        </div>
       </div>`}
     </div>
     ${summary.reviewCount ? `<p class="forecast-warning">${summary.reviewCount} devis sélectionné(s) à vérifier après actualisation du rapprochement. Leurs montants saisis sont conservés, mais suspendus des totaux. <button class="forecast-link" data-f-jump="review">Vérifier</button></p>` : ''}

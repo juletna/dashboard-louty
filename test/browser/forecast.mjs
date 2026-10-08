@@ -41,6 +41,8 @@ try {
   const row = number => page.locator('#forecast-list .forecast-row').filter({hasText:number});
   const partial = () => row('DEV-PARTIAL');
   const manual = () => row('DEV-MANUAL');
+  const closeQuotes = async () => { if (await page.locator('#forecast-quotes').evaluate(e => e.open)) await page.locator('[data-f-action=close-quotes]').click(); };
+  const openQuotes = async () => { if (!(await page.locator('#forecast-quotes').evaluate(e => e.open))) await page.locator('[data-f-action=quotes]').click(); };
   const filter = kind => page.locator(`.forecast-quick-filters [data-f-filter="${kind}"]`);
   // Administrative buckets are computed from the imported states, without saving choices.
   assert.equal(await filter('waiting').textContent(),'En attente client 1');
@@ -66,15 +68,16 @@ try {
   assert.match(await page.locator('#cap-forecast').innerText(),/600/);
   assert.equal(await page.locator('#annual-cap #cap-forecast').count(),0);
   for (const [kind,expected] of [['confirmed',1],['waiting',2],['validation',1]]) {
-    await page.locator('#forecast-followed').evaluate(e=>e.open=true);
+    await openQuotes();
     await filter(kind).click();
     assert.equal(await page.locator('#forecast-dashboard-tables tbody tr').count(),expected);
     assert.equal(await page.locator('#forecast-manager').evaluate(e=>e.open),false);
     assert.equal(await filter(kind).getAttribute('aria-selected'),'true');
   }
   const link=filter('confirmed');
-  await page.locator('#forecast-title').hover();const color=await link.evaluate(e=>getComputedStyle(e).color);
+  await page.locator('#forecast-quotes-title').hover();const color=await link.evaluate(e=>getComputedStyle(e).color);
   await link.hover();assert.notEqual(await link.evaluate(e=>getComputedStyle(e).color),color);
+  await closeQuotes();
   await page.locator('.forecast-help').focus();assert.equal(await page.locator('#help-tip').isVisible(),true);
   const chartForecast=await page.evaluate(()=>{
     const ds=Chart.getChart(document.querySelector('#chart-ca-mb')).data.datasets;
@@ -99,7 +102,7 @@ try {
   await page.locator('.forecast-outlook summary').click();
   assert.match(await page.locator('.forecast-outlook').innerText(),/réparti uniformément/);
   assert.match(await page.locator('.forecast-outlook').innerText(),/Le taux historique s’applique uniquement/);
-  await filter('confirmed').click();
+  await openQuotes();await filter('confirmed').click();
   assert.equal(await page.locator('.forecast-dashboard-tables table').count(),1);
   assert.equal(await page.locator('.forecast-dashboard-tables th').filter({hasText:'Mois'}).count(),0);
   await page.getByLabel('Rechercher dans les devis de cet onglet').fill('DEV-PARTIAL');
@@ -108,6 +111,7 @@ try {
   await page.getByLabel('Rechercher dans les devis de cet onglet').fill('DEV-PARTIAL');
   assert.match(await page.locator('section[aria-label="Devis en attente client"]').innerText(),/DEV-PARTIAL/);
   await page.getByLabel('Rechercher dans les devis de cet onglet').fill('');
+  await closeQuotes();
   // Inspect card, tables, editor and all affected graphs at both sizes/themes.
   for(const width of [1440,390]) {
     await page.setViewportSize({width,height:width===390?844:1100});
@@ -116,14 +120,14 @@ try {
       for(const [selector,name] of [['#cap-projections','projections'],['#revenue-forecast','forecast'],['#chart-ca-mb','monthly'],['#chart-annual-progress','annual'],['#chart-cumul','cumulative']]) {
         await page.locator(selector).scrollIntoViewIfNeeded();await shot(`${name}-${width}-${theme}`);
       }
-      await page.locator('#forecast-followed').evaluate(e=>e.open=true);await filter('confirmed').click();await page.locator('#forecast-dashboard-tables tr').filter({hasText:'DEV-MANUAL'}).locator('[data-f-edit]').click();
+      await openQuotes();await filter('confirmed').click();await page.locator('#forecast-dashboard-tables tr').filter({hasText:'DEV-MANUAL'}).locator('[data-f-edit]').click();
       await shot(`editor-${width}-${theme}`);await page.keyboard.press('Escape');await page.keyboard.press('Escape');
       assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     }
   }
   await page.reload();await page.locator('[data-f-action=manage]').waitFor();
   assert.equal(await filter('waiting').textContent(),'En attente client 2');
-  assert.equal(await page.locator('#forecast-followed').getAttribute('open'),null);
+  assert.equal(await page.locator('#forecast-quotes').evaluate(e=>e.open),false);
   await page.locator('#forecast-input').setInputFiles(fixtures.changed);
   await page.waitForFunction(()=>document.querySelector('#revenue-forecast').textContent.includes('1 devis sélectionné(s) à vérifier'));
   await page.locator('.forecast-warning [data-f-jump=review]').click();
@@ -135,7 +139,7 @@ try {
   assert.equal(await page.locator('.cap-projection').filter({hasText:'Projection chiffre'}).locator('.cap-projection-value').innerText(),'—');
   await page.locator('#forecast-input').setInputFiles(fixtures.changed);await page.locator('[data-f-action=manage]').waitFor();
   assert.equal(await filter('waiting').textContent(),'En attente client 2');
-  await page.locator('#forecast-followed').evaluate(e=>e.open=true);await filter('confirmed').click();await page.locator('#forecast-dashboard-tables tr').filter({hasText:'DEV-MANUAL'}).locator('[data-f-edit]').click();
+  await openQuotes();await filter('confirmed').click();await page.locator('#forecast-dashboard-tables tr').filter({hasText:'DEV-MANUAL'}).locator('[data-f-edit]').click();
   await page.getByRole('button',{name:'Retirer du prévisionnel',exact:true}).click();await page.keyboard.press('Escape');
   assert.equal(await projectedSeries(),undefined,'removing confirmed work clears its cumulative scenario');
   assert.equal(await cardValue('Projection chiffre'),Math.round(ca[6]),'removing future work updates annual card to actual');

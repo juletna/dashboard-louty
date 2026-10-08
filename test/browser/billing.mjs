@@ -18,6 +18,8 @@ let browser;
 try {
   browser=await chromium.launch();
   const page=await browser.newPage({viewport:{width:1440,height:1100},reducedMotion:'reduce'});
+  const openQuotes=async()=>{if(!(await page.locator('#forecast-quotes').evaluate(e=>e.open)))await page.locator('[data-f-action=quotes]').click();};
+  const closeQuotes=async()=>{if(await page.locator('#forecast-quotes').evaluate(e=>e.open))await page.locator('[data-f-action=close-quotes]').click();};
   const openActions=async scope=>{const toggle=scope.locator('.forecast-actions-toggle');if(await toggle.isVisible() && await toggle.getAttribute('aria-expanded')==='false'){await toggle.click();assert.equal(await page.locator('#forecast-manager').evaluate(e=>e.open),false);}};
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto(process.env.FORECAST_BASE_URL || `http://127.0.0.1:${server.address().port}/`);
@@ -54,6 +56,20 @@ try {
   await page.locator('#forecast-dashboard-search').fill('Q-DEPOSIT');
   assert.equal(await page.locator('#forecast-dashboard-tables tbody tr').count(),1);
   await page.locator('#forecast-dashboard-search').fill('');
+  await closeQuotes();
+  assert.equal(await page.evaluate(()=>document.activeElement?.matches('[data-f-action=quotes],[data-f-jump]')),true,'closing the quotes modal returns focus to an entry link');
+  // Every entry point opens the same modal; Escape closes it and focus comes back to the button.
+  await page.locator('[data-f-action=quotes]').click();
+  assert.equal(await page.locator('#forecast-quotes').evaluate(e=>e.open),true);
+  assert.equal(await page.locator('[data-f-filter=confirmed]').getAttribute('aria-selected'),'true');
+  assert.equal(await page.evaluate(()=>document.activeElement?.id),'forecast-tab-confirmed');
+  await page.keyboard.press('Escape');
+  assert.equal(await page.locator('#forecast-quotes').evaluate(e=>e.open),false);
+  assert.equal(await page.evaluate(()=>document.activeElement?.matches('[data-f-action=quotes]')),true);
+  await page.locator('[data-f-jump=waiting]').click();
+  assert.equal(await page.locator('[data-f-filter=waiting]').getAttribute('aria-selected'),'true');
+  await page.locator('[data-f-filter=confirmed]').click();
+  await closeQuotes();
   for(const width of [1440,390]) {
     await page.setViewportSize({width,height:width===390?844:1100});
     for(const theme of ['light','dark']) {
@@ -63,10 +79,12 @@ try {
       assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     }
   }
+  await openQuotes();
   await page.locator('#forecast-dashboard-tables tr').filter({hasText:'Q-DEPOSIT'}).locator('[data-f-edit]').click();
   const originalAmount=await page.locator('#forecast-amount').inputValue();
   await page.locator('#forecast-amount').fill('100000');
   await page.locator('#forecast-form button[type=submit]').click();
+  await closeQuotes();
   assert.equal(await page.locator('.forecast-excess').count(),1);
   const parts=await page.locator('.forecast-coverage-track > span').evaluateAll(es=>es.map(e=>parseFloat(e.style.width)));
   assert.ok(Math.abs(parts.reduce((a,b)=>a+b,0)-100)<0.001,'covered plus surplus fills the entire bar');
@@ -79,11 +97,13 @@ try {
       assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     }
   }
+  await openQuotes();
   await page.locator('#forecast-dashboard-tables tr').filter({hasText:'Q-DEPOSIT'}).locator('[data-f-edit]').click();
   await page.locator('#forecast-amount').fill(originalAmount);
   await page.locator('#forecast-form button[type=submit]').click();
   assert.equal(await page.locator('.forecast-excess').count(),0);
   assert.equal(await page.locator('.forecast-threshold').evaluate(e=>getComputedStyle(e,'::after').display),'none');
+  await closeQuotes();
   await page.setViewportSize({width:1440,height:1100});
   await page.locator('[data-f-action=manage]').click();
   const row=n=>page.locator('#forecast-list .forecast-row').filter({hasText:n});
@@ -139,12 +159,12 @@ try {
   await page.locator('#forecast-input').setInputFiles(fixtures.billing);
   await page.locator('[data-f-action=manage]').waitFor();
   assert.match(await page.locator('.forecast-estimated').innerText(),/305 €/);
-  await page.locator('#forecast-followed').evaluate(e=>e.open=true);
+  await openQuotes();
   assert.match(await page.locator('#forecast-dashboard-tables').innerText(),/Q-WAIT/);
   // Every bucket exposes Exclude and the three other states. Manual review is durable.
   const tableRow=()=>page.locator('#forecast-dashboard-tables tr').filter({hasText:'Q-WAIT'});
   const transition=async (from,to)=>{
-    await page.locator('#forecast-followed').evaluate(e=>e.open=true);
+    await openQuotes();
     await page.locator(`[data-f-filter=${from}]`).click();
     await openActions(tableRow());
     assert.equal(await tableRow().locator('[data-f-transition]').count(),4);
@@ -178,7 +198,7 @@ try {
   assert.match(await page.locator('aside[aria-label="En attente client"]').innerText(),/70 €/);
   await transition('waiting','exclude');
   await page.locator('#forecast-input').setInputFiles(fixtures.billing);
-  await page.locator('#forecast-followed').evaluate(e=>e.open=true);
+  await openQuotes();
   await page.locator('[data-f-filter=waiting]').click();
   assert.equal(await tableRow().count(),0);
   assert.equal(await page.locator('aside[aria-label="En attente client"].is-empty[aria-disabled="true"]').count(),1);
@@ -188,7 +208,8 @@ try {
     while(await page.locator('[data-f-target=waiting]').count())await page.locator('[data-f-target=waiting]').first().click();
   }
   assert.equal(await page.locator('.forecast-potential').count(),3,'empty cards stay visible');
-  assert.equal(await page.locator('.forecast-potential-stack').count(),1);
+  assert.equal(await page.locator('.forecast-potential-stack').count(),0);
+  assert.equal(await page.locator('.forecast-potentials > .forecast-potential').count(),3,'three situation cards on one row');
   assert.ok(Math.abs((await page.locator('#cap-forecast').boundingBox()).width-originalGaugeWidth)<1,'gauge width does not depend on empty cards');
   const snapshotLayout=async name=>{
     for(const width of [1440,390]){

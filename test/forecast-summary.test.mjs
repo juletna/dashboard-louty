@@ -25,7 +25,7 @@ test('coverage presentation distinguishes remaining need, exact coverage and exc
 test('zero potential cards stay visible as disabled while unknown review amounts remain actionable',()=>{
   const options={summary:{actual:40,confirmed:60,year:'2026',waiting:0,validation:0,reviewCount:0,unintegrated:[]},goal:100,reviewCount:0,reviewAmount:0,reviewUnknown:0,warning:'',expanded:false,search:'',tables:'',activeTab:'confirmed',counts:{confirmed:1,waiting:0,validation:0,review:0},money:String,escape:String};
   let html=renderForecastSummary(options);
-  assert.match(html,/data-potential-columns="2"/);
+  assert.match(html,/data-potential-columns="3"/);
   assert.equal((html.match(/forecast-potential [^"]*is-empty/g)||[]).length,3);
   assert.match(html,/aria-disabled="true"/);
   assert.doesNotMatch(html,/data-f-jump/);

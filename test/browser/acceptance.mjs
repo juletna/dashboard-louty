@@ -18,6 +18,8 @@ let browser;
 try {
   browser=await chromium.launch();
   const page=await browser.newPage({viewport:{width:1440,height:1100}});
+  const openQuotes=async()=>{if(!(await page.locator('#forecast-quotes').evaluate(e=>e.open)))await page.locator('[data-f-action=quotes]').click();};
+  const closeQuotes=async()=>{if(await page.locator('#forecast-quotes').evaluate(e=>e.open))await page.locator('[data-f-action=close-quotes]').click();};
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto(process.env.FORECAST_BASE_URL || `http://127.0.0.1:${server.address().port}/`);
   await page.locator('#file-input').setInputFiles([fixtures.res,fixtures.accepted,fixtures.zeroBal]);
@@ -28,12 +30,9 @@ try {
   assert.equal(await page.locator('#forecast-list .forecast-row').count(),2);
   assert.equal(await page.locator('#forecast-list .forecast-row').filter({hasText:'ajout automatique'}).count(),2);
   await page.keyboard.press('Escape');
-  await page.locator('.customer-advances > details > summary').click();
-  assert.match(await page.locator('.customer-advances').innerText(),/Aucun compte d’acompte \(7040\)/);
-  await page.locator('.customer-advances details details summary').click();
-  assert.match(await page.locator('.customer-advances').innerText(),/1\s?080.*TTC/);
+  assert.match(await page.locator('[data-kpi=acomptes-a-honorer]').innerText(),/Aucun compte d’acompte/);
   const shot=async name=>{if(process.env.SMOKE_SCREENSHOT_DIR){mkdirSync(process.env.SMOKE_SCREENSHOT_DIR,{recursive:true});await page.screenshot({path:resolve(process.env.SMOKE_SCREENSHOT_DIR,name+'.png')});}};
-  await page.locator('.customer-advances').scrollIntoViewIfNeeded();await shot('advances-desktop-light');
+  await page.locator('[data-kpi=acomptes-a-honorer]').scrollIntoViewIfNeeded();await shot('advances-desktop-light');
   await page.locator('[data-f-action=manage]').click();
   const row=number=>page.locator('.forecast-row').filter({has:page.locator('p').filter({hasText:new RegExp('^'+number+' ·')})});
   assert.equal(await page.locator('.forecast-row').filter({has:page.getByRole('button',{name:'Retirer',exact:true})}).count(),3);
@@ -65,8 +64,8 @@ try {
   await row('ADV').getByRole('button',{name:'Modifier',exact:true}).click();assert.equal(await page.locator('[data-advance-key]').isChecked(),true);
   await page.keyboard.press('Escape');await page.locator('[data-f-action=close-manager]').click();
   await page.locator('#toggle-theme').click();
-  await page.locator('.customer-advances').scrollIntoViewIfNeeded();await shot('advances-desktop-dark');
-  await page.setViewportSize({width:390,height:844});await page.locator('.customer-advances').scrollIntoViewIfNeeded();await shot('advances-mobile-dark');
+  await page.locator('[data-kpi=acomptes-a-honorer]').scrollIntoViewIfNeeded();await shot('advances-desktop-dark');
+  await page.setViewportSize({width:390,height:844});await page.locator('[data-kpi=acomptes-a-honorer]').scrollIntoViewIfNeeded();await shot('advances-mobile-dark');
   await page.locator('#forecast-input').setInputFiles(fixtures.unpaid);
   await page.locator('.forecast-warning [data-f-jump=review]').waitFor();await page.locator('.forecast-warning [data-f-jump=review]').click();
   await page.getByRole('button',{name:'Vérifier Client Acompte · ADV',exact:true}).click();
@@ -74,11 +73,9 @@ try {
   assert.equal(await page.locator('[data-advance-key]').isDisabled(),false);
   await page.locator('[data-advance-key]').uncheck();await shot('advance-editor-mobile-dark');
   await page.locator('#forecast-form button[type=submit]').click();
-  await page.locator('#toggle-theme').click();await page.locator('.customer-advances').scrollIntoViewIfNeeded();await shot('advances-mobile-light');
+  await closeQuotes();
+  await page.locator('#toggle-theme').click();await page.locator('[data-kpi=acomptes-a-honorer]').scrollIntoViewIfNeeded();await shot('advances-mobile-light');
   await page.locator('#file-input').setInputFiles([fixtures.res,fixtures.accepted]);
-  await page.locator('.customer-advances > details > summary').click();
-  await page.getByText('Importe la Balance pour comparer avec les comptes d’acomptes.',{exact:false}).waitFor();
-  assert.match(await page.locator('.customer-advances').innerText(),/Balance indisponible/);
   await page.locator('[data-f-action=manage]').click();
   assert.match(await row('AUTO').innerText(),/Écarté manuellement/);
   const beforeCA = await page.locator('#cap-forecast').innerText();

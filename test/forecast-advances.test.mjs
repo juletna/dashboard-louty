@@ -21,27 +21,19 @@ test('legacy choices remain valid, new deposit links validate before persistence
   assert.equal(validateChoice({...choice,advanceKeys:[3]}),false);
 });
 
-test('advance panel distinguishes legacy unknown, absent account and explicit zero balance', async () => {
-  const {renderCustomerAdvances} = await import('../src/app/views/customer-payments.js');
-  const render = (sante, documents) => renderCustomerAdvances(sante,{advances:[]},{money:String,escape:String,documents});
-  assert.match(render({acomptes_en_ca:0}),/Réimporte la Balance/);
-  assert.match(render({acomptes_en_ca:0,acompte_ca_accounts_present:false}),/Aucun compte d’acompte/);
-  assert.match(render({acomptes_en_ca:0,acompte_ca_accounts_present:true}),/Importe les Pièces/);
-  assert.match(render(null),/Importe la Balance/);
-});
-test('open deposits are deducted from the quote, listed, and reconciled with the 7040 Balance accounts', async () => {
-  const {renderCustomerAdvances} = await import('../src/app/views/customer-payments.js');
-  const {prepareDocuments} = await import('../src/app/domain/forecast.js');
+test('open deposits exclude deposits already taken back and reconcile with the 7040 Balance accounts', async () => {
+  const {prepareDocuments, matchQuotes} = await import('../src/app/domain/forecast.js');
+  const {openAdvances, advanceReconciliation} = await import('../src/app/domain/forecast-advances.js');
   const doc = (number,type,amount,amount_ttc,extra={}) => ({number,type,amount,amount_ttc,state:type==='Devis'?'Validé & imp.':'Confirmé',activity:'ACT',
     client_id:'C1',client:'Client fictif',date:type==='Devis'?'2026-01-01':'2026-02-01',agreement_date:null,paid:0,title:'t',...extra});
-  const documents = prepareDocuments([doc('Q','Devis',100,120),doc('A',"Facture d'acompte",25,30,{paid:30})]);
-  const render = sante => renderCustomerAdvances(sante,{advances:[]},{money:String,escape:String,documents});
-  const ok = render({acompte_ca_accounts_present:true,acomptes_en_ca:25});
-  assert.match(ok,/Client fictif/); assert.match(ok,/reste à facturer net d’acompte 75 HT/); assert.match(ok,/concordent/);
-  assert.match(render({acompte_ca_accounts_present:true,acomptes_en_ca:40}),/Écart de 15 HT.*aucun devis/);
-  assert.match(render({acompte_ca_accounts_present:true,acomptes_en_ca:10}),/Écart de 15 HT.*déjà repris/);
-  const taken = prepareDocuments([doc('Q','Devis',100,120),doc('A',"Facture d'acompte",25,30,{paid:30}),doc('S','Facture de situation',20,24,{paid:24})]);
-  assert.match(renderCustomerAdvances({acompte_ca_accounts_present:true,acomptes_en_ca:0},{advances:[]},{money:String,escape:String,documents:taken}),/Aucun acompte encaissé en attente/);
-  const settled = prepareDocuments([doc('Q','Devis',100,120),doc('A',"Facture d'acompte",25,30,{paid:30}),doc('F','Facture',75,90,{paid:90,date:'2026-03-01'})]);
-  assert.match(renderCustomerAdvances({acompte_ca_accounts_present:true,acomptes_en_ca:0},{advances:[]},{money:String,escape:String,documents:settled}),/Aucun acompte encaissé en attente/);
+  const open = list => openAdvances(matchQuotes(prepareDocuments(list)));
+  const q = doc('Q','Devis',100,120), a = doc('A',"Facture d'acompte",25,30,{paid:30});
+  const [one] = open([q,a]);
+  assert.equal(one.client,'Client fictif'); assert.equal(one.advanceHT,25); assert.equal(one.remainingHT,75); assert.deepEqual(one.numbers,['A']);
+  assert.deepEqual(open([q,a,doc('S','Facture de situation',20,24,{paid:24})]),[]);
+  assert.deepEqual(open([q,a,doc('F','Facture',75,90,{paid:90,date:'2026-03-01'})]),[]);
+  assert.equal(advanceReconciliation(25,[one]).status,'match');
+  assert.deepEqual(advanceReconciliation(40,[one]),{balanceHT:40,piecesHT:25,gapHT:15,status:'balance-higher'});
+  assert.equal(advanceReconciliation(10,[one]).status,'pieces-higher');
+  assert.equal(advanceReconciliation(undefined,[one]),null);
 });
