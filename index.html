@@ -62,7 +62,7 @@
   #forecast-search { max-width:420px; }
   .forecast-dialog input, .forecast-dialog select { display:block; width:100%; color:var(--text); background:var(--bg-inset); padding:11px; border:1px solid var(--border-strong); border-radius:8px; font:inherit; }
   .forecast-editor label { display:block; font-weight:700; font-size:13px; margin:18px 0 6px; }
-  .forecast-row { display:grid; grid-template-columns:minmax(0,2fr) minmax(90px,.75fr) minmax(0,1.5fr) minmax(90px,1fr); align-items:center; gap:18px; padding:18px 0; border-bottom:1px solid var(--border); }
+  .forecast-row { color:var(--text); display:grid; grid-template-columns:minmax(0,2fr) minmax(90px,.75fr) minmax(0,1.5fr) minmax(90px,1fr); align-items:center; gap:18px; padding:18px 0; border-bottom:1px solid var(--border); }
   .forecast-row > div { min-width:0; overflow-wrap:anywhere; }
   .forecast-row p { margin:3px 0; }
   .forecast-row-amount { font-weight:800; font-variant-numeric:tabular-nums; }
@@ -1496,7 +1496,8 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 <dialog id="forecast-manager" class="forecast-dialog" aria-labelledby="forecast-manager-title">
   <div class="forecast-head"><div><h2 id="forecast-manager-title">Vérifier les devis</h2><p class="small">Les devis acceptés et rapprochés sans ambiguïté sont ajoutés automatiquement. Tes choix manuels restent prioritaires.</p></div><button class="btn" type="button" data-f-action="close-manager">Fermer</button></div>
   <nav class="forecast-tabs" aria-label="Listes de devis"><button type="button" data-f-tab="review" aria-pressed="true">À examiner</button><button type="button" data-f-tab="selected" aria-pressed="false">Dans le prévisionnel</button><button type="button" data-f-tab="all" aria-pressed="false">Tous les devis</button></nav>
-  <div class="forecast-situation-filters" role="group" aria-label="Situation du devis"><button type="button" data-f-situation="" aria-pressed="true">Toutes les situations</button><button type="button" data-f-situation="waiting" aria-pressed="false">En attente client</button><button type="button" data-f-situation="confirmed" aria-pressed="false">Chantiers confirmés</button><button type="button" data-f-situation="complete" aria-pressed="false">Facturés probables</button></div>
+  <div class="forecast-situation-filters" role="group" aria-label="Situation du devis"><button type="button" data-f-situation="" aria-pressed="true">Toutes les situations</button><button type="button" data-f-situation="waiting" aria-pressed="false">En attente client</button><button type="button" data-f-situation="confirmed" aria-pressed="false">Chantiers confirmés</button><button type="button" data-f-situation="complete" aria-pressed="false">Entièrement facturés</button>
+            <button type="button" data-f-situation="review" aria-pressed="false">À vérifier</button></div>
   <p class="small">Situation saisie prioritaire, sinon date d’accord. Sans accord renseigné : en attente. Un chantier confirmé peut encore nécessiter une vérification du montant restant.</p>
   <label class="forecast-search-label" for="forecast-search">Rechercher un client, un numéro ou un titre</label><input id="forecast-search" type="search" placeholder="Rechercher…">
   <label class="forecast-search-label" for="forecast-year">Date du devis</label><select id="forecast-year"><option value="">Toutes les années</option></select>
@@ -2199,8 +2200,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   // src/app/views/forecast-outlook.js
   function forecastOutlookHTML(outlook, isCA, money3, escape) {
     if (!outlook) return "";
-    const total = isCA ? outlook.totalCA : outlook.totalMB;
-    const result = total === null ? escape(outlook.unavailable) : "<strong>" + money3(total) + " HT</strong> \xB7 r\xE9alis\xE9 + " + (isCA ? "CA confirm\xE9" : "marge estim\xE9e sur le confirm\xE9");
+    const total2 = isCA ? outlook.totalCA : outlook.totalMB;
+    const result = total2 === null ? escape(outlook.unavailable) : "<strong>" + money3(total2) + " HT</strong> \xB7 r\xE9alis\xE9 + " + (isCA ? "CA confirm\xE9" : "marge estim\xE9e sur le confirm\xE9");
     let calculation = "CA r\xE9alis\xE9 (" + money3(outlook.actualCA) + ") + confirm\xE9 restant (" + money3(outlook.futureCA) + ") = " + money3(outlook.totalCA) + " HT.";
     if (!isCA && outlook.totalMB !== null) {
       calculation += "<br>Taux de marge pond\xE9r\xE9 " + escape(outlook.reference) + " : " + (outlook.rate * 100).toLocaleString("fr-FR", { maximumFractionDigits: 1 }) + " % (total des marges / total des CA).";
@@ -2253,8 +2254,195 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     };
   }
 
-  // src/app/domain/forecast.js
+  // src/app/domain/forecast-billing.js
   var cents = (value) => Math.round(value * 100);
+  var dateValid = (value) => typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
+  var confirmed = (d) => /^confirme(?:\s|$)/.test(normalizedName(d.state).normalize("NFD").replace(/\p{Diacritic}/gu, ""));
+  var valid = (d) => !d.duplicate && confirmed(d) && Number.isFinite(d.amount) && dateValid(d.date);
+  var positive = (d) => valid(d) && d.amount > 0;
+  var knownTTC = (d) => Number.isFinite(d.amount_ttc) && d.amount_ttc > 0;
+  var paidAdvance = (d) => positive(d) && knownTTC(d) && Number.isFinite(d.paid) && cents(d.paid) === cents(d.amount_ttc);
+  var invoices = /* @__PURE__ */ new Set(["Facture", "Facture de situation"]);
+  var total = (ds, field) => ds.reduce((n, d) => n + cents(d[field]), 0);
+  function exactBillingSets(quote, pool, { maxDocuments = 18, maxVisits = 1e5 } = {}) {
+    if (!knownTTC(quote) || pool.length > maxDocuments) return { sets: [], exhaustive: false };
+    const sets = [];
+    let visits = 0, exhaustive = true;
+    function visit(i, ht, ttc, selected) {
+      if (++visits > maxVisits) {
+        exhaustive = false;
+        return;
+      }
+      if (sets.length > 1 || ht > cents(quote.amount) || ttc > cents(quote.amount_ttc)) return;
+      if (ht === cents(quote.amount) && ttc === cents(quote.amount_ttc)) {
+        const finals = selected.filter((d) => d.type === "Facture");
+        const advances = selected.filter((d) => d.type === "Facture d'acompte");
+        if (finals.length && advances.every((d) => paidAdvance(d) && d.date <= finals.map((f) => f.date).sort().at(-1))) sets.push(selected);
+        return;
+      }
+      if (i === pool.length) return;
+      visit(i + 1, ht, ttc, selected);
+      if (exhaustive) visit(i + 1, ht + cents(pool[i].amount), ttc + cents(pool[i].amount_ttc), [...selected, pool[i]]);
+    }
+    visit(0, 0, 0, []);
+    return { sets: exhaustive ? sets : [], exhaustive };
+  }
+  function classifyBilling(source, candidates) {
+    const groups = clientGroups(source);
+    const same = (a, b) => groups.resolve(a) !== null && groups.resolve(a) === groups.resolve(b);
+    const rows = candidates.map((r) => ({ ...r, evidence: [], candidateRemaining: null }));
+    const used = /* @__PURE__ */ new Set();
+    const eligibleCandidates = rows.filter((r) => ["complete", "partial"].includes(r.status));
+    eligibleCandidates.forEach((r) => r.matched.forEach((d) => used.add(d.key)));
+    function complete(r, matched, reason, evidence = []) {
+      Object.assign(r, { status: "complete", proposed: 0, remainingTTC: 0, matched, reason, evidence, eligible: false });
+    }
+    for (const r of rows) {
+      const related = source.filter((d) => same(r, d));
+      const peers = rows.filter((q) => same(r, q) && q.status !== "complete");
+      const clean = r.matched.length && r.matched.every(positive);
+      if (["complete", "partial"].includes(r.status) && !clean) {
+        r.status = "ambiguous";
+        r.reason = "unconfirmed-billing";
+      } else if (r.status === "partial" && !r.billingRisk) {
+        if (knownTTC(r) && r.matched.every(knownTTC) && total(r.matched, "amount_ttc") === cents(r.amount_ttc)) {
+          complete(r, r.matched, "ttc-covered");
+        } else if (knownTTC(r) && r.matched.every(knownTTC) && total(r.matched, "amount_ttc") > cents(r.amount_ttc)) {
+          r.status = "ambiguous";
+          r.reason = "ttc-excess";
+        } else if (r.matched.some((d) => d.type === "Facture")) {
+          r.candidateRemaining = r.proposed;
+          r.status = "ambiguous";
+          r.reason = "scope-adjustment";
+        } else {
+          r.reason = "progress-remainder";
+        }
+      } else if (r.status === "ambiguous" && !r.billingRisk && ["advances-to-link", "excess-invoices"].includes(r.reason)) {
+        const bills = r.matched.filter((d) => invoices.has(d.type));
+        const advances = r.advanceCandidates;
+        const soleOutstanding = peers.length === 1;
+        const unallocated = (ds) => ds.every((d) => !used.has(d.key));
+        const cleanBills = bills.length && bills.every(positive) && unallocated(bills);
+        const finals = bills.filter((d) => d.type === "Facture");
+        const noBilling = !related.some((d) => (invoices.has(d.type) || d.type === "Avoir") && (!dateValid(d.date) || d.date >= r.date));
+        const uniqueAdvances = advances.every((a) => candidates.filter((q) => same(r, q) && q.status !== "complete" && dateValid(q.date) && a.date >= q.date).length === 1);
+        if (noBilling && soleOutstanding && uniqueAdvances && advances.length && advances.every(paidAdvance) && knownTTC(r) && total(advances, "amount_ttc") < cents(r.amount_ttc) && unallocated(advances)) {
+          Object.assign(r, { status: "unmatched", proposed: r.amount, matched: [], evidence: advances, reason: "deposit-only" });
+          advances.forEach((d) => used.add(d.key));
+        } else if (soleOutstanding && cleanBills) {
+          if (knownTTC(r) && bills.every(knownTTC) && total(bills, "amount_ttc") === cents(r.amount_ttc)) {
+            complete(r, bills, "ttc-covered");
+            bills.forEach((d) => used.add(d.key));
+          } else if (bills.every((d) => d.type === "Facture de situation")) {
+            const ht = cents(r.amount) - total(bills, "amount");
+            const ttc = knownTTC(r) && bills.every(knownTTC) ? cents(r.amount_ttc) - total(bills, "amount_ttc") : null;
+            if (ht <= 0 || ttc === 0) complete(r, bills, ttc === 0 && ht > 0 ? "ttc-covered" : "billed-at-least-quote");
+            else if (ttc === null || ttc > 0) Object.assign(r, { status: "partial", proposed: ht / 100, matched: bills, reason: "progress-remainder" });
+            else {
+              r.reason = "ttc-excess";
+            }
+            bills.forEach((d) => used.add(d.key));
+          } else {
+            const safeAdvances = !advances.length || rows.filter((q) => same(r, q)).length === 1 && finals.length && knownTTC(r) && bills.every(knownTTC) && advances.every((d) => paidAdvance(d) && d.date <= finals.map((f) => f.date).sort().at(-1)) && unallocated(advances);
+            const coverage = [...bills, ...advances];
+            if (safeAdvances && (total(coverage, "amount") >= cents(r.amount) || knownTTC(r) && coverage.every(knownTTC) && total(coverage, "amount_ttc") === cents(r.amount_ttc))) {
+              complete(r, coverage, "billed-at-least-quote");
+              coverage.forEach((d) => used.add(d.key));
+            } else if (total(bills, "amount") < cents(r.amount)) {
+              r.reason = "scope-adjustment";
+              r.candidateRemaining = (cents(r.amount) - total(bills, "amount")) / 100;
+              r.matched = bills;
+              bills.forEach((d) => used.add(d.key));
+            }
+          }
+        }
+      }
+    }
+    const applyUnique = (proposals) => {
+      const counts = /* @__PURE__ */ new Map();
+      for (const p of proposals) for (const d of p.evidence.length ? p.evidence : p.matched) counts.set(d.key, (counts.get(d.key) || 0) + 1);
+      for (const p of proposals) {
+        const documents = p.evidence.length ? p.evidence : p.matched;
+        if (documents.every((d) => counts.get(d.key) === 1 && !used.has(d.key))) {
+          complete(p.row, p.matched, p.reason, p.evidence);
+          documents.forEach((d) => used.add(d.key));
+        }
+      }
+    };
+    const pool = (q) => source.filter((d) => same(q, d) && (invoices.has(d.type) || d.type === "Facture d'acompte") && positive(d) && knownTTC(d) && d.date >= q.date && !used.has(d.key)).sort((a, b) => a.key.localeCompare(b.key));
+    const exact = [];
+    for (const r of rows.filter((r3) => r3.status === "ambiguous" && !r3.billingRisk && ["competing-quotes", "advances-to-link"].includes(r3.reason))) {
+      const result = exactBillingSets(r, pool(r));
+      r.searchExhaustive = result.exhaustive;
+      if (result.exhaustive && result.sets.length === 1) exact.push({ row: r, matched: result.sets[0], reason: "unique-exact-document-group", evidence: [] });
+    }
+    applyUnique(exact);
+    const excess = [];
+    for (const r of rows.filter((r3) => r3.status === "ambiguous" && !r3.billingRisk && r3.searchExhaustive !== false)) {
+      const remaining = pool(r);
+      if (rows.filter((q) => same(q, r) && q.status !== "complete").length === 1 && remaining.length === 1 && remaining[0].type === "Facture" && cents(remaining[0].amount) >= cents(r.amount)) {
+        excess.push({ row: r, matched: remaining, reason: "remaining-invoice-covers-quote", evidence: [] });
+      }
+    }
+    applyUnique(excess);
+    for (const r of rows.filter((r3) => r3.status === "ambiguous" && !r3.billingRisk && r3.searchExhaustive !== false)) {
+      if (!rows.some((q) => same(q, r) && q.reason === "unique-exact-document-group") || rows.filter((q) => same(q, r) && q.status !== "complete").length !== 1) continue;
+      const remaining = pool(r);
+      if (!remaining.length || !remaining.every((d) => d.type === "Facture de situation")) continue;
+      const ht = cents(r.amount) - total(remaining, "amount");
+      const ttc = cents(r.amount_ttc) - total(remaining, "amount_ttc");
+      if (ht <= 0 || ttc === 0) complete(r, remaining, "billed-at-least-quote");
+      else if (ttc > 0) Object.assign(r, { status: "partial", proposed: ht / 100, matched: remaining, reason: "progress-remainder" });
+      else continue;
+      remaining.forEach((d) => used.add(d.key));
+    }
+    const chains = [];
+    for (const r of rows.filter((r3) => r3.status === "ambiguous" && r3.reason === "credit-history" && !r3.duplicate && dateValid(r3.date) && r3.amount > 0 && knownTTC(r3))) {
+      const alternatives = [];
+      const originals = source.filter((d) => same(r, d) && d.type === "Facture" && positive(d) && knownTTC(d) && d.date >= r.date && cents(d.amount) === cents(r.amount) && !used.has(d.key));
+      for (const initial of originals) {
+        const credits = source.filter((d) => same(initial, d) && d.type === "Avoir" && valid(d) && Number.isFinite(d.amount_ttc) && d.date >= initial.date && cents(d.amount) === -cents(initial.amount) && cents(d.amount_ttc) === -cents(initial.amount_ttc) && !used.has(d.key));
+        for (const credit of credits) {
+          const replacements = source.filter((d) => d.activity === r.activity && normalizedName(r.client) && normalizedName(d.client) === normalizedName(r.client) && d.type === "Facture" && positive(d) && knownTTC(d) && d.key !== initial.key && d.date >= credit.date && cents(d.amount) === cents(r.amount) && cents(d.amount_ttc) === cents(r.amount_ttc) && !used.has(d.key));
+          for (const replacement of replacements) alternatives.push({ row: r, matched: [replacement], evidence: [initial, credit, replacement], reason: "cancelled-and-replaced-invoice" });
+        }
+      }
+      if (alternatives.length === 1) chains.push(alternatives[0]);
+    }
+    applyUnique(chains);
+    for (const r of rows) {
+      if (["ambiguous", "no-id"].includes(r.status)) {
+        r.proposed = null;
+        if (!r.candidateRemaining) r.matched = r.matched.filter((d) => !used.has(d.key));
+        r.matched = r.matched.filter((d) => d.type !== "Facture d'acompte");
+      }
+      const billed = r.matched.filter((d) => invoices.has(d.type) || d.type === "Facture d'acompte");
+      r.billedHT = billed.length && billed.every((d) => Number.isFinite(d.amount)) ? total(billed, "amount") / 100 : null;
+      r.differenceHT = r.billedHT === null ? null : (total(billed, "amount") - cents(r.amount)) / 100;
+      r.differenceTTC = knownTTC(r) && billed.length && billed.every(knownTTC) ? (total(billed, "amount_ttc") - cents(r.amount_ttc)) / 100 : null;
+      if (r.status === "partial" && r.differenceTTC !== null) r.remainingTTC = -r.differenceTTC;
+      if (r.status === "complete") {
+        r.minorTtcDifference = r.differenceTTC !== null && Math.abs(r.differenceTTC) <= 1 ? r.differenceTTC : null;
+        r.warning = r.differenceTTC === null ? "TTC factur\xE9 indisponible" : Math.abs(r.differenceTTC) > 1 ? "\xC9cart TTC conserv\xE9 : v\xE9rifier les pi\xE8ces" : null;
+      }
+      r.eligible = r.status !== "complete";
+      const related = source.filter((d) => d.activity === r.activity && (same(r, d) || normalizedName(r.client) && normalizedName(r.client) === normalizedName(d.client)));
+      r.fingerprint = JSON.stringify([
+        r.fingerprint,
+        "billing-v1",
+        r.status,
+        r.proposed,
+        r.reason,
+        related.sort((a, b) => a.key.localeCompare(b.key)).map((d) => [d.key, d.amount, d.amount_ttc ?? null, d.date, d.state, d.agreement_date ?? null, d.paid ?? null, d.client_id, d.duplicate]),
+        r.matched.map((d) => d.key).sort(),
+        r.evidence.map((d) => d.key).sort()
+      ]);
+    }
+    return rows;
+  }
+
+  // src/app/domain/forecast.js
+  var cents2 = (value) => Math.round(value * 100);
   var money = (value) => Math.round(value * 100) / 100;
   var validMonth = (value) => typeof value === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
   var validDate = (value) => typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
@@ -2275,7 +2463,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     }
     return [...byKey.values()];
   }
-  function matchQuotes(documents = []) {
+  function matchQuoteCandidates(documents = []) {
     const quotes = documents.filter((d) => d.type === "Devis" && !/brouillon/i.test(d.state));
     const bills = documents.filter((d) => billingTypes.has(d.type) && !/brouillon/i.test(d.state));
     const clients = clientGroups([...quotes, ...bills]);
@@ -2343,17 +2531,17 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       }
       const amounts = /* @__PURE__ */ new Map();
       for (const q of qs.filter((q2) => !results.has(q2.key))) {
-        const amount = cents(q.amount);
+        const amount = cents2(q.amount);
         if (!amounts.has(amount)) amounts.set(amount, []);
         amounts.get(amount).push(q);
       }
       const chronological = (a, b) => a.date.localeCompare(b.date) || a.key.localeCompare(b.key);
       for (const [amount, peers] of amounts) {
-        if (qs.some((q) => cents(q.amount) === amount && results.has(q.key))) {
+        if (qs.some((q) => cents2(q.amount) === amount && results.has(q.key))) {
           peers.forEach((q) => record(q, "ambiguous", [], q.amount, "repeated-amounts"));
           continue;
         }
-        const exact = available.filter((b) => !used.has(b.key) && cents(b.amount) === amount && peers.some((q) => b.date >= q.date)).sort(chronological);
+        const exact = available.filter((b) => !used.has(b.key) && cents2(b.amount) === amount && peers.some((q) => b.date >= q.date)).sort(chronological);
         const ordered = [...peers].sort(chronological);
         if (exact.length === ordered.length && ordered.every((q, i) => exact[i].date >= q.date)) {
           ordered.forEach((q, i) => {
@@ -2381,7 +2569,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         const finalInvoices = remaining.filter((b) => b.type === "Facture");
         const coverage = [...remaining, ...advances];
         const lastFinal = finalInvoices.map((b) => b.date).sort().at(-1);
-        if (qs.length === 1 && unresolved.length === 1 && !qs.some((other) => results.get(other.key)?.status === "ambiguous") && !risky && advances.length && finalInvoices.length && Number.isFinite(q.amount_ttc) && q.amount_ttc > 0 && coverage.every((b) => Number.isFinite(b.amount_ttc) && b.amount_ttc > 0 && isConfirmed(b)) && advances.every((b) => b.date <= lastFinal && Number.isFinite(b.paid) && cents(b.paid) === cents(b.amount_ttc)) && coverage.reduce((sum2, b) => sum2 + cents(b.amount), 0) === cents(q.amount) && coverage.reduce((sum2, b) => sum2 + cents(b.amount_ttc), 0) === cents(q.amount_ttc)) {
+        if (qs.length === 1 && unresolved.length === 1 && !qs.some((other) => results.get(other.key)?.status === "ambiguous") && !risky && advances.length && finalInvoices.length && Number.isFinite(q.amount_ttc) && q.amount_ttc > 0 && coverage.every((b) => Number.isFinite(b.amount_ttc) && b.amount_ttc > 0 && isConfirmed(b)) && advances.every((b) => b.date <= lastFinal && Number.isFinite(b.paid) && cents2(b.paid) === cents2(b.amount_ttc)) && coverage.reduce((sum2, b) => sum2 + cents2(b.amount), 0) === cents2(q.amount) && coverage.reduce((sum2, b) => sum2 + cents2(b.amount_ttc), 0) === cents2(q.amount_ttc)) {
           coverage.forEach((b) => used.add(b.key));
           record(q, "complete", coverage, 0, "settled-with-advance");
           continue;
@@ -2390,10 +2578,10 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
           record(q, "ambiguous", remaining.concat(advances), q.amount, advances.length ? "advances-to-link" : "competing-quotes");
           continue;
         }
-        const sum = remaining.reduce((n, b) => n + cents(b.amount), 0);
-        if (sum > 0 && sum <= cents(q.amount)) {
+        const sum = remaining.reduce((n, b) => n + cents2(b.amount), 0);
+        if (sum > 0 && sum <= cents2(q.amount)) {
           remaining.forEach((b) => used.add(b.key));
-          record(q, sum === cents(q.amount) ? "complete" : "partial", remaining, (cents(q.amount) - sum) / 100);
+          record(q, sum === cents2(q.amount) ? "complete" : "partial", remaining, (cents2(q.amount) - sum) / 100);
         } else record(q, "ambiguous", remaining, q.amount, "excess-invoices");
       }
       if (qs.some((q) => results.get(q.key).groupMatch)) {
@@ -2412,7 +2600,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     const allocated = new Set([...results.values()].flatMap((r) => r.matched.map((b) => b.key)));
     for (const row of results.values()) {
       if (!["unmatched", "partial"].includes(row.status) || !row.client_id || !normalizedName(row.client) || !validDate(row.date) || !Number.isFinite(row.amount_ttc) || row.amount_ttc <= 0) continue;
-      const probableInvoices = bills.filter((b) => b.type === "Facture" && isConfirmed(b) && !b.duplicate && !allocated.has(b.key) && b.activity === row.activity && b.client_id && b.client_id !== row.client_id && normalizedName(b.client) === normalizedName(row.client) && validDate(b.date) && b.date >= row.date && Number.isFinite(b.amount) && b.amount > 0 && Number.isFinite(b.amount_ttc) && cents(b.amount_ttc) === cents(row.amount_ttc)).sort((a, b) => a.key.localeCompare(b.key));
+      const probableInvoices = bills.filter((b) => b.type === "Facture" && isConfirmed(b) && !b.duplicate && !allocated.has(b.key) && b.activity === row.activity && b.client_id && b.client_id !== row.client_id && normalizedName(b.client) === normalizedName(row.client) && validDate(b.date) && b.date >= row.date && Number.isFinite(b.amount) && b.amount > 0 && Number.isFinite(b.amount_ttc) && cents2(b.amount_ttc) === cents2(row.amount_ttc)).sort((a, b) => a.key.localeCompare(b.key));
       if (!probableInvoices.length) continue;
       row.probableInvoices = probableInvoices;
       row.billingRisk = true;
@@ -2426,7 +2614,33 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     }
     return quotes.map((q) => results.get(q.key));
   }
+  function matchQuotes(documents = []) {
+    return classifyBilling(documents, matchQuoteCandidates(documents));
+  }
+  function forecastStatus(row) {
+    if (row.missing || row.review) return "\xC0 v\xE9rifier";
+    if (row.choice?.action === "exclude" && row.choice.billed) return "Enti\xE8rement factur\xE9";
+    if (row.choice?.action === "include") {
+      if (row.choice.remaining === 0) return "Enti\xE8rement factur\xE9";
+      if (row.choice.situation === "waiting") return "En attente client";
+      return row.matched?.some((d) => d.type !== "Facture d'acompte") ? "Confirm\xE9 \xB7 Partiellement factur\xE9" : "Confirm\xE9 \xB7 \xC0 facturer";
+    }
+    if (["ambiguous", "no-id"].includes(row.status)) return "\xC0 v\xE9rifier";
+    if (row.status === "complete") return "Enti\xE8rement factur\xE9";
+    if (!row.accepted) return "En attente client";
+    return row.status === "partial" ? "Confirm\xE9 \xB7 Partiellement factur\xE9" : "Confirm\xE9 \xB7 \xC0 facturer";
+  }
   var REASON_LABELS = {
+    "scope-adjustment": "Facture ordinaire inf\xE9rieure au devis : reste candidat \xE0 examiner",
+    "deposit-only": "Acompte encaiss\xE9 s\xE9par\xE9 du CA restant \xE0 facturer",
+    "progress-remainder": "Devis moins situations confirm\xE9es, ind\xE9pendamment du r\xE8glement",
+    "ttc-covered": "Prix TTC enti\xE8rement factur\xE9 malgr\xE9 la diff\xE9rence HT",
+    "billed-at-least-quote": "Facturation couvrant le devis, suppl\xE9ment \xE9ventuel conserv\xE9",
+    "unique-exact-document-group": "Ensemble unique couvrant le devis en HT et TTC",
+    "cancelled-and-replaced-invoice": "Facture annul\xE9e int\xE9gralement puis remplac\xE9e",
+    "remaining-invoice-covers-quote": "Facture restante apr\xE8s attribution des autres pi\xE8ces",
+    "unconfirmed-billing": "\xC9tat de facturation non confirm\xE9",
+    "ttc-excess": "Reste HT positif mais TTC factur\xE9 sup\xE9rieur au devis",
     "same-name-ttc": "Facture probable : m\xEAme nom et m\xEAme TTC, ID client diff\xE9rent",
     "settled-with-advance": "Couverture compl\xE8te probable : facture et acomptes",
     "client-conflict": "Nom associ\xE9 \xE0 plusieurs clients",
@@ -2452,6 +2666,15 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   function reconcileForecast(documents, choices) {
     const rows = matchQuotes(documents);
     const byKey = new Map(rows.map((r) => [r.key, r]));
+    const manualClaims = /* @__PURE__ */ new Map();
+    for (const [key, choice] of choices) {
+      if (!choice.billed) continue;
+      for (const bill of choice.billingKeys || []) {
+        if (!manualClaims.has(bill)) manualClaims.set(bill, /* @__PURE__ */ new Set());
+        manualClaims.get(bill).add(key);
+      }
+    }
+    const allocationConflict = (row) => (choices.get(row.key)?.billingKeys || []).some((key) => manualClaims.get(key)?.size > 1 || rows.some((other) => other.key !== row.key && ["complete", "partial"].includes(other.status) && [...other.matched, ...other.evidence || []].some((d) => d.key === key)));
     const result = rows.map((row) => {
       const manual = choices.get(row.key);
       const auto = !manual && row.accepted && ["unmatched", "partial"].includes(row.status) && row.proposed > 0;
@@ -2468,7 +2691,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         choice,
         auto,
         missing: false,
-        review: !!choice && choice.fingerprint !== row.fingerprint
+        review: !!choice && (choice.fingerprint !== row.fingerprint || allocationConflict(row)),
+        allocationConflict: allocationConflict(row)
       };
     });
     for (const [key, choice] of choices) {
@@ -2481,8 +2705,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   function forecastSummary(rows, data, goal) {
     const included = rows.filter((r) => r.choice?.action === "include");
     const active = included.filter((r) => !r.missing && !r.review);
-    const sum = (list) => money(list.reduce((total, r) => total + r.choice.remaining, 0));
-    const confirmed = active.filter((r) => r.choice.situation === "confirmed");
+    const sum = (list) => money(list.reduce((total2, r) => total2 + r.choice.remaining, 0));
+    const confirmed2 = active.filter((r) => r.choice.situation === "confirmed");
     const waiting = active.filter((r) => r.choice.situation === "waiting");
     const snap = data.snapshot.current;
     const year = String(snap.year);
@@ -2490,7 +2714,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     const months = source.months_present || [];
     const lastMonth = months.length ? Math.max(...months) : 0;
     const cutoff = lastMonth ? `${year}-${String(lastMonth).padStart(2, "0")}` : null;
-    const dated = confirmed.filter((r) => r.choice.month?.startsWith(year + "-") && r.choice.month > cutoff);
+    const dated = confirmed2.filter((r) => validMonth(r.choice.month) && r.choice.month.startsWith(year + "-") && r.choice.month > cutoff);
     const actual = lastMonth && isPeriodCovered(source, lastMonth) && hasObservedValue(source.monthly.ca, 1, lastMonth) ? money(source.monthly.ca.slice(0, lastMonth).reduce((n, v) => n + (v ?? 0), 0)) : null;
     const annualConfirmed = sum(dated);
     const actualPlusConfirmed = actual === null ? null : money(actual + annualConfirmed);
@@ -2504,16 +2728,16 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       cutoff,
       active,
       included,
-      confirmed: sum(confirmed),
+      confirmed: sum(confirmed2),
       waiting: sum(waiting),
-      undated: sum(confirmed.filter((r) => !r.choice.month)),
+      undated: sum(confirmed2.filter((r) => !r.choice.month)),
       reviewCount: included.filter((r) => r.review).length,
       actual,
       annualConfirmed,
       actualPlusConfirmed,
       monthly,
       gap: actualPlusConfirmed !== null && Number.isFinite(goal) ? money(goal - actualPlusConfirmed) : null,
-      coveredCount: confirmed.filter((r) => r.choice.month && cutoff && r.choice.month <= cutoff).length,
+      coveredCount: confirmed2.filter((r) => r.choice.month && cutoff && r.choice.month <= cutoff).length,
       // These invoices are displayed as an informational bridge only. Adding
       // their total to RES or selections without explicit links risks duplicates.
       unintegrated: (data.revenue_distribution?.documents || []).filter((d) => ["Facture", "Facture de situation", "Avoir"].includes(d.type) && !/brouillon/i.test(d.state) && d.date?.slice(0, 4) === year && d.date.slice(0, 7) > cutoff)
@@ -2542,7 +2766,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   }
 
   // src/app/domain/payments.js
-  var cents2 = (value) => Math.round(value * 100);
+  var cents3 = (value) => Math.round(value * 100);
   var money2 = (value) => Math.round(value * 100) / 100;
   function paymentDetails(documents = []) {
     const clients = clientGroups(documents);
@@ -2559,7 +2783,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         identity_ambiguous: resolved === null || clients.blocked.has(resolved)
       });
       const item = map.get(key);
-      item.amount += cents2(value);
+      item.amount += cents3(value);
       item.documents.push({ ...d, amount_ht: d.amount, amount: money2(value) });
     };
     documents.forEach((d, index) => {
@@ -2574,14 +2798,14 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     })).sort((a, b) => b.amount - a.amount);
     return { advances: list(advances), receivables: list(receivables) };
   }
-  function advanceMatches(items, total, { maxStates = 1e4, maxOperations = 1e5, maxSolutions = 6 } = {}) {
-    const target = Number.isFinite(total) ? cents2(Math.max(0, total)) : 0;
+  function advanceMatches(items, total2, { maxStates = 1e4, maxOperations = 1e5, maxSolutions = 6 } = {}) {
+    const target = Number.isFinite(total2) ? cents3(Math.max(0, total2)) : 0;
     if (!target) return { solutions: [], truncated: false };
     const candidates = items.flatMap((item) => (item.documents || []).map((document2) => ({
       ...item,
       amount: document2.amount,
       documents: [document2]
-    }))).filter((item) => Number.isFinite(item.amount) && cents2(item.amount) > 0 && cents2(item.amount) <= target && !item.documents[0].duplicate);
+    }))).filter((item) => Number.isFinite(item.amount) && cents3(item.amount) > 0 && cents3(item.amount) <= target && !item.documents[0].duplicate);
     const states = /* @__PURE__ */ new Map([[0, { solutions: [[]], truncated: false }]]);
     let operations = 0, exhausted = false;
     outer: for (const item of candidates) {
@@ -2590,7 +2814,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
           exhausted = true;
           break outer;
         }
-        const next = sum + cents2(item.amount);
+        const next = sum + cents3(item.amount);
         if (next > target) continue;
         if (!states.has(next)) {
           if (states.size >= maxStates) {
@@ -3022,8 +3246,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   function renderCustomerAdvances(sante, details, { money: money3, escape: esc2 }) {
     const clients = details?.advances || [];
     const known = sante && sante.acompte_accounts_present === true && Number.isFinite(sante.dettes_acomptes_clients);
-    const total = clients.reduce((sum, c) => sum + c.amount, 0);
-    return `<section class="customer-advances" aria-label="Acomptes clients"><h4>Acomptes clients \xE0 v\xE9rifier</h4><div class="forecast-cap-values"><div><span>Solde d\u2019acomptes dans la Balance</span><strong>${known ? money3(sante.dettes_acomptes_clients) : "Indisponible"}</strong></div><div><span>Acomptes encaiss\xE9s dans les Pi\xE8ces \xB7 historique</span><strong>${details ? money3(total) + " TTC" : "Pi\xE8ces non import\xE9es"}</strong></div></div><p class="small">${!sante ? "Importe la Balance pour conna\xEEtre le solde comptable." : !known ? sante.acompte_accounts_present === void 0 ? "R\xE9importe la Balance pour v\xE9rifier la pr\xE9sence des comptes d\u2019acomptes dans cet ancien cache." : "Les comptes d\u2019acomptes ne sont pas renseign\xE9s dans cette Balance." : sante.dettes_acomptes_clients <= 0.5 ? "Le solde comptable est nul. Cela ne permet pas de conclure que tous les travaux sont termin\xE9s." : "Le solde comptable indique les acomptes restant \xE0 r\xE9gulariser."} Les encaissements historiques peuvent concerner des travaux d\xE9j\xE0 factur\xE9s : ils ne sont pas ajout\xE9s \xE0 la dette ni au CA. Le solde comptable et les paiements TTC peuvent avoir des bases diff\xE9rentes.</p><details><summary>Voir les acomptes d\xE9tect\xE9s (${clients.reduce((n, c) => n + (c.documents || []).length, 0)})</summary>${clients.length ? "<ul>" + clients.flatMap((c) => (c.documents || []).map((d) => `<li><strong>${esc2(c.client)}</strong>${c.client_id ? " \xB7 client " + esc2(c.client_id) : ""}${c.activity ? " \xB7 " + esc2(c.activity) : ""} \xB7 ${esc2(d.number || "Sans num\xE9ro")} \xB7 ${esc2(d.date?.slice(0, 10) || "Date absente")} : ${money3(d.amount)} TTC${d.duplicate ? " \xB7 doublon \xE0 v\xE9rifier" : ""}${c.identity_ambiguous ? " \xB7 identit\xE9 \xE0 v\xE9rifier" : ""}</li>`)).join("") + "</ul>" : '<p class="small">Aucun acompte encaiss\xE9 identifiable dans les Pi\xE8ces charg\xE9es.</p>'}<p class="small">Dans \xAB V\xE9rifier les devis \xBB, ouvre le chantier concern\xE9 pour rattacher un acompte. Le d\xE9but et la fin des travaux restent \xE0 v\xE9rifier avec ton suivi chantier.</p></details></section>`;
+    const total2 = clients.reduce((sum, c) => sum + c.amount, 0);
+    return `<section class="customer-advances" aria-label="Acomptes clients"><h4>Acomptes clients \xE0 v\xE9rifier</h4><div class="forecast-cap-values"><div><span>Solde d\u2019acomptes dans la Balance</span><strong>${known ? money3(sante.dettes_acomptes_clients) : "Indisponible"}</strong></div><div><span>Acomptes encaiss\xE9s dans les Pi\xE8ces \xB7 historique</span><strong>${details ? money3(total2) + " TTC" : "Pi\xE8ces non import\xE9es"}</strong></div></div><p class="small">${!sante ? "Importe la Balance pour conna\xEEtre le solde comptable." : !known ? sante.acompte_accounts_present === void 0 ? "R\xE9importe la Balance pour v\xE9rifier la pr\xE9sence des comptes d\u2019acomptes dans cet ancien cache." : "Les comptes d\u2019acomptes ne sont pas renseign\xE9s dans cette Balance." : sante.dettes_acomptes_clients <= 0.5 ? "Le solde comptable est nul. Cela ne permet pas de conclure que tous les travaux sont termin\xE9s." : "Le solde comptable indique les acomptes restant \xE0 r\xE9gulariser."} Les encaissements historiques peuvent concerner des travaux d\xE9j\xE0 factur\xE9s : ils ne sont pas ajout\xE9s \xE0 la dette ni au CA. Le solde comptable et les paiements TTC peuvent avoir des bases diff\xE9rentes.</p><details><summary>Voir les acomptes d\xE9tect\xE9s (${clients.reduce((n, c) => n + (c.documents || []).length, 0)})</summary>${clients.length ? "<ul>" + clients.flatMap((c) => (c.documents || []).map((d) => `<li><strong>${esc2(c.client)}</strong>${c.client_id ? " \xB7 client " + esc2(c.client_id) : ""}${c.activity ? " \xB7 " + esc2(c.activity) : ""} \xB7 ${esc2(d.number || "Sans num\xE9ro")} \xB7 ${esc2(d.date?.slice(0, 10) || "Date absente")} : ${money3(d.amount)} TTC${d.duplicate ? " \xB7 doublon \xE0 v\xE9rifier" : ""}${c.identity_ambiguous ? " \xB7 identit\xE9 \xE0 v\xE9rifier" : ""}</li>`)).join("") + "</ul>" : '<p class="small">Aucun acompte encaiss\xE9 identifiable dans les Pi\xE8ces charg\xE9es.</p>'}<p class="small">Dans \xAB V\xE9rifier les devis \xBB, ouvre le chantier concern\xE9 pour rattacher un acompte. Le d\xE9but et la fin des travaux restent \xE0 v\xE9rifier avec ton suivi chantier.</p></details></section>`;
   }
 
   // src/app/domain/annual-cap.js
@@ -3111,7 +3335,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   // src/app/state/forecast.js
   var FORECAST_KEY = "cabestan_forecast_v1";
   function validateChoice(choice) {
-    return choice && ["include", "exclude"].includes(choice.action) && (choice.advanceKeys === void 0 || Array.isArray(choice.advanceKeys) && choice.advanceKeys.every((key) => typeof key === "string") && new Set(choice.advanceKeys).size === choice.advanceKeys.length) && typeof choice.fingerprint === "string" && choice.quote && typeof choice.quote === "object" && (choice.action === "exclude" || ["confirmed", "waiting"].includes(choice.situation) && Number.isFinite(choice.remaining) && choice.remaining >= 0 && (choice.month === null || validMonth(choice.month)));
+    return choice && ["include", "exclude"].includes(choice.action) && (choice.advanceKeys === void 0 || Array.isArray(choice.advanceKeys) && choice.advanceKeys.every((key) => typeof key === "string") && new Set(choice.advanceKeys).size === choice.advanceKeys.length) && (choice.billed === void 0 || typeof choice.billed === "boolean") && (choice.billingKeys === void 0 || Array.isArray(choice.billingKeys) && choice.billingKeys.every((key) => typeof key === "string") && new Set(choice.billingKeys).size === choice.billingKeys.length) && typeof choice.fingerprint === "string" && choice.quote && typeof choice.quote === "object" && (choice.action === "exclude" || ["confirmed", "waiting"].includes(choice.situation) && Number.isFinite(choice.remaining) && choice.remaining >= 0 && (choice.month === null || validMonth(choice.month)));
   }
   function createForecastStorage(storage) {
     let choices = /* @__PURE__ */ new Map();
@@ -3167,11 +3391,10 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     const el = (id) => document.getElementById(id);
     let data, goal, rows = [], summary, tab = "review", monthFilter = "", editingKey = null, returnFocus;
     let situationFilter = "", dashboardMonth = "", dashboardSearch = "";
-    const situationOf = (r) => r.choice?.action === "include" ? r.choice.remaining === 0 ? "complete" : r.choice.situation : r.status === "complete" ? "complete" : r.accepted ? "confirmed" : "waiting";
-    const situationLabels = { waiting: "En attente client", confirmed: "Chantier confirm\xE9", complete: "Facturation compl\xE8te probable" };
+    const situationOf = (r) => forecastStatus(r) === "Enti\xE8rement factur\xE9" ? "complete" : forecastStatus(r) === "\xC0 v\xE9rifier" ? "review" : r.choice?.action === "include" ? r.choice.remaining === 0 ? "complete" : r.choice.situation : r.status === "complete" ? "complete" : r.accepted ? "confirmed" : "waiting";
     const selected = (r) => r.choice?.action === "include";
     const candidate = (r) => !r.missing && !selected(r) && r.eligible && r.choice?.action !== "exclude";
-    const monthName = (m) => m ? new Date(Number(m.slice(0, 4)), Number(m.slice(5)) - 1, 1).toLocaleDateString("fr-FR", { month: "long", year: "numeric" }) : "Sans date pr\xE9vue";
+    const monthName = (m) => m ? new Date(Number(m.slice(0, 4)), Number(m.slice(5)) - 1, 1).toLocaleDateString("fr-FR", { month: "long", year: "numeric" }) : "\xC0 planifier";
     const matchingLabel = (r) => r.groupMatch ? "Couverture compl\xE8te probable du groupe de devis" : r.nameConflict ? "Nom associ\xE9 \xE0 plusieurs ID \xB7 \xE0 v\xE9rifier" : `${REASON_LABELS[r.reason] || MATCH_LABELS[r.status]}${r.matchBasis === "name" ? " \xB7 par nom client" : ""}`;
     const describe = (r) => r.missing ? "Absent de cet export \xB7 \xE0 v\xE9rifier" : r.review && selected(r) ? "Rapprochement modifi\xE9 \xB7 \xE0 v\xE9rifier" : r.choice?.action === "exclude" ? "\xC9cart\xE9 manuellement" : matchingLabel(r);
     function recalculate() {
@@ -3203,8 +3426,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     }
     function dashboardTable(situation) {
       const list = rows.filter((r) => selected(r) && r.choice.situation === situation && (situation === "waiting" || !dashboardMonth || (r.choice.month || "none") === dashboardMonth)).filter((r) => `${r.client} ${r.number} ${r.title}`.toLocaleLowerCase("fr").includes(dashboardSearch.toLocaleLowerCase("fr"))).sort((a, b) => (a.choice.month || "9999").localeCompare(b.choice.month || "9999") || a.client.localeCompare(b.client));
-      const total = list.filter((r) => !r.review && !r.missing).reduce((n, r) => n + r.choice.remaining, 0);
-      return `<section aria-label="${situation === "confirmed" ? "Devis confirm\xE9s" : "Devis en attente"}"><div class="forecast-table-head"><h3>${situation === "confirmed" ? "Confirm\xE9s" : "En attente client"} <span class="small">\xB7 ${list.length}</span></h3><strong>${money3(total)}</strong></div><div class="forecast-table-note small">${situation === "waiting" ? "Sans date \xB7 hors graphique" : dashboardMonth ? esc2(monthName(dashboardMonth === "none" ? null : dashboardMonth)) : "Reste \xE0 facturer"}${situation === "confirmed" && dashboardMonth ? '<button class="forecast-link" data-f-action="reset-month">Tout afficher</button>' : ""}</div><div class="forecast-table-scroll"><table><thead><tr><th>Client</th>${situation === "confirmed" ? "<th>Mois</th>" : ""}<th>HT</th><th><span class="sr-only">Action</span></th></tr></thead><tbody>${list.map((r) => `<tr><td>${esc2(r.client || "Client non renseign\xE9")}${r.review || r.missing ? "<small>\xC0 v\xE9rifier \xB7 hors totaux</small>" : ""}</td>${situation === "confirmed" ? `<td>${r.choice.month ? esc2((/* @__PURE__ */ new Date(r.choice.month + "-01T12:00:00")).toLocaleDateString("fr-FR", { month: "short", year: "2-digit" })) : "\xC0 dater"}</td>` : ""}<td class="forecast-table-amount">${formatMoney(r.choice.remaining)}</td><td><button class="forecast-link" ${r.missing ? 'data-f-action="selected"' : `data-f-edit="${rows.indexOf(r)}"`} aria-label="${r.review || r.missing ? "V\xE9rifier" : "Modifier"} ${esc2(r.client)} \xB7 ${esc2(r.number)}">${r.review || r.missing ? "V\xE9rifier" : "Modifier"}</button></td></tr>`).join("") || `<tr><td colspan="4" class="small">Aucun devis</td></tr>`}</tbody></table></div></section>`;
+      const total2 = list.filter((r) => !r.review && !r.missing).reduce((n, r) => n + r.choice.remaining, 0);
+      return `<section aria-label="${situation === "confirmed" ? "Devis confirm\xE9s" : "Devis en attente"}"><div class="forecast-table-head"><h3>${situation === "confirmed" ? "Confirm\xE9s" : "En attente client"} <span class="small">\xB7 ${list.length}</span></h3><strong>${money3(total2)}</strong></div><div class="forecast-table-note small">${situation === "waiting" ? "Sans date \xB7 hors graphique" : dashboardMonth ? esc2(monthName(dashboardMonth === "none" ? null : dashboardMonth)) : "Reste \xE0 facturer"}${situation === "confirmed" && dashboardMonth ? '<button class="forecast-link" data-f-action="reset-month">Tout afficher</button>' : ""}</div><div class="forecast-table-scroll"><table><thead><tr><th>Client</th>${situation === "confirmed" ? "<th>Mois</th>" : ""}<th>HT</th><th><span class="sr-only">Action</span></th></tr></thead><tbody>${list.map((r) => `<tr><td>${esc2(r.client || "Client non renseign\xE9")}${r.review || r.missing ? "<small>\xC0 v\xE9rifier \xB7 hors totaux</small>" : ""}</td>${situation === "confirmed" ? `<td>${r.choice.month ? esc2((/* @__PURE__ */ new Date(r.choice.month + "-01T12:00:00")).toLocaleDateString("fr-FR", { month: "short", year: "2-digit" })) : "\xC0 planifier"}</td>` : ""}<td class="forecast-table-amount">${formatMoney(r.choice.remaining)}</td><td><button class="forecast-link" ${r.missing ? 'data-f-action="selected"' : `data-f-edit="${rows.indexOf(r)}"`} aria-label="${r.review || r.missing ? "V\xE9rifier" : "Modifier"} ${esc2(r.client)} \xB7 ${esc2(r.number)}">${r.review || r.missing ? "V\xE9rifier" : "Modifier"}</button></td></tr>`).join("") || `<tr><td colspan="4" class="small">Aucun devis</td></tr>`}</tbody></table></div></section>`;
     }
     function syncMonthInput() {
       const waiting = el("forecast-situation").value === "waiting";
@@ -3227,14 +3450,14 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       manager.querySelectorAll("[data-f-situation]").forEach((button) => {
         const value = button.dataset.fSituation;
         const count = contextual.filter((r) => !value || situationOf(r) === value).length;
-        button.textContent = (value ? { waiting: "En attente client", confirmed: "Chantiers confirm\xE9s", complete: "Factur\xE9s probables" }[value] : "Toutes les situations") + " \xB7 " + count;
+        button.textContent = (value ? { waiting: "En attente client", confirmed: "Chantiers confirm\xE9s", complete: "Enti\xE8rement factur\xE9s", review: "\xC0 v\xE9rifier" }[value] : "Toutes les situations") + " \xB7 " + count;
         button.setAttribute("aria-pressed", String(value === situationFilter));
       });
       const filtered = contextual.filter((r) => !situationFilter || situationOf(r) === situationFilter);
       el("forecast-filter").textContent = monthFilter ? `Filtre : ${monthName(monthFilter === "none" ? null : monthFilter)}. Cliquer sur un onglet pour effacer.` : tab === "all" ? "Ajout manuel possible, m\xEAme si une facturation compl\xE8te semble correspondre." : "Brouillons exclus \xB7 rapprochements indicatifs";
       el("forecast-list").innerHTML = filtered.length ? filtered.map((r) => {
         const index = rows.indexOf(r);
-        return `<article class="forecast-row"><div><strong>${esc2(r.client || "Client non renseign\xE9")}</strong><p class="small">${esc2(r.number || "Sans num\xE9ro")} \xB7 ${esc2(r.date || "Date absente")}</p><p class="small">${esc2(r.title)}</p></div><div class="forecast-row-amount">${money3(tab === "selected" ? r.choice.remaining : r.amount)}<small>${tab === "selected" ? "restant \xE0 facturer" : "montant du devis"}</small></div><div><span class="forecast-situation ${situationOf(r)}">${situationLabels[situationOf(r)]}</span><span class="forecast-badge ${r.review || ["ambiguous", "no-id"].includes(r.status) ? "warn" : ""}">${esc2(describe(r))}</span>${r.accepted ? `<p class="small">Accord du ${esc2(r.agreement_date)}${r.auto ? " \xB7 ajout automatique" : ""}</p>` : ""}${selected(r) ? `<p class="small">${esc2(monthName(r.choice.month))}</p>` : ""}</div><div class="forecast-row-actions">${!r.missing ? `<button class="btn" data-f-edit="${index}">${selected(r) ? r.review ? "V\xE9rifier" : "Modifier" : "Ajouter"}</button>` : ""}${selected(r) ? `<button class="forecast-link" data-f-remove="${index}">Retirer</button>` : tab === "review" ? `<button class="forecast-link" data-f-exclude="${index}">\xC9carter</button>` : ""}</div></article>`;
+        return `<article class="forecast-row"><div><strong>${esc2(r.client || "Client non renseign\xE9")}</strong><p class="small">${esc2(r.number || "Sans num\xE9ro")} \xB7 ${esc2(r.date || "Date absente")}</p><p class="small">${esc2(r.title)}</p></div><div class="forecast-row-amount">${r.choice?.billed && !r.review ? money3(0) : selected(r) ? money3(r.choice.remaining) : Number.isFinite(r.proposed) ? money3(r.proposed) : "\xC0 d\xE9terminer"}<small>restant \xE0 facturer</small></div><div><span class="forecast-situation ${situationOf(r)}">${esc2(forecastStatus(r))}</span><span class="forecast-badge ${r.review || ["ambiguous", "no-id"].includes(r.status) ? "warn" : ""}">${esc2(describe(r))}</span>${r.accepted ? `<p class="small">Accord du ${esc2(r.agreement_date)}${r.auto ? " \xB7 ajout automatique" : ""}</p>` : ""}${selected(r) && r.choice.situation === "confirmed" ? `<p class="small">${esc2(monthName(r.choice.month))}</p>` : ""}</div><div class="forecast-row-actions">${!r.missing ? `<button class="btn" data-f-edit="${index}">${selected(r) ? r.review ? "V\xE9rifier" : "Modifier" : "Ajouter"}</button>` : ""}${selected(r) ? `<button class="forecast-link" data-f-remove="${index}">Retirer</button>` : tab === "review" ? `<button class="forecast-link" data-f-exclude="${index}">\xC9carter</button>` : ""}</div></article>`;
       }).join("") : '<p class="forecast-empty">Aucun devis dans cette vue.</p>';
       el("forecast-storage-message").textContent = storage.warning;
     }
@@ -3283,10 +3506,10 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       el("forecast-editor-title").textContent = selected(row) ? "Modifier la pr\xE9vision" : "Ajouter au pr\xE9visionnel";
       el("forecast-editor-subtitle").textContent = `${row.client} \xB7 ${row.number || "Sans num\xE9ro"} \xB7 ${money3(row.amount)}`;
       el("forecast-situation").value = row.choice?.situation || "confirmed";
-      el("forecast-amount").value = selected(row) ? row.choice.remaining : row.proposed ?? "";
+      el("forecast-amount").value = selected(row) ? row.choice.remaining : row.candidateRemaining ?? row.proposed ?? "";
       el("forecast-month").value = row.choice?.month || "";
       el("forecast-note").textContent = row.review ? "Le rapprochement a chang\xE9. Ton montant saisi a \xE9t\xE9 conserv\xE9. V\xE9rifie-le avant de r\xE9activer cette pr\xE9vision." : row.status === "complete" ? "Une correspondance compl\xE8te est probable. Saisis le montant restant si tu souhaites ajouter ce devis manuellement." : "V\xE9rifie le montant restant et la situation r\xE9elle du chantier avant de confirmer.";
-      el("forecast-evidence").innerHTML = `<p>${esc2(matchingLabel(row))}. ${row.status === "no-id" ? "ID et nom client exploitables absents." : "Les montants rapproch\xE9s ne prouvent pas le rattachement au devis."}</p>${row.groupMatch ? "<p>Les factures couvrent collectivement les devis de m\xEAme montant. La pi\xE8ce affich\xE9e est une attribution indicative, pas un lien \xE9tabli.</p>" : ""}${row.duplicate ? "<p>Plusieurs pi\xE8ces portent cette m\xEAme identit\xE9. Elles sont regroup\xE9es ici et demandent une v\xE9rification.</p>" : ""}<ul>${(row.matched || []).map((b) => `<li>${esc2(b.type)} ${esc2(b.number)} \xB7 ${esc2(b.date || "date absente")} : ${money3(b.amount)}</li>`).join("")}</ul>`;
+      el("forecast-evidence").innerHTML = `<p>${esc2(matchingLabel(row))}. ${row.status === "no-id" ? "ID et nom client exploitables absents." : "Les montants rapproch\xE9s ne prouvent pas le rattachement au devis."}</p>${row.groupMatch ? "<p>Les factures couvrent collectivement les devis de m\xEAme montant. La pi\xE8ce affich\xE9e est une attribution indicative, pas un lien \xE9tabli.</p>" : ""}${row.duplicate ? "<p>Plusieurs pi\xE8ces portent cette m\xEAme identit\xE9. Elles sont regroup\xE9es ici et demandent une v\xE9rification.</p>" : ""}<ul>${(row.evidence?.length ? row.evidence : row.matched || []).map((b) => `<li>${esc2(b.type)} ${esc2(b.number)} \xB7 ${esc2(b.date || "date absente")} : ${exactMoney(b.amount)} HT \xB7 ${exactMoney(b.amount_ttc)} TTC \xB7 client ${esc2(b.client_id || "ID absent")}</li>`).join("")}</ul>${row.candidateRemaining !== null && Number.isFinite(row.candidateRemaining) ? `<p>Reste candidat : ${exactMoney(row.candidateRemaining)} HT \xB7 hors totaux, d\xE9cision n\xE9cessaire.</p>` : ""}${Number.isFinite(row.remainingTTC) ? `<p>Reste TTC : ${exactMoney(row.remainingTTC)}.</p>` : ""}${Number.isFinite(row.differenceHT) ? `<p>Facturation \u2212 devis : ${exactMoney(row.differenceHT)} HT${Number.isFinite(row.differenceTTC) ? " \xB7 " + exactMoney(row.differenceTTC) + " TTC" : ""}.</p>` : ""}${row.warning ? `<p>${esc2(row.warning)}.</p>` : ""}<p>Enti\xE8rement factur\xE9 ne signifie pas pay\xE9. Aucun mois n\u2019est d\xE9duit du rapprochement.</p>`;
       el("forecast-evidence").closest("details").open = false;
       el("forecast-probable-invoices").innerHTML = row.probableInvoices?.length ? `<div class="forecast-warning"><strong>Facturation compl\xE8te \xE0 confirmer</strong><p>Devis : ${exactMoney(row.amount)} HT \xB7 ${exactMoney(row.amount_ttc)} TTC \xB7 client ${esc2(row.client_id)}.</p><ul>${row.probableInvoices.map((b) => `<li>Facture ${esc2(b.number)} \xB7 ${esc2(b.date)} \xB7 ${esc2(b.client)} \xB7 client ${esc2(b.client_id)} : ${exactMoney(b.amount)} HT \xB7 ${exactMoney(b.amount_ttc)} TTC.</li>`).join("")}</ul><p>Les ID clients diff\xE8rent. Le m\xEAme TTC peut masquer un changement de TVA. V\xE9rifie que ce chantier est enti\xE8rement factur\xE9. La confirmation retire ce devis du pr\xE9visionnel et reste m\xE9moris\xE9e aux prochains imports.</p><button type="button" class="btn" data-f-action="confirm-billed">Confirmer : chantier enti\xE8rement factur\xE9</button></div>` : "";
       const history = (data.revenue_distribution?.documents || []).filter((d) => d.activity === row.activity && (row.client_id && d.client_id === row.client_id || normalizedName(row.client) && normalizedName(d.client) === normalizedName(row.client))).sort((a, b) => (b.date || "").localeCompare(a.date || "") || String(a.number).localeCompare(String(b.number)));
@@ -3357,7 +3580,12 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       if (e.target.closest('[data-f-action="confirm-billed"]')) {
         const row = rows.find((r) => r.key === editingKey);
         if (!row || !row.probableInvoices?.length) return;
-        commit(row, { action: "exclude", fingerprint: row.fingerprint, quote: quoteSnapshot(row) }, "Chantier confirm\xE9 enti\xE8rement factur\xE9. Devis retir\xE9 du pr\xE9visionnel.");
+        const reserved = new Set(rows.filter((r) => r.key !== row.key && r.choice?.billed).flatMap((r) => r.choice.billingKeys || []));
+        if (row.probableInvoices.some((d) => reserved.has(d.key))) {
+          el("forecast-form-error").textContent = "Une facture propos\xE9e est d\xE9j\xE0 rattach\xE9e par une d\xE9cision manuelle. V\xE9rifie les devis concern\xE9s.";
+          return;
+        }
+        commit(row, { action: "exclude", billed: true, billingKeys: row.probableInvoices.map((d) => d.key), fingerprint: row.fingerprint, quote: quoteSnapshot(row) }, "Chantier confirm\xE9 enti\xE8rement factur\xE9. Devis retir\xE9 du pr\xE9visionnel.");
         editor.close();
       }
     });
@@ -4684,7 +4912,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       return String(a.year).localeCompare(String(b.year));
     });
     function shares(yearSeries) {
-      var total = yearSeries.rows.reduce(function(sum, row) {
+      var total2 = yearSeries.rows.reduce(function(sum, row) {
         return sum + row.amount;
       }, 0) || 1;
       var amounts = {};
@@ -4692,7 +4920,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         amounts[row.label] = row.amount;
       });
       return { values: labels.map(function(label) {
-        return (amounts[label] || 0) / total * 100;
+        return (amounts[label] || 0) / total2 * 100;
       }), amounts: labels.map(function(label) {
         return amounts[label] || 0;
       }) };
@@ -4786,12 +5014,12 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       rows = rows.slice(0, 5);
       if (other > 0) rows.push({ label: "Autres clients", amount: other, other: true });
     }
-    var total = rows.reduce(function(sum, row) {
+    var total2 = rows.reduce(function(sum, row) {
       return sum + row.amount;
     }, 0) || 1;
     var cumul = 0;
     var shares = rows.map(function(row) {
-      var share = row.amount / total;
+      var share = row.amount / total2;
       cumul += share;
       return { share, cumulative: cumul };
     });
@@ -5222,11 +5450,11 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       var color = function(name) {
         return style.getPropertyValue(name).trim();
       };
-      var total = Math.max(0, data.value, data.goal);
-      var target = Math.max(0, Math.min(total, data.goal * data.yearProgress));
+      var total2 = Math.max(0, data.value, data.goal);
+      var target = Math.max(0, Math.min(total2, data.goal * data.yearProgress));
       var realized = Math.max(0, data.value), end = Math.max(realized, target);
       var ahead = data.value >= target;
-      var amounts = [Math.min(realized, target), Math.abs(realized - target), total - end];
+      var amounts = [Math.min(realized, target), Math.abs(realized - target), total2 - end];
       var colors = [color("--actual-accent"), color(ahead ? "--green" : "--orange"), color("--actual-rest")];
       var cursor = 0;
       var series = amounts.map(function(amount, i) {
@@ -5237,7 +5465,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
           stack: "progress",
           barWidth: 12,
           data: [amount],
-          itemStyle: { color: colors[i], borderRadius: [start === 0 ? 6 : 0, cursor === total ? 6 : 0, cursor === total ? 6 : 0, start === 0 ? 6 : 0] },
+          itemStyle: { color: colors[i], borderRadius: [start === 0 ? 6 : 0, cursor === total2 ? 6 : 0, cursor === total2 ? 6 : 0, start === 0 ? 6 : 0] },
           emphasis: { disabled: true }
         };
       });
@@ -5252,7 +5480,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       makeEChart(id, function() {
         return {
           grid: { left: 4, right: 4, top: 8, bottom: 8 },
-          xAxis: { type: "value", show: false, min: Math.min(0, data.value), max: total || 1 },
+          xAxis: { type: "value", show: false, min: Math.min(0, data.value), max: total2 || 1 },
           yAxis: { type: "category", show: false, data: ["Avancement"] },
           tooltip: { trigger: "axis", confine: true, formatter: function() {
             return (metric === "ca" ? "Chiffre d\u2019affaires" : "Marge brute") + "<br>R\xE9alis\xE9 : " + fmtEUR(data.value) + "<br>Objectif annuel : " + fmtEUR(data.goal) + "<br>Attendu \xE0 date : " + fmtEUR(target) + "<br>" + (ahead ? "Avance : " : "Retard : ") + fmtEUR(Math.abs(data.value - target));
@@ -5479,13 +5707,13 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     });
     return m;
   }
-  function openDetailModal(title, subtitle, rows, total, totalLabel) {
+  function openDetailModal(title, subtitle, rows, total2, totalLabel) {
     var m = _ensureDetailModal();
     m.querySelector(".dm-title").innerHTML = esc(title) + (subtitle ? '<span class="dm-sub">' + esc(subtitle) + "</span>" : "");
     var body = rows && rows.length ? rows.map(function(r) {
       return '<div class="dm-row"><span class="dm-lab">' + esc(r.label) + '</span><span class="dm-eur">' + fmtEUR(r.amount) + "</span></div>";
     }).join("") : '<div class="dm-empty">Aucun d\xE9tail disponible.</div>';
-    if (total != null && rows && rows.length) body += '<div class="dm-row dm-total"><span class="dm-lab">' + esc(totalLabel || "Total") + '</span><span class="dm-eur">' + fmtEUR(total) + "</span></div>";
+    if (total2 != null && rows && rows.length) body += '<div class="dm-row dm-total"><span class="dm-lab">' + esc(totalLabel || "Total") + '</span><span class="dm-eur">' + fmtEUR(total2) + "</span></div>";
     m.querySelector(".dm-body").innerHTML = body;
     m.classList.add("open");
   }
@@ -6328,7 +6556,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var spb = document.querySelector(".sp-body");
     if (spb) spb.addEventListener("scroll", hide);
   })();
-  var APP_VERSION = "20261007-235902";
+  var APP_VERSION = "20261008-102334";
   function showUpdateBanner(base, v) {
     if (document.getElementById("update-banner")) return;
     var d = document.createElement("div");

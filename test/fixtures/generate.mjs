@@ -193,7 +193,7 @@ export function createAcceptedFixtureFiles(directory) {
   const header = ['Type','Date','Client','Montant H.T.','Etat','N° client','Numéro chrono','Titre','Code activité','Montant T.T.C.','Déjà réglé','En attente','Date accord'];
   const q = (number, amount, client, date = '2025-06-01', agreement = '2025-06-02') => ['Devis',date,client,amount,'Validé & imp.',client,number,'Chantier fictif','ACT',amount*1.2,null,null,agreement];
   const f = (number, amount, client, type = 'Facture', paid = amount*1.2) => [type,'2025-07-01',client,amount,'Confirmé',client,number,'Facture fictive','ACT',amount*1.2,paid,amount*1.2-paid,null];
-  const rows = [header,q('AUTO',1000,'Client Automatique'),q('PART',2000,'Client Partiel'),f('INV-PART',500,'Client Partiel'),
+  const rows = [header,q('AUTO',1000,'Client Automatique'),q('PART',2000,'Client Partiel'),f('INV-PART',500,'Client Partiel','Facture de situation'),
     q('REPEAT-1',100,'Client Répété'),q('REPEAT-2',100,'Client Répété'),f('INV-1',100,'Client Répété'),f('INV-2',100,'Client Répété'),
     q('ADV',3000,'Client Acompte'),q('ADV-OTHER',4000,'Client Acompte'),f('DEP',900,'Client Acompte',"Facture d'acompte"),
     q('OLD',600,'Client Ancien','2024-06-01',null),
@@ -209,5 +209,19 @@ export function createAcceptedFixtureFiles(directory) {
   const range=X.utils.decode_range(sheet['!ref']);
   for(let r=0;r<=range.e.r;r++) if(sheet[X.utils.encode_cell({r,c:0})]?.v==='41910000') sheet[X.utils.encode_cell({r,c:5})].v=0;
   files.zeroBal=resolve(directory,'BAL_A_Zero_250731_120000.xlsx'); writeWorkbook(X,balance,files.zeroBal);
+  return files;
+}
+
+export function createBillingFixtureFiles(directory) {
+  const files=createFixtureFiles(directory), X=bundledXlsx();
+  const header=['Type','Date','Client','Montant H.T.','Etat','N° client','Numéro chrono','Titre','Code activité','Montant T.T.C.','Déjà réglé','En attente','Date accord'];
+  const d=(number,type,amount,ttc,client,paid=0,agreement='2025-06-02')=>[type,type==='Devis'?'2025-06-01':'2025-07-01',client,amount,type==='Devis'?'Validé & imp.':'Confirmé',client,number,'Pièce de test fictive','ACT',ttc,paid,ttc-paid,type==='Devis'?agreement:null];
+  const rows=[header,d('Q-DEPOSIT','Devis',100,120,'Client Dépôt'),d('DEP',"Facture d'acompte",25,30,'Client Dépôt',30),
+    d('Q-PROGRESS','Devis',200,240,'Client Situation'),d('S','Facture de situation',50,60,'Client Situation'),d('AS',"Facture d'acompte",20,24,'Client Situation',24),
+    d('Q-SCOPE','Devis',300,360,'Client Périmètre'),d('FS','Facture',270,324,'Client Périmètre'),
+    d('Q-COVERED','Devis',100,120,'Client Couvert'),d('FC','Facture',90,120,'Client Couvert'),
+    d('Q-WAIT','Devis',70,84,'Client Attente',0,null)];
+  const book=X.utils.book_new();appendSheet(X,book,'Pièces fictives',rows);
+  files.billing=resolve(directory,'Pieces_billing_250815_120000.xlsx');writeWorkbook(X,book,files.billing);
   return files;
 }

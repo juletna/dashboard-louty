@@ -170,7 +170,7 @@ try {
   assert.match(await partial().innerText(), /En attente client/);
   await page.locator('[data-f-situation=confirmed]').click();
   assert.equal(await page.locator('#forecast-list .forecast-row').count(), 1);
-  assert.match(await manual().innerText(), /Chantier confirmé/);
+  assert.match(await manual().innerText(), /Confirmé · Partiellement facturé/);
   await page.locator('[data-f-situation=""]').click();
   await shot('forecast-manager-desktop-dark');
   await page.setViewportSize({ width:390, height:844 });
@@ -221,7 +221,7 @@ try {
   assert.match(await partial().innerText(), /En attente client/);
   await page.locator('[data-f-situation=confirmed]').click();
   assert.equal(await page.locator('#forecast-list .forecast-row').count(), 1);
-  assert.match(await manual().innerText(), /Chantier confirmé/);
+  assert.match(await manual().innerText(), /Confirmé · Partiellement facturé/);
   await page.locator('[data-f-situation=""]').click();
   assert.equal(await partial().getByRole('button', {name:'Modifier',exact:true}).count(), 1);
   await page.locator('[data-f-action=close-manager]').click();

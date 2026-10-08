@@ -1,5 +1,6 @@
 import { isPeriodCovered, hasObservedValue } from './schema.js';
 import { clientGroups, normalizedName } from './clients.js';
+import { classifyBilling } from './forecast-billing.js';
 
 const cents = (value) => Math.round(value * 100);
 const money = (value) => Math.round(value * 100) / 100;
@@ -27,7 +28,7 @@ export function prepareDocuments(documents) {
 
 // A match is a proposal, never a statement of settlement. Names are a fallback
 // only when they do not connect distinct IDs. Allocations remain unique.
-export function matchQuotes(documents = []) {
+export function matchQuoteCandidates(documents = []) {
   const quotes = documents.filter(d => d.type === 'Devis' && !/brouillon/i.test(d.state));
   const bills = documents.filter(d => billingTypes.has(d.type) && !/brouillon/i.test(d.state));
   const clients = clientGroups([...quotes, ...bills]);
@@ -162,7 +163,36 @@ export function matchQuotes(documents = []) {
   return quotes.map(q => results.get(q.key));
 }
 
+// Keep the conservative candidate pass separate from billing interpretation.
+export function matchQuotes(documents = []) {
+  return classifyBilling(documents, matchQuoteCandidates(documents));
+}
+
+export function forecastStatus(row) {
+  if (row.missing || row.review) return 'À vérifier';
+  if (row.choice?.action === 'exclude' && row.choice.billed) return 'Entièrement facturé';
+  if (row.choice?.action === 'include') {
+    if (row.choice.remaining === 0) return 'Entièrement facturé';
+    if (row.choice.situation === 'waiting') return 'En attente client';
+    return row.matched?.some(d => d.type !== "Facture d'acompte") ? 'Confirmé · Partiellement facturé' : 'Confirmé · À facturer';
+  }
+  if (['ambiguous', 'no-id'].includes(row.status)) return 'À vérifier';
+  if (row.status === 'complete') return 'Entièrement facturé';
+  if (!row.accepted) return 'En attente client';
+  return row.status === 'partial' ? 'Confirmé · Partiellement facturé' : 'Confirmé · À facturer';
+}
+
 export const REASON_LABELS = {
+  'scope-adjustment': 'Facture ordinaire inférieure au devis : reste candidat à examiner',
+  'deposit-only': 'Acompte encaissé séparé du CA restant à facturer',
+  'progress-remainder': 'Devis moins situations confirmées, indépendamment du règlement',
+  'ttc-covered': 'Prix TTC entièrement facturé malgré la différence HT',
+  'billed-at-least-quote': 'Facturation couvrant le devis, supplément éventuel conservé',
+  'unique-exact-document-group': 'Ensemble unique couvrant le devis en HT et TTC',
+  'cancelled-and-replaced-invoice': 'Facture annulée intégralement puis remplacée',
+  'remaining-invoice-covers-quote': 'Facture restante après attribution des autres pièces',
+  'unconfirmed-billing': 'État de facturation non confirmé',
+  'ttc-excess': 'Reste HT positif mais TTC facturé supérieur au devis',
   'same-name-ttc': 'Facture probable : même nom et même TTC, ID client différent',
   'settled-with-advance': 'Couverture complète probable : facture et acomptes',
   'client-conflict': 'Nom associé à plusieurs clients', 'client-missing': 'Client non identifiable',
@@ -181,13 +211,26 @@ export const MATCH_LABELS = {
 export function reconcileForecast(documents, choices) {
   const rows = matchQuotes(documents);
   const byKey = new Map(rows.map(r => [r.key, r]));
+  const manualClaims = new Map();
+  for (const [key, choice] of choices) {
+    if (!choice.billed) continue;
+    for (const bill of choice.billingKeys || []) {
+      if (!manualClaims.has(bill)) manualClaims.set(bill, new Set());
+      manualClaims.get(bill).add(key);
+    }
+  }
+  const allocationConflict = row => (choices.get(row.key)?.billingKeys || []).some(key =>
+    manualClaims.get(key)?.size > 1 || rows.some(other => other.key !== row.key && ['complete', 'partial'].includes(other.status) &&
+      [...other.matched, ...(other.evidence || [])].some(d => d.key === key)));
+
   const result = rows.map(row => {
     const manual = choices.get(row.key);
     const auto = !manual && row.accepted && ['unmatched', 'partial'].includes(row.status) && row.proposed > 0;
     const choice = manual || (auto ? { action: 'include', situation: 'confirmed', month: null,
       remaining: row.proposed, fingerprint: row.fingerprint, quote: row } : undefined);
     return { ...row, choice, auto, missing: false,
-      review: !!choice && choice.fingerprint !== row.fingerprint };
+      review: !!choice && (choice.fingerprint !== row.fingerprint || allocationConflict(row)),
+      allocationConflict: allocationConflict(row) };
   });
   for (const [key, choice] of choices) {
     if (!byKey.has(key) && choice.action === 'include') {
@@ -210,7 +253,7 @@ export function forecastSummary(rows, data, goal) {
   const months = source.months_present || [];
   const lastMonth = months.length ? Math.max(...months) : 0;
   const cutoff = lastMonth ? `${year}-${String(lastMonth).padStart(2, '0')}` : null;
-  const dated = confirmed.filter(r => r.choice.month?.startsWith(year + '-') && r.choice.month > cutoff);
+  const dated = confirmed.filter(r => validMonth(r.choice.month) && r.choice.month.startsWith(year + '-') && r.choice.month > cutoff);
   // RES month is treated conservatively as covered in full; pending amounts
   // assigned to that month remain visible but never stack onto its actuals.
   const actual = lastMonth && isPeriodCovered(source, lastMonth) && hasObservedValue(source.monthly.ca, 1, lastMonth)

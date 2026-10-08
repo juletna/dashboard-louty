@@ -43,7 +43,9 @@ try {
   await page.locator('[data-f-situation=complete]').click();
   assert.equal(await page.locator('.forecast-row').count(),2);
   await page.locator('[data-f-situation=confirmed]').click();
-  assert.match(await row('ADV').innerText(),/Chantier confirmé/);
+  assert.equal(await row('ADV').count(),0);
+  await page.locator('[data-f-situation=review]').click();
+  assert.match(await row('ADV').innerText(),/À vérifier/);
   assert.equal(await row('REPEAT-1').count(),0);
   await page.locator('[data-f-situation=""]').click();
   await page.locator('#forecast-year').selectOption('2024');assert.equal(await page.locator('.forecast-row').count(),1);
@@ -51,7 +53,8 @@ try {
   await row('ADV').getByRole('button',{name:'Ajouter',exact:true}).click();
   await page.locator('[data-advance-key]').check();
   assert.match(await page.locator('#forecast-advance-balance').innerText(),/2\s?520.*TTC/);
-  assert.equal(await page.locator('#forecast-amount').inputValue(),'3000');
+  assert.equal(await page.locator('#forecast-amount').inputValue(),'');
+  await page.locator('#forecast-amount').fill('3000');
   await page.locator('#forecast-month').fill('2025-10');await shot('advance-editor-desktop-light');
   await page.locator('#forecast-form button[type=submit]').click();
   await row('ADV-OTHER').getByRole('button',{name:'Ajouter',exact:true}).click();
