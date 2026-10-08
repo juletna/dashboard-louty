@@ -2761,8 +2761,9 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   function forecastCoverage(summary, goal) {
     if (!Number.isFinite(goal) || !Number.isFinite(summary.actual)) return null;
     const need = Math.max(0, money(goal - summary.actual));
-    const balance = money(need - summary.annualConfirmed);
-    return { need, balance, percent: need > 0 ? Math.max(0, Math.min(100, summary.annualConfirmed / need * 100)) : 100 };
+    const confirmed2 = money(summary.annualConfirmed + (summary.undated ?? 0));
+    const balance = money(need - confirmed2);
+    return { need, confirmed: confirmed2, balance, percent: need > 0 ? Math.max(0, Math.min(100, confirmed2 / need * 100)) : 100 };
   }
 
   // src/app/domain/payments.js
@@ -3287,18 +3288,20 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   // src/app/views/forecast-summary.js
   function renderForecastSummary({ summary, goal, reviewCount, warning, expanded, search, tables, money: money3, escape: esc2 }) {
     const coverage = forecastCoverage(summary, goal);
+    const confirmed2 = coverage?.confirmed ?? summary.annualConfirmed + summary.undated;
     const months = forecastCalendar(summary.active);
     const max = Math.max(100, Math.ceil(Math.max(0, ...months.map((v) => v.confirmed)) / 1e3) * 1e3);
     const count = (kind) => summary.included.filter((r) => r.choice.situation === kind && r.choice.remaining !== 0).length;
     const undated = summary.included.filter((r) => r.choice.situation === "confirmed" && r.choice.remaining !== 0 && !r.choice.month).length;
     const dateLabel = (month, short = false) => (/* @__PURE__ */ new Date(month + "-01T12:00:00")).toLocaleDateString("fr-FR", { month: short ? "short" : "long", year: "numeric" });
-    const help = "Montants HT. Le reste \xE0 produire correspond \xE0 l\u2019objectif annuel moins le CA r\xE9alis\xE9. La jauge inclut uniquement les devis confirm\xE9s, v\xE9rifi\xE9s et planifi\xE9s apr\xE8s la p\xE9riode RES, jusqu\u2019\xE0 fin " + summary.year + ". Les devis sans date, les \xE9ch\xE9ances hors p\xE9riode et les attentes client sont exclus. Les rapprochements restent indicatifs ; les choix manuels sont conserv\xE9s. Ce sc\xE9nario ne s\u2019ajoute pas \xE0 la projection statistique.";
+    const help = "Montants HT. Le reste \xE0 produire correspond \xE0 l\u2019objectif annuel moins le CA r\xE9alis\xE9. La jauge inclut les devis confirm\xE9s et v\xE9rifi\xE9s sans mois pr\xE9vu ainsi que ceux planifi\xE9s apr\xE8s la p\xE9riode RES, jusqu\u2019\xE0 fin " + summary.year + ". Les devis sans date restent \xE0 planifier et ne sont pas ajout\xE9s au cumul annuel. Les \xE9ch\xE9ances hors p\xE9riode et les attentes client sont exclues. Les rapprochements restent indicatifs ; les choix manuels sont conserv\xE9s. Ce sc\xE9nario ne s\u2019ajoute pas \xE0 la projection statistique.";
     return `<div class="forecast-head"><h2 id="forecast-title">Chiffre d\u2019affaires pr\xE9visionnel <button type="button" class="sp-help forecast-help" data-tip="${esc2(help)}" aria-label="Comprendre le pr\xE9visionnel">\u24D8</button></h2><button class="btn" data-f-action="manage">V\xE9rifier les devis</button></div>${warning}
     <div class="forecast-future-layout">
       <section id="cap-forecast" class="forecast-coverage" aria-label="Couverture du CA restant \xE0 produire">
         <h3>Reste \xE0 produire d\u2019ici fin ${esc2(summary.year)}</h3><strong class="forecast-need">${coverage ? money3(coverage.need) : "Indisponible"}</strong>
-        ${coverage ? `<div class="forecast-coverage-track" role="img" aria-label="${esc2(money3(coverage.need))} restant \xE0 produire, ${esc2(money3(summary.annualConfirmed))} confirm\xE9s${coverage.balance >= 0 ? ", " + esc2(money3(coverage.balance)) + " \xE0 trouver" : ", besoin couvert"}"><span style="width:${coverage.percent}%"></span></div>` : '<p class="small">Un objectif et une p\xE9riode r\xE9alis\xE9e compl\xE8te sont n\xE9cessaires pour calculer le besoin.</p>'}
-        <div class="forecast-coverage-legend"><span><i></i>Confirm\xE9 <strong>${money3(summary.annualConfirmed)}</strong></span>${coverage ? `<span><i class="forecast-gap-dot"></i>${coverage.balance < 0 ? "Au-del\xE0 du besoin" : "\xC0 trouver"} <strong>${money3(Math.abs(coverage.balance))}</strong></span>` : ""}</div>
+        ${coverage ? `<div class="forecast-coverage-track" role="img" aria-label="${esc2(money3(coverage.need))} restant \xE0 produire, ${esc2(money3(confirmed2))} confirm\xE9s${coverage.balance >= 0 ? ", " + esc2(money3(coverage.balance)) + " \xE0 trouver" : ", besoin couvert"}"><span style="width:${coverage.percent}%"></span></div>` : '<p class="small">Un objectif et une p\xE9riode r\xE9alis\xE9e compl\xE8te sont n\xE9cessaires pour calculer le besoin.</p>'}
+        <div class="forecast-coverage-legend"><span><i></i>Confirm\xE9 <strong>${money3(confirmed2)}</strong></span>${coverage ? `<span><i class="forecast-gap-dot"></i>${coverage.balance < 0 ? "Au-del\xE0 du besoin" : "\xC0 trouver"} <strong>${money3(Math.abs(coverage.balance))}</strong></span>` : ""}</div>
+        ${summary.undated > 0 ? `<p class="small">Dont ${money3(summary.undated)} HT \xE0 planifier \xB7 inclus dans la jauge, hors cumul annuel tant que le mois pr\xE9vu n\u2019est pas renseign\xE9.</p>` : ""}
       </section>
       <section class="forecast-schedule" aria-label="Facturation pr\xE9vue"><div class="forecast-head"><h3>Facturation pr\xE9vue</h3><span class="small">Montants HT</span></div>
         ${months.length ? `<div class="forecast-chart-scroll"><div class="forecast-chart" style="min-width:${Math.max(240, months.length * 70)}px"><div class="forecast-columns" style="grid-template-columns:repeat(${months.length},minmax(0,1fr))">${months.map((v) => {
@@ -6556,7 +6559,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var spb = document.querySelector(".sp-body");
     if (spb) spb.addEventListener("scroll", hide);
   })();
-  var APP_VERSION = "20261008-102334";
+  var APP_VERSION = "20261008-105401";
   function showUpdateBanner(base, v) {
     if (document.getElementById("update-banner")) return;
     var d = document.createElement("div");

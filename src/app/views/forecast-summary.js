@@ -3,18 +3,20 @@ import { forecastCalendar, forecastCoverage } from '../domain/forecast.js';
 // Presentation only: reconciliation, coverage and monetary rounding stay in the domain.
 export function renderForecastSummary({ summary, goal, reviewCount, warning, expanded, search, tables, money, escape: esc }) {
   const coverage = forecastCoverage(summary, goal);
+  const confirmed = coverage?.confirmed ?? summary.annualConfirmed + summary.undated;
   const months = forecastCalendar(summary.active);
   const max = Math.max(100, Math.ceil(Math.max(0, ...months.map(v => v.confirmed)) / 1000) * 1000);
   const count = kind => summary.included.filter(r => r.choice.situation === kind && r.choice.remaining !== 0).length;
   const undated = summary.included.filter(r => r.choice.situation === 'confirmed' && r.choice.remaining !== 0 && !r.choice.month).length;
   const dateLabel = (month, short = false) => new Date(month + '-01T12:00:00').toLocaleDateString('fr-FR', { month: short ? 'short' : 'long', year: 'numeric' });
-  const help = 'Montants HT. Le reste à produire correspond à l’objectif annuel moins le CA réalisé. La jauge inclut uniquement les devis confirmés, vérifiés et planifiés après la période RES, jusqu’à fin ' + summary.year + '. Les devis sans date, les échéances hors période et les attentes client sont exclus. Les rapprochements restent indicatifs ; les choix manuels sont conservés. Ce scénario ne s’ajoute pas à la projection statistique.';
+  const help = 'Montants HT. Le reste à produire correspond à l’objectif annuel moins le CA réalisé. La jauge inclut les devis confirmés et vérifiés sans mois prévu ainsi que ceux planifiés après la période RES, jusqu’à fin ' + summary.year + '. Les devis sans date restent à planifier et ne sont pas ajoutés au cumul annuel. Les échéances hors période et les attentes client sont exclues. Les rapprochements restent indicatifs ; les choix manuels sont conservés. Ce scénario ne s’ajoute pas à la projection statistique.';
   return `<div class="forecast-head"><h2 id="forecast-title">Chiffre d’affaires prévisionnel <button type="button" class="sp-help forecast-help" data-tip="${esc(help)}" aria-label="Comprendre le prévisionnel">ⓘ</button></h2><button class="btn" data-f-action="manage">Vérifier les devis</button></div>${warning}
     <div class="forecast-future-layout">
       <section id="cap-forecast" class="forecast-coverage" aria-label="Couverture du CA restant à produire">
         <h3>Reste à produire d’ici fin ${esc(summary.year)}</h3><strong class="forecast-need">${coverage ? money(coverage.need) : 'Indisponible'}</strong>
-        ${coverage ? `<div class="forecast-coverage-track" role="img" aria-label="${esc(money(coverage.need))} restant à produire, ${esc(money(summary.annualConfirmed))} confirmés${coverage.balance >= 0 ? ', ' + esc(money(coverage.balance)) + ' à trouver' : ', besoin couvert'}"><span style="width:${coverage.percent}%"></span></div>` : '<p class="small">Un objectif et une période réalisée complète sont nécessaires pour calculer le besoin.</p>'}
-        <div class="forecast-coverage-legend"><span><i></i>Confirmé <strong>${money(summary.annualConfirmed)}</strong></span>${coverage ? `<span><i class="forecast-gap-dot"></i>${coverage.balance < 0 ? 'Au-delà du besoin' : 'À trouver'} <strong>${money(Math.abs(coverage.balance))}</strong></span>` : ''}</div>
+        ${coverage ? `<div class="forecast-coverage-track" role="img" aria-label="${esc(money(coverage.need))} restant à produire, ${esc(money(confirmed))} confirmés${coverage.balance >= 0 ? ', ' + esc(money(coverage.balance)) + ' à trouver' : ', besoin couvert'}"><span style="width:${coverage.percent}%"></span></div>` : '<p class="small">Un objectif et une période réalisée complète sont nécessaires pour calculer le besoin.</p>'}
+        <div class="forecast-coverage-legend"><span><i></i>Confirmé <strong>${money(confirmed)}</strong></span>${coverage ? `<span><i class="forecast-gap-dot"></i>${coverage.balance < 0 ? 'Au-delà du besoin' : 'À trouver'} <strong>${money(Math.abs(coverage.balance))}</strong></span>` : ''}</div>
+        ${summary.undated > 0 ? `<p class="small">Dont ${money(summary.undated)} HT à planifier · inclus dans la jauge, hors cumul annuel tant que le mois prévu n’est pas renseigné.</p>` : ''}
       </section>
       <section class="forecast-schedule" aria-label="Facturation prévue"><div class="forecast-head"><h3>Facturation prévue</h3><span class="small">Montants HT</span></div>
         ${months.length ? `<div class="forecast-chart-scroll"><div class="forecast-chart" style="min-width:${Math.max(240, months.length * 70)}px"><div class="forecast-columns" style="grid-template-columns:repeat(${months.length},minmax(0,1fr))">${months.map(v => {

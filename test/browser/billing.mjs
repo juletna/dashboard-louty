@@ -19,11 +19,25 @@ try {
   browser=await chromium.launch();
   const page=await browser.newPage({viewport:{width:1440,height:1100},reducedMotion:'reduce'});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto(`http://127.0.0.1:${server.address().port}/`);
+  await page.goto(process.env.FORECAST_BASE_URL || `http://127.0.0.1:${server.address().port}/`);
   await page.locator('#file-input').setInputFiles([fixtures.res,fixtures.billing]);
   await page.locator('[data-f-action=manage]').waitFor();
   assert.equal(await page.locator('[data-f-filter=confirmed]').innerText(),'Confirmés · 2');
   assert.equal(await page.locator('[data-f-filter=undated]').innerText(),'À planifier · 2');
+  assert.match(await page.locator('.forecast-coverage-legend').innerText(),/Confirmé\s+250 €/);
+  assert.match(await page.locator('#cap-forecast').innerText(),/250 € HT à planifier/);
+  assert.equal(await page.locator('.forecast-column').count(),0);
+  assert.ok(await page.locator('.forecast-coverage-track > span').evaluate(e=>parseFloat(e.style.width)>0));
+  for(const width of [1440,390]) {
+    await page.setViewportSize({width,height:width===390?844:1100});
+    for(const theme of ['light','dark']) {
+      await page.evaluate(value=>{for(let i=0;i<2&&document.documentElement.getAttribute('data-theme')!==value;i++)document.querySelector('#toggle-theme').click();},theme);
+      await page.locator('#revenue-forecast').scrollIntoViewIfNeeded();
+      if(process.env.SMOKE_SCREENSHOT_DIR){mkdirSync(process.env.SMOKE_SCREENSHOT_DIR,{recursive:true});await page.locator('#revenue-forecast').screenshot({path:resolve(process.env.SMOKE_SCREENSHOT_DIR,`undated-gauge-${width}-${theme}.png`)});}
+      assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    }
+  }
+  await page.setViewportSize({width:1440,height:1100});
   await page.locator('[data-f-action=manage]').click();
   await page.locator('[data-f-tab=all]').click();
   const row=n=>page.locator('#forecast-list .forecast-row').filter({hasText:n});
@@ -51,7 +65,9 @@ try {
   await page.locator('#forecast-month').fill('2025-10');await page.locator('#forecast-form button[type=submit]').click();
   assert.equal(await page.locator('#forecast-list .forecast-row').count(),0);
   await page.locator('[data-f-action=close-manager]').click();
-  assert.match(await page.locator('#cap-forecast').innerText(),/30/);
+  assert.match(await page.locator('.forecast-coverage-legend').innerText(),/Confirmé\s+280 €/);
+  assert.match(await page.locator('#cap-forecast').innerText(),/250 € HT à planifier/);
+  assert.equal(await page.locator('.forecast-column').count(),1);
   await page.reload();await page.locator('[data-f-action=manage]').waitFor();
   assert.equal(await page.locator('[data-f-filter=confirmed]').innerText(),'Confirmés · 3');
   assert.deepEqual(errors,[]);

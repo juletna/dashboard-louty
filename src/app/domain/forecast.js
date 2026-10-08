@@ -288,11 +288,13 @@ export function forecastCalendar(rows) {
   return Array.from({length:last-first+1}, (_,i) => {const n=first+i;return {month:`${String(Math.floor(n/12)).padStart(4,'0')}-${String(n%12+1).padStart(2,'0')}`,confirmed:money(totals.get(n) || 0)};});
 }
 
-// Future-only coverage. Keep the actual/goal comparison separate from the
+// Future coverage includes undated confirmed work; only the dated admissible
+// part feeds the annual scenario. Keep the actual/goal comparison separate from the
 // historical scenario so an already reached goal never produces a negative need.
 export function forecastCoverage(summary, goal) {
   if (!Number.isFinite(goal) || !Number.isFinite(summary.actual)) return null;
   const need = Math.max(0, money(goal - summary.actual));
-  const balance = money(need - summary.annualConfirmed);
-  return { need, balance, percent: need > 0 ? Math.max(0, Math.min(100, summary.annualConfirmed / need * 100)) : 100 };
+  const confirmed = money(summary.annualConfirmed + (summary.undated ?? 0));
+  const balance = money(need - confirmed);
+  return { need, confirmed, balance, percent: need > 0 ? Math.max(0, Math.min(100, confirmed / need * 100)) : 100 };
 }
