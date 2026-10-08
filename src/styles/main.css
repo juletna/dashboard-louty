@@ -1276,7 +1276,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .forecast-followed:not([open]) .forecast-hide-label,.forecast-followed[open] .forecast-show-label{display:none}
 .forecast-help{position:absolute;right:0;top:15px;width:auto!important;height:auto!important;max-width:48%;font:inherit;font-size:12px!important;border:0!important;background:none!important;border-radius:0!important}
 .forecast-table-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:16px 0 12px}
-.forecast-quick-filters{display:flex;align-items:flex-end;gap:22px;max-width:100%;overflow-x:auto;scrollbar-width:none;box-shadow:inset 0 -1px 0 var(--border)}
+.forecast-quick-filters{display:flex;align-items:flex-end;gap:22px;max-width:100%;overflow-x:auto;scrollbar-width:none}
 .forecast-quick-filters button{appearance:none;flex:none;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;font:inherit;font-size:13px;font-weight:600;padding:10px 2px 11px;border:0;border-bottom:2px solid transparent;border-radius:0;background:none;color:var(--text-dim);cursor:pointer}
 .forecast-quick-filters button:hover{color:var(--text)}
 .forecast-quick-filters button[aria-selected=true]{color:var(--text);font-weight:800;border-bottom-color:var(--ca-blue)}
@@ -1286,7 +1286,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 #forecast-dashboard-search{width:230px;max-width:100%;padding:9px 11px;font:inherit;font-size:13px;border:1px solid var(--border);border-radius:8px;color:var(--text);background:var(--bg-card)}
 .forecast-table-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:4px 0 12px}
 .forecast-table-head>strong{font-size:13px;font-variant-numeric:tabular-nums}
-.forecast-table-scroll{overflow:auto}
+.forecast-table-scroll{overflow:auto;max-width:100%}
 .forecast-dashboard-tables table{width:100%;border-collapse:collapse;font-size:13px}
 .forecast-dashboard-tables th,.forecast-dashboard-tables td{text-align:left;padding:12px 8px;border-bottom:1px solid var(--border);vertical-align:middle}
 .forecast-dashboard-tables th{font-size:12px;color:var(--text-dim);font-weight:500}
@@ -1323,3 +1323,5 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
   .forecast-row-menu-items button{min-height:44px;padding:7px 0}
 }
 @media(min-width:1101px){.forecast-dashboard-tables td:first-child{width:38%}.forecast-dashboard-tables .forecast-table-amount{width:10%}}
+.forecast-dashboard-tables .forecast-mobile-note{display:none}
+@media(max-width:650px){.forecast-dashboard-tables th:nth-child(2),.forecast-dashboard-tables th:nth-child(3),.forecast-dashboard-tables td:nth-child(2),.forecast-dashboard-tables td:nth-child(3){display:none}.forecast-dashboard-tables .forecast-mobile-note{display:block}}
