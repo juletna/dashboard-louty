@@ -670,6 +670,15 @@
   font-size:12px; font-weight:600; line-height:1.5; padding:10px 12px; border-radius:10px;
   box-shadow:0 8px 24px rgba(0,0,0,0.28); display:none; pointer-events:none;
 }
+#help-tip p { margin:6px 0 0; }
+#help-tip .tip-title { display:block; font-size:13px; font-weight:800; }
+#help-tip .tip-period { color:rgba(255,255,255,0.7); }
+#help-tip .tip-calc { margin-top:8px; }
+#help-tip .tip-row { display:flex; justify-content:space-between; gap:16px; font-variant-numeric:tabular-nums; }
+#help-tip .tip-total { margin-top:3px; padding-top:3px; border-top:1px solid rgba(255,255,255,0.25); }
+#help-tip .tip-formula { color:rgba(255,255,255,0.7); }
+#help-tip .tip-result { font-size:14px; font-weight:800; }
+#help-tip .tip-warning { color:#ffd48a; }
 #update-banner {
   position:fixed; left:50%; bottom:20px; transform:translateX(-50%); z-index:200;
   background:#2b2536; color:#fff; padding:12px 16px; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.3);
@@ -2085,6 +2094,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       ca: hasHistoricalReference ? totals.ca / count : config.CA_OBJ,
       margin: hasHistoricalReference && totals.ca !== 0 ? totals.mb / totals.ca : config.TAUX_OBJ,
       purchases: hasHistoricalReference && totals.ca !== 0 ? totals.achats / totals.ca : config.RATIO_CIBLE,
+      contributionRate: hasHistoricalReference && totals.mb > 0 ? totals.contribution / totals.mb : null,
       charges: hasHistoricalReference ? annualCharges : Math.max(0, config.MB_AN_OBJ - config.MB_MIN * 12),
       n1: {
         year: latestKey || "N-1",
@@ -2548,28 +2558,28 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       }
       if (qs.some((q) => results.get(q.key).groupMatch)) {
         for (const q of qs) {
-          const row = results.get(q.key);
-          row.fingerprint = JSON.stringify([
-            row.fingerprint,
+          const row2 = results.get(q.key);
+          row2.fingerprint = JSON.stringify([
+            row2.fingerprint,
             "collective-elimination-v1",
-            row.status,
-            row.proposed,
-            row.matched.map((b) => b.key)
+            row2.status,
+            row2.proposed,
+            row2.matched.map((b) => b.key)
           ]);
         }
       }
     }
     const allocated = new Set([...results.values()].flatMap((r) => r.matched.map((b) => b.key)));
-    for (const row of results.values()) {
-      if (!["unmatched", "partial"].includes(row.status) || !row.client_id || !normalizedName(row.client) || !validDate(row.date) || !Number.isFinite(row.amount_ttc) || row.amount_ttc <= 0) continue;
-      const probableInvoices = bills.filter((b) => b.type === "Facture" && isConfirmed(b) && !b.duplicate && !allocated.has(b.key) && b.activity === row.activity && b.client_id && b.client_id !== row.client_id && normalizedName(b.client) === normalizedName(row.client) && validDate(b.date) && b.date >= row.date && Number.isFinite(b.amount) && b.amount > 0 && Number.isFinite(b.amount_ttc) && cents2(b.amount_ttc) === cents2(row.amount_ttc)).sort((a, b) => a.key.localeCompare(b.key));
+    for (const row2 of results.values()) {
+      if (!["unmatched", "partial"].includes(row2.status) || !row2.client_id || !normalizedName(row2.client) || !validDate(row2.date) || !Number.isFinite(row2.amount_ttc) || row2.amount_ttc <= 0) continue;
+      const probableInvoices = bills.filter((b) => b.type === "Facture" && isConfirmed(b) && !b.duplicate && !allocated.has(b.key) && b.activity === row2.activity && b.client_id && b.client_id !== row2.client_id && normalizedName(b.client) === normalizedName(row2.client) && validDate(b.date) && b.date >= row2.date && Number.isFinite(b.amount) && b.amount > 0 && Number.isFinite(b.amount_ttc) && cents2(b.amount_ttc) === cents2(row2.amount_ttc)).sort((a, b) => a.key.localeCompare(b.key));
       if (!probableInvoices.length) continue;
-      row.probableInvoices = probableInvoices;
-      row.billingRisk = true;
-      row.status = "ambiguous";
-      row.reason = "same-name-ttc";
-      row.fingerprint = JSON.stringify([
-        row.fingerprint,
+      row2.probableInvoices = probableInvoices;
+      row2.billingRisk = true;
+      row2.status = "ambiguous";
+      row2.reason = "same-name-ttc";
+      row2.fingerprint = JSON.stringify([
+        row2.fingerprint,
         "same-name-ttc-v1",
         probableInvoices.map((b) => [b.key, b.client_id, b.amount, b.amount_ttc, b.date, b.state])
       ]);
@@ -2579,26 +2589,26 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   function matchQuotes(documents = []) {
     return classifyBilling(documents, matchQuoteCandidates(documents));
   }
-  function quoteSituation(row) {
-    if (row.accepted) return "confirmed";
-    const state = normalizedName(row.state);
+  function quoteSituation(row2) {
+    if (row2.accepted) return "confirmed";
+    const state = normalizedName(row2.state);
     if (state === "attente valid.") return "validation";
-    if (state === "valid\xE9 & imp." && row.number?.trim()) return "waiting";
+    if (state === "valid\xE9 & imp." && row2.number?.trim()) return "waiting";
     return null;
   }
-  function forecastStatus(row) {
-    if (row.missing || row.review || row.choice?.reviewRequested) return "\xC0 v\xE9rifier";
-    if (row.choice?.action === "exclude" && row.choice.billed) return "Enti\xE8rement factur\xE9";
-    if (row.choice?.action === "include") {
-      if (row.choice.remaining === 0) return "Enti\xE8rement factur\xE9";
-      if (row.choice.situation === "waiting") return "En attente client";
-      if (row.choice.situation === "validation") return "En attente de validation";
-      return row.matched?.some((d) => d.type !== "Facture d'acompte") ? "Confirm\xE9 \xB7 Partiellement factur\xE9" : "Confirm\xE9 \xB7 \xC0 facturer";
+  function forecastStatus(row2) {
+    if (row2.missing || row2.review || row2.choice?.reviewRequested) return "\xC0 v\xE9rifier";
+    if (row2.choice?.action === "exclude" && row2.choice.billed) return "Enti\xE8rement factur\xE9";
+    if (row2.choice?.action === "include") {
+      if (row2.choice.remaining === 0) return "Enti\xE8rement factur\xE9";
+      if (row2.choice.situation === "waiting") return "En attente client";
+      if (row2.choice.situation === "validation") return "En attente de validation";
+      return row2.matched?.some((d) => d.type !== "Facture d'acompte") ? "Confirm\xE9 \xB7 Partiellement factur\xE9" : "Confirm\xE9 \xB7 \xC0 facturer";
     }
-    if (["ambiguous", "no-id"].includes(row.status)) return "\xC0 v\xE9rifier";
-    if (row.status === "complete") return "Enti\xE8rement factur\xE9";
-    if (!row.accepted) return quoteSituation(row) === "waiting" ? "En attente client" : quoteSituation(row) === "validation" ? "En attente de validation" : "\xC0 v\xE9rifier";
-    return row.status === "partial" ? "Confirm\xE9 \xB7 Partiellement factur\xE9" : "Confirm\xE9 \xB7 \xC0 facturer";
+    if (["ambiguous", "no-id"].includes(row2.status)) return "\xC0 v\xE9rifier";
+    if (row2.status === "complete") return "Enti\xE8rement factur\xE9";
+    if (!row2.accepted) return quoteSituation(row2) === "waiting" ? "En attente client" : quoteSituation(row2) === "validation" ? "En attente de validation" : "\xC0 v\xE9rifier";
+    return row2.status === "partial" ? "Confirm\xE9 \xB7 Partiellement factur\xE9" : "Confirm\xE9 \xB7 \xC0 facturer";
   }
   var REASON_LABELS = {
     "scope-adjustment": "Facture ordinaire inf\xE9rieure au devis : reste candidat \xE0 examiner",
@@ -2644,25 +2654,25 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         manualClaims.get(bill).add(key);
       }
     }
-    const allocationConflict = (row) => (choices.get(row.key)?.billingKeys || []).some((key) => manualClaims.get(key)?.size > 1 || rows.some((other) => other.key !== row.key && ["complete", "partial"].includes(other.status) && [...other.matched, ...other.evidence || []].some((d) => d.key === key)));
-    const result = rows.map((row) => {
-      const manual = choices.get(row.key);
-      const situation = quoteSituation(row);
-      const auto = !manual && !!situation && ["unmatched", "partial"].includes(row.status) && row.proposed > 0;
+    const allocationConflict = (row2) => (choices.get(row2.key)?.billingKeys || []).some((key) => manualClaims.get(key)?.size > 1 || rows.some((other) => other.key !== row2.key && ["complete", "partial"].includes(other.status) && [...other.matched, ...other.evidence || []].some((d) => d.key === key)));
+    const result = rows.map((row2) => {
+      const manual = choices.get(row2.key);
+      const situation = quoteSituation(row2);
+      const auto = !manual && !!situation && ["unmatched", "partial"].includes(row2.status) && row2.proposed > 0;
       const choice = manual || (auto ? {
         action: "include",
         situation,
-        remaining: row.proposed,
-        fingerprint: row.fingerprint,
-        quote: row
+        remaining: row2.proposed,
+        fingerprint: row2.fingerprint,
+        quote: row2
       } : void 0);
       return {
-        ...row,
+        ...row2,
         choice,
         auto,
         missing: false,
-        review: !!choice && (choice.fingerprint !== row.fingerprint || allocationConflict(row)),
-        allocationConflict: allocationConflict(row)
+        review: !!choice && (choice.fingerprint !== row2.fingerprint || allocationConflict(row2)),
+        allocationConflict: allocationConflict(row2)
       };
     });
     for (const [key, choice] of choices) {
@@ -2670,7 +2680,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         result.push({ ...choice.quote, key, choice, missing: true, review: true, eligible: false });
       }
     }
-    return result.map((row) => row.choice?.action === "include" ? { ...row, choice: { ...row.choice, month: null } } : row);
+    return result.map((row2) => row2.choice?.action === "include" ? { ...row2, choice: { ...row2.choice, month: null } } : row2);
   }
   function forecastSummary(rows, data, goal) {
     const included = rows.filter((r) => r.choice?.action === "include");
@@ -2834,12 +2844,12 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var maxR = range.e.r, maxC = range.e.c;
     var rows = [];
     for (var r = 0; r <= maxR; r++) {
-      var row = [];
+      var row2 = [];
       for (var c = 0; c <= maxC; c++) {
         var cell = ws[XLSX2.utils.encode_cell({ r, c })];
-        row.push(cell && cell.v !== void 0 ? cell.v : null);
+        row2.push(cell && cell.v !== void 0 ? cell.v : null);
       }
-      rows.push(row);
+      rows.push(row2);
     }
     return rows;
   }
@@ -2988,8 +2998,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var data = createDictionary();
     for (var i = 0; i < rows.length; i++) {
       if (i === 0) continue;
-      var row = rows[i];
-      var cells = row.concat([null, null, null, null, null, null]).slice(0, 6);
+      var row2 = rows[i];
+      var cells = row2.concat([null, null, null, null, null, null]).slice(0, 6);
       var num = cells[0], lib = cells[1], solde = cells[5];
       if (num === null || num === void 0 || solde === null || solde === void 0) continue;
       num = String(num).trim();
@@ -3109,22 +3119,22 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       return "> 25 k\u20AC";
     }
     for (var r = 1; r < rows.length; r++) {
-      var row = rows[r], type = String(row[col.Type] == null ? "" : row[col.Type]).trim();
-      var state = String(row[col.Etat] == null ? "" : row[col.Etat]).toLocaleLowerCase("fr-FR");
-      var client = String(row[col.Client] == null ? "" : row[col.Client]).trim();
-      var amount = toFloat(row[col["Montant H.T."]]), date = dateOf(row[col.Date]);
+      var row2 = rows[r], type = String(row2[col.Type] == null ? "" : row2[col.Type]).trim();
+      var state = String(row2[col.Etat] == null ? "" : row2[col.Etat]).toLocaleLowerCase("fr-FR");
+      var client = String(row2[col.Client] == null ? "" : row2[col.Client]).trim();
+      var amount = toFloat(row2[col["Montant H.T."]]), date = dateOf(row2[col.Date]);
       if (["Devis", "Facture", "Facture de situation", "Facture d'acompte", "Avoir"].includes(type) && state.indexOf("brouillon") === -1) {
-        const text = (key) => String(row[col[key]] ?? "").trim();
+        const text = (key) => String(row2[col[key]] ?? "").trim();
         documents.push({
           type,
           state,
           client,
           amount,
-          amount_ttc: toFloat(row[col["Montant T.T.C."]]),
-          paid: toFloat(row[col["D\xE9j\xE0 r\xE9gl\xE9"]]),
-          pending: toFloat(row[col["En attente"]]),
-          due_date: piecesDateISO(dateOf(row[col["Date \xE9ch\xE9ance"]])),
-          agreement_date: piecesDateISO(dateOf(row[col["Date accord"] ?? col["Date d'accord"]])),
+          amount_ttc: toFloat(row2[col["Montant T.T.C."]]),
+          paid: toFloat(row2[col["D\xE9j\xE0 r\xE9gl\xE9"]]),
+          pending: toFloat(row2[col["En attente"]]),
+          due_date: piecesDateISO(dateOf(row2[col["Date \xE9ch\xE9ance"]])),
+          agreement_date: piecesDateISO(dateOf(row2[col["Date accord"] ?? col["Date d'accord"]])),
           client_id: text("N\xB0 client"),
           activity: text("Code activit\xE9"),
           number: text("Num\xE9ro chrono"),
@@ -3208,7 +3218,17 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   }
 
   // src/app/domain/annual-cap.js
-  function salaryCapacityAtDate(year, yearKey, endMonth, exportISO, netCoefficient) {
+  var INCOMPLETE_CHARGES_RATIO = 0.25;
+  function incompleteChargesMonth(year, month) {
+    const series = getMetricSeries(year, "charges_fonct");
+    const last = series[month - 1];
+    if (!Number.isFinite(last)) return month;
+    const earlier = series.slice(0, month - 1).filter(Number.isFinite);
+    if (earlier.length < 2) return null;
+    const average = earlier.reduce((sum, value) => sum + value, 0) / earlier.length;
+    return average > 0 && last < average * INCOMPLETE_CHARGES_RATIO ? month : null;
+  }
+  function salaryCapacityAtDate(year, yearKey, endMonth, exportISO, netCoefficient, contributionRate = null) {
     const unavailable = { monthlyNet: null, availableGross: null, elapsedMonths: null };
     if (!exportISO || !Number.isFinite(netCoefficient) || netCoefficient <= 0 || !endMonth) return unavailable;
     const date = new Date(exportISO);
@@ -3219,15 +3239,52 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     if (!isPeriodCovered(year, month) || !keys.every((key) => hasObservedValue(getMetricSeries(year, key), 1, 12))) return unavailable;
     const partial = sameYear && month === date.getMonth() + 1;
     const elapsedMonths = partial ? month - 1 + date.getDate() / new Date(date.getFullYear(), month, 0).getDate() : month;
-    const availableGross = (sumPeriod(year, "marge_brute", month) ?? 0) - (sumPeriod(year, "charges_fonct", month) ?? 0) - (sumPeriod(year, "contribution_coop", month) ?? 0);
-    return { monthlyNet: Math.max(0, availableGross) * netCoefficient / elapsedMonths, availableGross, elapsedMonths };
+    const margin = sumPeriod(year, "marge_brute", month) ?? 0;
+    const charges = sumPeriod(year, "charges_fonct", month) ?? 0;
+    const contributionBooked = sumPeriod(year, "contribution_coop", month) ?? 0;
+    const contributionEstimated = Number.isFinite(contributionRate) && contributionRate > 0 ? margin * contributionRate : 0;
+    const contribution = Math.max(contributionBooked, contributionEstimated);
+    const availableGross = margin - charges - contribution;
+    return {
+      monthlyNet: Math.max(0, availableGross) * netCoefficient / elapsedMonths,
+      availableGross,
+      elapsedMonths,
+      year: Number(yearKey),
+      month,
+      day: partial ? date.getDate() : null,
+      netCoefficient,
+      margin,
+      charges,
+      contributionBooked,
+      contribution,
+      contributionRate: contributionEstimated > contributionBooked ? contributionRate : null,
+      incompleteMonth: incompleteChargesMonth(year, month)
+    };
   }
   function projectedPlanResult(projectedMargin, plan) {
     return Number.isFinite(projectedMargin) && Number.isFinite(plan.salary) && Number.isFinite(plan.charges) ? projectedMargin - plan.salary - plan.charges : null;
   }
 
   // src/app/views/annual-cap.js
-  function renderCapProjections(host, { year, salary, result, margin, revenue, goals }, { money: money3, escape }) {
+  var INTRO = "Ce que ton activit\xE9 aurait pu te verser par mois depuis janvier, en finissant \xE0 z\xE9ro de r\xE9sultat.";
+  function row(label, value, className = "") {
+    return '<div class="tip-row' + (className ? " " + className : "") + '"><span>' + label + "</span><b>" + value + "</b></div>";
+  }
+  function periodLabel(capacity) {
+    const end = new Date(capacity.year, capacity.month - 1, capacity.day || 1);
+    const until = capacity.day ? capacity.day + " " + end.toLocaleDateString("fr-FR", { month: "short" }) : "fin " + end.toLocaleDateString("fr-FR", { month: "long" });
+    return "1er janv. \u2192 " + until + " " + capacity.year + " \xB7 " + capacity.elapsedMonths.toLocaleString("fr-FR", { maximumFractionDigits: 2 }) + " mois";
+  }
+  function salaryCapacityHelp(capacity, { money: money3, escape }) {
+    const head = '<strong class="tip-title">Salaire net d\xE9gageable</strong><p>' + INTRO + "</p>";
+    if (!capacity || !Number.isFinite(capacity.monthlyNet) || !Number.isFinite(capacity.elapsedMonths) || !capacity.month) {
+      return head + "<p>Calcul indisponible : date de l\u2019export ou donn\xE9es de la p\xE9riode manquantes.</p>";
+    }
+    const e = (value) => escape(money3(value));
+    const monthName = new Date(capacity.year, capacity.month - 1, 1).toLocaleDateString("fr-FR", { month: "long" }).replace(/^./, (c) => c.toUpperCase());
+    return head + '<p class="tip-period">' + escape(periodLabel(capacity)) + '</p><div class="tip-calc">' + row("Marge brute", e(capacity.margin)) + row("\u2212 Charges", e(capacity.charges)) + row("\u2212 Contribution" + (capacity.contributionRate === null ? "" : " (estim\xE9e)"), e(capacity.contribution)) + row("= Disponible", e(capacity.availableGross), "tip-total") + '</div><p class="tip-formula">\xD7 ' + capacity.netCoefficient.toLocaleString("fr-FR", { maximumFractionDigits: 4 }) + " (brut \u2192 net) \xF7 " + capacity.elapsedMonths.toLocaleString("fr-FR", { maximumFractionDigits: 2 }) + " mois</p>" + (capacity.availableGross < 0 ? '<p class="tip-result">Aucun salaire finan\xE7able : d\xE9ficit de ' + e(-capacity.availableGross) + " avant r\xE9mun\xE9ration.</p>" : '<p class="tip-result">\u2248 ' + e(capacity.monthlyNet) + " net / mois</p>") + (capacity.incompleteMonth ? '<p class="tip-warning">\u26A0 ' + escape(monthName) + " semble incomplet dans ton export : le chiffre est peut-\xEAtre trop optimiste.</p>" : "");
+  }
+  function renderCapProjections(host, { year, salary, result, margin, revenue, goals, salaryHelp }, { money: money3, escape }) {
     const cards = [
       ["Salaire net d\xE9gageable", salary, goals.salary, true],
       ["Projection r\xE9sultat " + year, result, goals.result],
@@ -3237,7 +3294,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     host.innerHTML = cards.map(([title, value, goal, monthly]) => {
       const available = Number.isFinite(value);
       const delta = available ? Math.round(value - goal) : null;
-      return '<article class="cap-projection"><h4>' + escape(title) + '</h4><strong class="cap-projection-value">' + (available ? "\u2248 " + money3(value) : "\u2014") + (monthly ? ' <span class="cap-projection-unit">/ mois</span>' : "") + '</strong><span class="cap-projection-delta ' + (available ? delta >= 0 ? "positive" : "negative" : "unavailable") + '">' + (available ? (delta > 0 ? "+" : "") + money3(delta) + " vs objectif" : "Projection indisponible") + '</span><span class="cap-projection-goal">Objectif : <b>' + money3(goal) + "</b></span>" + (monthly ? '<span class="cap-salary-context">\xC0 date \xB7 r\xE9sultat \xE0 l\u2019\xE9quilibre</span>' : "") + "</article>";
+      const help = monthly && salaryHelp ? '<span class="sp-help" data-tip-html="' + escape(salaryHelp) + '" tabindex="0" role="button" aria-label="D\xE9tail du calcul du salaire net d\xE9gageable">?</span>' : "";
+      return '<article class="cap-projection"><h4>' + escape(title) + help + '</h4><strong class="cap-projection-value">' + (available ? "\u2248 " + money3(value) : "\u2014") + (monthly ? ' <span class="cap-projection-unit">/ mois</span>' : "") + '</strong><span class="cap-projection-delta ' + (available ? delta >= 0 ? "positive" : "negative" : "unavailable") + '">' + (available ? (delta > 0 ? "+" : "") + money3(delta) + " vs objectif" : "Projection indisponible") + '</span><span class="cap-projection-goal">Objectif : <b>' + money3(goal) + "</b></span>" + (monthly ? '<span class="cap-salary-context">\xC0 date \xB7 r\xE9sultat \xE0 l\u2019\xE9quilibre</span>' : "") + "</article>";
     }).join("");
   }
 
@@ -3248,14 +3306,14 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     validation: "En attente de validation",
     review: "\xC0 examiner"
   };
-  function quickForecastChoice(row, target) {
-    if (!row || ![...Object.keys(FORECAST_STATES), "exclude"].includes(target)) return null;
-    const choice = row.choice;
-    const quote = { client: row.client, number: row.number, date: row.date, amount: row.amount, title: row.title, activity: row.activity };
-    if (target === "exclude") return { action: "exclude", fingerprint: row.fingerprint ?? choice?.fingerprint, quote };
-    if (row.missing || choice?.action !== "include" || !Number.isFinite(choice.remaining) || choice.remaining < 0) return null;
+  function quickForecastChoice(row2, target) {
+    if (!row2 || ![...Object.keys(FORECAST_STATES), "exclude"].includes(target)) return null;
+    const choice = row2.choice;
+    const quote = { client: row2.client, number: row2.number, date: row2.date, amount: row2.amount, title: row2.title, activity: row2.activity };
+    if (target === "exclude") return { action: "exclude", fingerprint: row2.fingerprint ?? choice?.fingerprint, quote };
+    if (row2.missing || choice?.action !== "include" || !Number.isFinite(choice.remaining) || choice.remaining < 0) return null;
     if (target === "review") return { ...choice, reviewRequested: true, quote };
-    if (row.review) return null;
+    if (row2.review) return null;
     return { ...choice, situation: target, reviewRequested: false, quote };
   }
 
@@ -3301,17 +3359,17 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   }
 
   // src/app/domain/forecast-advances.js
-  function forecastAdvances(row, rows, keys = row.choice?.advanceKeys || []) {
-    const candidates = row.advanceCandidates || [];
-    const reserved = new Set(rows.filter((r) => r.key !== row.key && r.choice?.action === "include").flatMap((r) => r.choice.advanceKeys || []));
+  function forecastAdvances(row2, rows, keys = row2.choice?.advanceKeys || []) {
+    const candidates = row2.advanceCandidates || [];
+    const reserved = new Set(rows.filter((r) => r.key !== row2.key && r.choice?.action === "include").flatMap((r) => r.choice.advanceKeys || []));
     const byKey = new Map(candidates.map((d) => [d.key, d]));
     const linked = keys.map((key) => byKey.get(key));
     const conflict = keys.some((key) => reserved.has(key));
     const invalid = new Set(keys).size !== keys.length || linked.some((d) => !d || d.duplicate || !Number.isFinite(d.paid) || d.paid <= 0);
     const paid = invalid ? null : Math.round(linked.reduce((sum, d) => sum + d.paid, 0) * 100) / 100;
-    const excess = Number.isFinite(row.amount_ttc) && paid !== null && paid > row.amount_ttc + 5e-3;
+    const excess = Number.isFinite(row2.amount_ttc) && paid !== null && paid > row2.amount_ttc + 5e-3;
     const error = conflict ? "Un acompte s\xE9lectionn\xE9 est d\xE9j\xE0 rattach\xE9 \xE0 un autre devis." : invalid ? "Un acompte rattach\xE9 est absent, dupliqu\xE9 ou son paiement est inconnu. V\xE9rifie la s\xE9lection." : excess ? "Les acomptes s\xE9lectionn\xE9s d\xE9passent le montant TTC du devis." : "";
-    const cash = !error && Number.isFinite(row.amount_ttc) && row.amount_ttc >= 0 && !row.billingRisk && !(row.invoiceCandidates || []).length ? Math.round((row.amount_ttc - paid) * 100) / 100 : null;
+    const cash = !error && Number.isFinite(row2.amount_ttc) && row2.amount_ttc >= 0 && !row2.billingRisk && !(row2.invoiceCandidates || []).length ? Math.round((row2.amount_ttc - paid) * 100) / 100 : null;
     return { candidates, reserved, linked: linked.filter(Boolean), paid, cash, error };
   }
 
@@ -3462,48 +3520,48 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         manager.showModal();
       }
     }
-    function quoteSnapshot(row) {
-      return { client: row.client, number: row.number, date: row.date, amount: row.amount, title: row.title, activity: row.activity };
+    function quoteSnapshot(row2) {
+      return { client: row2.client, number: row2.number, date: row2.date, amount: row2.amount, title: row2.title, activity: row2.activity };
     }
-    function commit(row, choice, message) {
-      const persisted = storage.set(row.key, choice);
+    function commit(row2, choice, message) {
+      const persisted = storage.set(row2.key, choice);
       recalculate();
       renderSummary();
       renderList();
       onChange(summary);
       el("forecast-message").textContent = persisted ? message : "Modification appliqu\xE9e pour cette session uniquement.";
     }
-    function selectedAdvanceKeys(row) {
+    function selectedAdvanceKeys(row2) {
       return [...el("forecast-advances").querySelectorAll("input[data-advance-key]:checked")].map((input) => input.dataset.advanceKey);
     }
-    function renderAdvanceBalance(row, keys) {
-      const state = forecastAdvances(row, rows, keys);
+    function renderAdvanceBalance(row2, keys) {
+      const state = forecastAdvances(row2, rows, keys);
       el("forecast-advance-balance").textContent = state.error || `Acomptes rattach\xE9s : ${formatMoney(state.paid)} TTC. Solde du devis \xE0 encaisser : ${state.cash === null ? "\xE0 v\xE9rifier (factures, avoirs ou TTC manquant)" : formatMoney(state.cash) + " TTC"}.`;
     }
-    function renderAdvances(row) {
-      const state = forecastAdvances(row, rows);
-      const keys = row.choice?.advanceKeys || [];
-      el("forecast-advances").innerHTML = `<div class="forecast-method"><strong>Montant du chantier : ${money3(row.amount)}${Number.isFinite(row.amount_ttc) ? " \xB7 " + formatMoney(row.amount_ttc) + " TTC" : ""}</strong><p>Rattache uniquement les acomptes encaiss\xE9s de ce chantier. Ils r\xE9duisent le solde \xE0 encaisser, pas le CA HT pr\xE9visionnel. Si une facture finale existe, son solde doit \xEAtre v\xE9rifi\xE9 s\xE9par\xE9ment.</p>${state.candidates.length ? state.candidates.map((d) => `<label class="forecast-advance-option"><input type="checkbox" data-advance-key="${esc2(d.key)}" ${keys.includes(d.key) ? "checked" : ""} ${!keys.includes(d.key) && (state.reserved.has(d.key) || d.duplicate || !Number.isFinite(d.paid) || d.paid <= 0) ? "disabled" : ""}><span>${esc2(d.number || "Acompte sans num\xE9ro")} \xB7 ${esc2(d.date || "date absente")} \xB7 ${formatMoney(d.paid)} TTC encaiss\xE9s${state.reserved.has(d.key) ? " \xB7 d\xE9j\xE0 rattach\xE9" : ""}${d.duplicate ? " \xB7 pi\xE8ce dupliqu\xE9e" : ""}</span></label>`).join("") : "<p>Aucun acompte encaiss\xE9 identifiable \xE0 rattacher.</p>"}${keys.some((key) => !state.candidates.some((d) => d.key === key)) ? '<p class="forecast-warning">Un ancien rattachement est absent de cet export. Enregistrer supprimera ce lien ; v\xE9rifie les pi\xE8ces avant de confirmer.</p>' : ""}<p id="forecast-advance-balance" class="small"></p></div>`;
-      renderAdvanceBalance(row, keys);
+    function renderAdvances(row2) {
+      const state = forecastAdvances(row2, rows);
+      const keys = row2.choice?.advanceKeys || [];
+      el("forecast-advances").innerHTML = `<div class="forecast-method"><strong>Montant du chantier : ${money3(row2.amount)}${Number.isFinite(row2.amount_ttc) ? " \xB7 " + formatMoney(row2.amount_ttc) + " TTC" : ""}</strong><p>Rattache uniquement les acomptes encaiss\xE9s de ce chantier. Ils r\xE9duisent le solde \xE0 encaisser, pas le CA HT pr\xE9visionnel. Si une facture finale existe, son solde doit \xEAtre v\xE9rifi\xE9 s\xE9par\xE9ment.</p>${state.candidates.length ? state.candidates.map((d) => `<label class="forecast-advance-option"><input type="checkbox" data-advance-key="${esc2(d.key)}" ${keys.includes(d.key) ? "checked" : ""} ${!keys.includes(d.key) && (state.reserved.has(d.key) || d.duplicate || !Number.isFinite(d.paid) || d.paid <= 0) ? "disabled" : ""}><span>${esc2(d.number || "Acompte sans num\xE9ro")} \xB7 ${esc2(d.date || "date absente")} \xB7 ${formatMoney(d.paid)} TTC encaiss\xE9s${state.reserved.has(d.key) ? " \xB7 d\xE9j\xE0 rattach\xE9" : ""}${d.duplicate ? " \xB7 pi\xE8ce dupliqu\xE9e" : ""}</span></label>`).join("") : "<p>Aucun acompte encaiss\xE9 identifiable \xE0 rattacher.</p>"}${keys.some((key) => !state.candidates.some((d) => d.key === key)) ? '<p class="forecast-warning">Un ancien rattachement est absent de cet export. Enregistrer supprimera ce lien ; v\xE9rifie les pi\xE8ces avant de confirmer.</p>' : ""}<p id="forecast-advance-balance" class="small"></p></div>`;
+      renderAdvanceBalance(row2, keys);
     }
     function openEditor(index) {
-      const row = rows[index];
-      if (!row || row.missing) return;
-      editingKey = row.key;
-      el("forecast-editor-title").textContent = selected(row) ? "Modifier la pr\xE9vision" : "Ajouter au pr\xE9visionnel";
-      el("forecast-editor-subtitle").textContent = `${row.client} \xB7 ${row.number || "Sans num\xE9ro"} \xB7 ${money3(row.amount)}`;
-      el("forecast-situation").value = row.choice?.reviewRequested ? "review" : row.choice?.situation || quoteSituation(row) || "confirmed";
-      el("forecast-amount").value = selected(row) ? row.choice.remaining : row.candidateRemaining ?? row.proposed ?? "";
-      el("forecast-note").textContent = row.choice?.reviewRequested && !row.review ? "Ce devis a \xE9t\xE9 mis \xE0 examiner manuellement et reste hors totaux jusqu\u2019\xE0 son reclassement." : row.review ? "Le rapprochement a chang\xE9. Ton montant saisi a \xE9t\xE9 conserv\xE9. V\xE9rifie-le avant de r\xE9activer cette pr\xE9vision." : row.status === "complete" ? "Une correspondance compl\xE8te est probable. Saisis le montant restant si tu souhaites ajouter ce devis manuellement." : "V\xE9rifie le montant restant et la situation r\xE9elle du chantier avant de confirmer.";
-      el("forecast-evidence").innerHTML = `<p>${esc2(matchingLabel(row))}. ${row.status === "no-id" ? "ID et nom client exploitables absents." : "Les montants rapproch\xE9s ne prouvent pas le rattachement au devis."}</p>${row.groupMatch ? "<p>Les factures couvrent collectivement les devis de m\xEAme montant. La pi\xE8ce affich\xE9e est une attribution indicative, pas un lien \xE9tabli.</p>" : ""}${row.duplicate ? "<p>Plusieurs pi\xE8ces portent cette m\xEAme identit\xE9. Elles sont regroup\xE9es ici et demandent une v\xE9rification.</p>" : ""}<ul>${(row.evidence?.length ? row.evidence : row.matched || []).map((b) => `<li>${esc2(b.type)} ${esc2(b.number)} \xB7 ${esc2(b.date || "date absente")} : ${exactMoney(b.amount)} HT \xB7 ${exactMoney(b.amount_ttc)} TTC \xB7 client ${esc2(b.client_id || "ID absent")}</li>`).join("")}</ul>${row.candidateRemaining !== null && Number.isFinite(row.candidateRemaining) ? `<p>Reste candidat : ${exactMoney(row.candidateRemaining)} HT \xB7 hors totaux, d\xE9cision n\xE9cessaire.</p>` : ""}${Number.isFinite(row.remainingTTC) ? `<p>Reste TTC : ${exactMoney(row.remainingTTC)}.</p>` : ""}${Number.isFinite(row.differenceHT) ? `<p>Facturation \u2212 devis : ${exactMoney(row.differenceHT)} HT${Number.isFinite(row.differenceTTC) ? " \xB7 " + exactMoney(row.differenceTTC) + " TTC" : ""}.</p>` : ""}${row.warning ? `<p>${esc2(row.warning)}.</p>` : ""}<p>Enti\xE8rement factur\xE9 ne signifie pas pay\xE9.</p>`;
+      const row2 = rows[index];
+      if (!row2 || row2.missing) return;
+      editingKey = row2.key;
+      el("forecast-editor-title").textContent = selected(row2) ? "Modifier la pr\xE9vision" : "Ajouter au pr\xE9visionnel";
+      el("forecast-editor-subtitle").textContent = `${row2.client} \xB7 ${row2.number || "Sans num\xE9ro"} \xB7 ${money3(row2.amount)}`;
+      el("forecast-situation").value = row2.choice?.reviewRequested ? "review" : row2.choice?.situation || quoteSituation(row2) || "confirmed";
+      el("forecast-amount").value = selected(row2) ? row2.choice.remaining : row2.candidateRemaining ?? row2.proposed ?? "";
+      el("forecast-note").textContent = row2.choice?.reviewRequested && !row2.review ? "Ce devis a \xE9t\xE9 mis \xE0 examiner manuellement et reste hors totaux jusqu\u2019\xE0 son reclassement." : row2.review ? "Le rapprochement a chang\xE9. Ton montant saisi a \xE9t\xE9 conserv\xE9. V\xE9rifie-le avant de r\xE9activer cette pr\xE9vision." : row2.status === "complete" ? "Une correspondance compl\xE8te est probable. Saisis le montant restant si tu souhaites ajouter ce devis manuellement." : "V\xE9rifie le montant restant et la situation r\xE9elle du chantier avant de confirmer.";
+      el("forecast-evidence").innerHTML = `<p>${esc2(matchingLabel(row2))}. ${row2.status === "no-id" ? "ID et nom client exploitables absents." : "Les montants rapproch\xE9s ne prouvent pas le rattachement au devis."}</p>${row2.groupMatch ? "<p>Les factures couvrent collectivement les devis de m\xEAme montant. La pi\xE8ce affich\xE9e est une attribution indicative, pas un lien \xE9tabli.</p>" : ""}${row2.duplicate ? "<p>Plusieurs pi\xE8ces portent cette m\xEAme identit\xE9. Elles sont regroup\xE9es ici et demandent une v\xE9rification.</p>" : ""}<ul>${(row2.evidence?.length ? row2.evidence : row2.matched || []).map((b) => `<li>${esc2(b.type)} ${esc2(b.number)} \xB7 ${esc2(b.date || "date absente")} : ${exactMoney(b.amount)} HT \xB7 ${exactMoney(b.amount_ttc)} TTC \xB7 client ${esc2(b.client_id || "ID absent")}</li>`).join("")}</ul>${row2.candidateRemaining !== null && Number.isFinite(row2.candidateRemaining) ? `<p>Reste candidat : ${exactMoney(row2.candidateRemaining)} HT \xB7 hors totaux, d\xE9cision n\xE9cessaire.</p>` : ""}${Number.isFinite(row2.remainingTTC) ? `<p>Reste TTC : ${exactMoney(row2.remainingTTC)}.</p>` : ""}${Number.isFinite(row2.differenceHT) ? `<p>Facturation \u2212 devis : ${exactMoney(row2.differenceHT)} HT${Number.isFinite(row2.differenceTTC) ? " \xB7 " + exactMoney(row2.differenceTTC) + " TTC" : ""}.</p>` : ""}${row2.warning ? `<p>${esc2(row2.warning)}.</p>` : ""}<p>Enti\xE8rement factur\xE9 ne signifie pas pay\xE9.</p>`;
       el("forecast-evidence").closest("details").open = false;
-      el("forecast-probable-invoices").innerHTML = row.probableInvoices?.length ? `<div class="forecast-warning"><strong>Facturation compl\xE8te \xE0 confirmer</strong><p>Devis : ${exactMoney(row.amount)} HT \xB7 ${exactMoney(row.amount_ttc)} TTC \xB7 client ${esc2(row.client_id)}.</p><ul>${row.probableInvoices.map((b) => `<li>Facture ${esc2(b.number)} \xB7 ${esc2(b.date)} \xB7 ${esc2(b.client)} \xB7 client ${esc2(b.client_id)} : ${exactMoney(b.amount)} HT \xB7 ${exactMoney(b.amount_ttc)} TTC.</li>`).join("")}</ul><p>Les ID clients diff\xE8rent. Le m\xEAme TTC peut masquer un changement de TVA. V\xE9rifie que ce chantier est enti\xE8rement factur\xE9. La confirmation retire ce devis du pr\xE9visionnel et reste m\xE9moris\xE9e aux prochains imports.</p><button type="button" class="btn" data-f-action="confirm-billed">Confirmer : chantier enti\xE8rement factur\xE9</button></div>` : "";
-      const history = (data.revenue_distribution?.documents || []).filter((d) => d.activity === row.activity && (row.client_id && d.client_id === row.client_id || normalizedName(row.client) && normalizedName(d.client) === normalizedName(row.client))).sort((a, b) => (b.date || "").localeCompare(a.date || "") || String(a.number).localeCompare(String(b.number)));
+      el("forecast-probable-invoices").innerHTML = row2.probableInvoices?.length ? `<div class="forecast-warning"><strong>Facturation compl\xE8te \xE0 confirmer</strong><p>Devis : ${exactMoney(row2.amount)} HT \xB7 ${exactMoney(row2.amount_ttc)} TTC \xB7 client ${esc2(row2.client_id)}.</p><ul>${row2.probableInvoices.map((b) => `<li>Facture ${esc2(b.number)} \xB7 ${esc2(b.date)} \xB7 ${esc2(b.client)} \xB7 client ${esc2(b.client_id)} : ${exactMoney(b.amount)} HT \xB7 ${exactMoney(b.amount_ttc)} TTC.</li>`).join("")}</ul><p>Les ID clients diff\xE8rent. Le m\xEAme TTC peut masquer un changement de TVA. V\xE9rifie que ce chantier est enti\xE8rement factur\xE9. La confirmation retire ce devis du pr\xE9visionnel et reste m\xE9moris\xE9e aux prochains imports.</p><button type="button" class="btn" data-f-action="confirm-billed">Confirmer : chantier enti\xE8rement factur\xE9</button></div>` : "";
+      const history = (data.revenue_distribution?.documents || []).filter((d) => d.activity === row2.activity && (row2.client_id && d.client_id === row2.client_id || normalizedName(row2.client) && normalizedName(d.client) === normalizedName(row2.client))).sort((a, b) => (b.date || "").localeCompare(a.date || "") || String(a.number).localeCompare(String(b.number)));
       const ttc = (value) => Number.isFinite(value) ? exactMoney(value) + " TTC" : "Non renseign\xE9";
-      el("forecast-history").innerHTML = `<details class="forecast-method" ${row.status === "ambiguous" ? "open" : ""}><summary>Historique du client et correspondances possibles \xB7 ${history.length} pi\xE8ces</summary><p>M\xEAme activit\xE9 et m\xEAme ID client, ou m\xEAme nom complet (majuscules et espaces ignor\xE9s). Un nom identique ne prouve pas qu\u2019il s\u2019agit du m\xEAme client. Les brouillons sont exclus de l\u2019import.</p><div class="forecast-history-scroll" role="region" aria-label="Historique des pi\xE8ces du client" tabindex="0"><table class="forecast-history-table"><thead><tr><th>Pi\xE8ce / date</th><th>Client / ID</th><th>Titre</th><th>\xC9tat / accord</th><th>Montant HT</th><th>Montant TTC</th><th>D\xE9j\xE0 r\xE9gl\xE9 TTC</th><th>En attente TTC</th></tr></thead><tbody>${history.map((d) => `<tr ${d.type === row.type && d.number === row.number && d.date === row.date ? 'class="forecast-history-current"' : ""}><td>${esc2(d.type)} ${esc2(d.number)}<br>${esc2(d.date || "Date absente")}${d.type === row.type && d.number === row.number && d.date === row.date ? "<br><strong>Devis examin\xE9</strong>" : ""}</td><td>${esc2(d.client)}<br>${esc2(d.client_id || "ID absent")}${d.client_id && row.client_id && d.client_id !== row.client_id ? '<br><strong class="forecast-badge warn">ID diff\xE9rent</strong>' : ""}</td><td>${esc2(d.title)}</td><td>${esc2(d.state)}${d.agreement_date ? "<br>Accord : " + esc2(d.agreement_date) : ""}</td><td>${exactMoney(d.amount)} HT</td><td>${ttc(d.amount_ttc)}</td><td>${ttc(d.paid)}</td><td>${ttc(d.pending)}</td></tr>`).join("")}</tbody></table></div><p>\xAB En attente \xBB indique le reste \xE0 encaisser sur une pi\xE8ce, pas le reste du chantier \xE0 facturer. Les montants de cet historique ne sont pas additionn\xE9s au pr\xE9visionnel.</p></details>`;
-      renderAdvances(row);
+      el("forecast-history").innerHTML = `<details class="forecast-method" ${row2.status === "ambiguous" ? "open" : ""}><summary>Historique du client et correspondances possibles \xB7 ${history.length} pi\xE8ces</summary><p>M\xEAme activit\xE9 et m\xEAme ID client, ou m\xEAme nom complet (majuscules et espaces ignor\xE9s). Un nom identique ne prouve pas qu\u2019il s\u2019agit du m\xEAme client. Les brouillons sont exclus de l\u2019import.</p><div class="forecast-history-scroll" role="region" aria-label="Historique des pi\xE8ces du client" tabindex="0"><table class="forecast-history-table"><thead><tr><th>Pi\xE8ce / date</th><th>Client / ID</th><th>Titre</th><th>\xC9tat / accord</th><th>Montant HT</th><th>Montant TTC</th><th>D\xE9j\xE0 r\xE9gl\xE9 TTC</th><th>En attente TTC</th></tr></thead><tbody>${history.map((d) => `<tr ${d.type === row2.type && d.number === row2.number && d.date === row2.date ? 'class="forecast-history-current"' : ""}><td>${esc2(d.type)} ${esc2(d.number)}<br>${esc2(d.date || "Date absente")}${d.type === row2.type && d.number === row2.number && d.date === row2.date ? "<br><strong>Devis examin\xE9</strong>" : ""}</td><td>${esc2(d.client)}<br>${esc2(d.client_id || "ID absent")}${d.client_id && row2.client_id && d.client_id !== row2.client_id ? '<br><strong class="forecast-badge warn">ID diff\xE9rent</strong>' : ""}</td><td>${esc2(d.title)}</td><td>${esc2(d.state)}${d.agreement_date ? "<br>Accord : " + esc2(d.agreement_date) : ""}</td><td>${exactMoney(d.amount)} HT</td><td>${ttc(d.amount_ttc)}</td><td>${ttc(d.paid)}</td><td>${ttc(d.pending)}</td></tr>`).join("")}</tbody></table></div><p>\xAB En attente \xBB indique le reste \xE0 encaisser sur une pi\xE8ce, pas le reste du chantier \xE0 facturer. Les montants de cet historique ne sont pas additionn\xE9s au pr\xE9visionnel.</p></details>`;
+      renderAdvances(row2);
       el("forecast-form-error").textContent = "";
-      el("forecast-remove-editor").hidden = !selected(row);
+      el("forecast-remove-editor").hidden = !selected(row2);
       editor.showModal();
     }
     host.addEventListener("input", (e) => {
@@ -3527,19 +3585,19 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         return;
       }
       if (b.dataset.fTransition !== void 0) {
-        const row = rows[Number(b.dataset.fTransition)], target = b.dataset.fTarget;
-        if (!row || ![...Object.keys(FORECAST_STATES), "exclude"].includes(target)) return;
-        const choice = quickForecastChoice(row, target);
+        const row2 = rows[Number(b.dataset.fTransition)], target = b.dataset.fTarget;
+        if (!row2 || ![...Object.keys(FORECAST_STATES), "exclude"].includes(target)) return;
+        const choice = quickForecastChoice(row2, target);
         if (!choice) {
-          if (!row.missing) {
+          if (!row2.missing) {
             returnFocus = b;
             openEditor(Number(b.dataset.fTransition));
             el("forecast-situation").value = target;
           }
           return;
         }
-        commit(row, choice, "Situation du devis mise \xE0 jour.");
-        el("forecast-quick-message").textContent = `${row.client || "Devis"} \xB7 ${row.number || "Sans num\xE9ro"} : ${target === "exclude" ? "exclu du pr\xE9visionnel" : FORECAST_STATES[target]}.${storage.warning ? " Modification appliqu\xE9e pour cette session uniquement." : ""}`;
+        commit(row2, choice, "Situation du devis mise \xE0 jour.");
+        el("forecast-quick-message").textContent = `${row2.client || "Devis"} \xB7 ${row2.number || "Sans num\xE9ro"} : ${target === "exclude" ? "exclu du pr\xE9visionnel" : FORECAST_STATES[target]}.${storage.warning ? " Modification appliqu\xE9e pour cette session uniquement." : ""}`;
         el("forecast-tab-" + dashboardTab).focus();
         return;
       }
@@ -3571,62 +3629,62 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       if (b.dataset.fTab) openManager(b.dataset.fTab);
       if (b.dataset.fEdit !== void 0) openEditor(Number(b.dataset.fEdit));
       if (b.dataset.fExclude !== void 0) {
-        const row = rows[Number(b.dataset.fExclude)];
-        commit(row, { action: "exclude", fingerprint: row.fingerprint, quote: quoteSnapshot(row) }, "Devis \xE9cart\xE9. Il reste accessible dans \xAB Tous les devis \xBB.");
+        const row2 = rows[Number(b.dataset.fExclude)];
+        commit(row2, { action: "exclude", fingerprint: row2.fingerprint, quote: quoteSnapshot(row2) }, "Devis \xE9cart\xE9. Il reste accessible dans \xAB Tous les devis \xBB.");
       }
       if (b.dataset.fRemove !== void 0) {
-        const row = rows[Number(b.dataset.fRemove)];
-        commit(row, { action: "exclude", fingerprint: row.fingerprint, quote: quoteSnapshot(row) }, "Devis retir\xE9. Ce choix reste prioritaire sur l\u2019ajout automatique.");
+        const row2 = rows[Number(b.dataset.fRemove)];
+        commit(row2, { action: "exclude", fingerprint: row2.fingerprint, quote: quoteSnapshot(row2) }, "Devis retir\xE9. Ce choix reste prioritaire sur l\u2019ajout automatique.");
       }
       if (b.dataset.fAction === "close-manager") manager.close();
     });
     editor.addEventListener("click", (e) => {
       if (e.target.closest('[data-f-action="close-editor"]')) editor.close();
       if (e.target.closest('[data-f-action="remove-editor"]')) {
-        const row = rows.find((r) => r.key === editingKey);
-        if (row) commit(row, { action: "exclude", fingerprint: row.fingerprint, quote: quoteSnapshot(row) }, "Devis retir\xE9 du pr\xE9visionnel.");
+        const row2 = rows.find((r) => r.key === editingKey);
+        if (row2) commit(row2, { action: "exclude", fingerprint: row2.fingerprint, quote: quoteSnapshot(row2) }, "Devis retir\xE9 du pr\xE9visionnel.");
         editor.close();
       }
       if (e.target.closest('[data-f-action="confirm-billed"]')) {
-        const row = rows.find((r) => r.key === editingKey);
-        if (!row || !row.probableInvoices?.length) return;
-        const reserved = new Set(rows.filter((r) => r.key !== row.key && r.choice?.billed).flatMap((r) => r.choice.billingKeys || []));
-        if (row.probableInvoices.some((d) => reserved.has(d.key))) {
+        const row2 = rows.find((r) => r.key === editingKey);
+        if (!row2 || !row2.probableInvoices?.length) return;
+        const reserved = new Set(rows.filter((r) => r.key !== row2.key && r.choice?.billed).flatMap((r) => r.choice.billingKeys || []));
+        if (row2.probableInvoices.some((d) => reserved.has(d.key))) {
           el("forecast-form-error").textContent = "Une facture propos\xE9e est d\xE9j\xE0 rattach\xE9e par une d\xE9cision manuelle. V\xE9rifie les devis concern\xE9s.";
           return;
         }
-        commit(row, { action: "exclude", billed: true, billingKeys: row.probableInvoices.map((d) => d.key), fingerprint: row.fingerprint, quote: quoteSnapshot(row) }, "Chantier confirm\xE9 enti\xE8rement factur\xE9. Devis retir\xE9 du pr\xE9visionnel.");
+        commit(row2, { action: "exclude", billed: true, billingKeys: row2.probableInvoices.map((d) => d.key), fingerprint: row2.fingerprint, quote: quoteSnapshot(row2) }, "Chantier confirm\xE9 enti\xE8rement factur\xE9. Devis retir\xE9 du pr\xE9visionnel.");
         editor.close();
       }
     });
     el("forecast-year").addEventListener("change", renderList);
     el("forecast-advances").addEventListener("change", () => {
-      const row = rows.find((r) => r.key === editingKey);
-      if (row) renderAdvanceBalance(row, selectedAdvanceKeys(row));
+      const row2 = rows.find((r) => r.key === editingKey);
+      if (row2) renderAdvanceBalance(row2, selectedAdvanceKeys(row2));
     });
     el("forecast-search").addEventListener("input", renderList);
     el("forecast-form").addEventListener("submit", (e) => {
       e.preventDefault();
-      const row = rows.find((r) => r.key === editingKey);
+      const row2 = rows.find((r) => r.key === editingKey);
       const remaining = Number(el("forecast-amount").value);
-      if (!row || row.missing || !Number.isFinite(remaining) || remaining < 0 || el("forecast-amount").value === "") {
+      if (!row2 || row2.missing || !Number.isFinite(remaining) || remaining < 0 || el("forecast-amount").value === "") {
         el("forecast-form-error").textContent = "Saisis un montant HT valide, sup\xE9rieur ou \xE9gal \xE0 z\xE9ro.";
         return;
       }
-      const advanceKeys = selectedAdvanceKeys(row);
-      const advanceState = forecastAdvances(row, rows, advanceKeys);
+      const advanceKeys = selectedAdvanceKeys(row2);
+      const advanceState = forecastAdvances(row2, rows, advanceKeys);
       if (advanceState.error) {
         el("forecast-form-error").textContent = advanceState.error;
         return;
       }
-      commit(row, {
+      commit(row2, {
         action: "include",
         advanceKeys,
-        fingerprint: row.fingerprint,
-        quote: quoteSnapshot(row),
+        fingerprint: row2.fingerprint,
+        quote: quoteSnapshot(row2),
         remaining: Math.round(remaining * 100) / 100,
         reviewRequested: el("forecast-situation").value === "review",
-        situation: el("forecast-situation").value === "review" ? row.choice?.situation || quoteSituation(row) || "confirmed" : el("forecast-situation").value
+        situation: el("forecast-situation").value === "review" ? row2.choice?.situation || quoteSituation(row2) || "confirmed" : el("forecast-situation").value
       }, "Pr\xE9vision enregistr\xE9e.");
       editor.close();
     });
@@ -4911,8 +4969,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var bracketOrder = { "< 2 k\u20AC": 0, "2\u20135 k\u20AC": 1, "5\u201310 k\u20AC": 2, "10\u201325 k\u20AC": 3, "> 25 k\u20AC": 4 };
     var labels = [];
     series.forEach(function(yearSeries) {
-      yearSeries.rows.forEach(function(row) {
-        if (labels.indexOf(row.label) === -1) labels.push(row.label);
+      yearSeries.rows.forEach(function(row2) {
+        if (labels.indexOf(row2.label) === -1) labels.push(row2.label);
       });
     });
     labels.sort(function(a, b) {
@@ -4922,12 +4980,12 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       return String(a.year).localeCompare(String(b.year));
     });
     function shares(yearSeries) {
-      var total2 = yearSeries.rows.reduce(function(sum, row) {
-        return sum + row.amount;
+      var total2 = yearSeries.rows.reduce(function(sum, row2) {
+        return sum + row2.amount;
       }, 0) || 1;
       var amounts = {};
-      yearSeries.rows.forEach(function(row) {
-        amounts[row.label] = row.amount;
+      yearSeries.rows.forEach(function(row2) {
+        amounts[row2.label] = row2.amount;
       });
       return { values: labels.map(function(label) {
         return (amounts[label] || 0) / total2 * 100;
@@ -5018,23 +5076,23 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       return b.amount - a.amount;
     });
     if (rows.length > 6) {
-      var other = rows.slice(5).reduce(function(sum, row) {
-        return sum + row.amount;
+      var other = rows.slice(5).reduce(function(sum, row2) {
+        return sum + row2.amount;
       }, 0);
       rows = rows.slice(0, 5);
       if (other > 0) rows.push({ label: "Autres clients", amount: other, other: true });
     }
-    var total2 = rows.reduce(function(sum, row) {
-      return sum + row.amount;
+    var total2 = rows.reduce(function(sum, row2) {
+      return sum + row2.amount;
     }, 0) || 1;
     var cumul = 0;
-    var shares = rows.map(function(row) {
-      var share = row.amount / total2;
+    var shares = rows.map(function(row2) {
+      var share = row2.amount / total2;
       cumul += share;
       return { share, cumulative: cumul };
     });
-    var accessible = rows.map(function(row, i) {
-      return row.label + " : " + fmtEUR(row.amount) + ", part " + fmtPct(shares[i].share, 1) + ", cumul " + fmtPct(shares[i].cumulative, 1);
+    var accessible = rows.map(function(row2, i) {
+      return row2.label + " : " + fmtEUR(row2.amount) + ", part " + fmtPct(shares[i].share, 1) + ", cumul " + fmtPct(shares[i].cumulative, 1);
     }).join(". ");
     host.innerHTML = '<div class="client-distribution-chart" style="height:' + (rows.length * 40 + 54) + 'px"><canvas id="chart-margin-by-client" role="img" aria-label="' + esc(accessible) + '">' + esc(accessible) + "</canvas></div>";
     var style = getComputedStyle(host);
@@ -5044,15 +5102,15 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var compact = false;
     makeChart("chart-margin-by-client", {
       type: "bar",
-      data: { labels: rows.map(function(row) {
-        return row.label;
+      data: { labels: rows.map(function(row2) {
+        return row2.label;
       }), datasets: [{
         label: "Montant",
-        data: rows.map(function(row) {
-          return row.amount;
+        data: rows.map(function(row2) {
+          return row2.amount;
         }),
-        backgroundColor: rows.map(function(row, i) {
-          return _hexAlpha(color("--teal"), row.other ? 0.32 : Math.max(0.42, 1 - i * 0.12));
+        backgroundColor: rows.map(function(row2, i) {
+          return _hexAlpha(color("--teal"), row2.other ? 0.32 : Math.max(0.42, 1 - i * 0.12));
         }),
         barThickness: 19,
         borderRadius: 6,
@@ -5078,11 +5136,11 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
           text("CLIENT", 0, 12, color("--text-faint"), "left", 10);
           text("PART", partX, 12, color("--text-faint"), "right", 10);
           text("CUMUL", chart.width, 12, color("--text-faint"), "right", 10);
-          rows.forEach(function(row, i) {
+          rows.forEach(function(row2, i) {
             var y = chart.scales.y.getPixelForValue(i) + 4;
             var size = compact ? 11 : 12.5;
             ctx.font = "700 " + size + "px " + CHART_FONT;
-            var label = row.label, maxWidth = chart.chartArea.left - 10;
+            var label = row2.label, maxWidth = chart.chartArea.left - 10;
             if (ctx.measureText(label).width > maxWidth) {
               while (label.length && ctx.measureText(label + "\u2026").width > maxWidth) label = label.slice(0, -1);
               label += "\u2026";
@@ -5240,7 +5298,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   }
   function updateCapProjections(data) {
     var cur = data.snapshot.current;
-    var capacity = salaryCapacityAtDate(data.years[cur.year], cur.year, cur.mois_renseignes, data.res_export_iso || data.file_mtime_iso, NET_FROM_GROSS);
+    var hist = historicalPlanReference2(data);
+    var capacity = salaryCapacityAtDate(data.years[cur.year], cur.year, cur.mois_renseignes, data.res_export_iso || data.file_mtime_iso, NET_FROM_GROSS, hist.contributionRate);
     const projection = forecastProjection(data);
     renderCapProjections(document.getElementById("cap-projections"), {
       year: cur.year,
@@ -5253,9 +5312,10 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         result: PLAN.surplus,
         margin: C.MB_AN_OBJ,
         revenue: C.CA_OBJ
-      }
+      },
+      salaryHelp: salaryCapacityHelp(capacity, { money: fmtEUR, escape: esc })
     }, { money: fmtEUR, escape: esc });
-    document.getElementById("cap-projection-method").textContent = "Le salaire d\xE9gageable correspond \xE0 la marge brute \xE0 date moins les charges de fonctionnement et la contribution coop\xE9rative \xE0 date, avant d\xE9duction des r\xE9mun\xE9rations d\xE9j\xE0 vers\xE9es, pour un r\xE9sultat \xE0 z\xE9ro. Ce disponible est converti en net et divis\xE9 par les mois couverts, le mois de l\u2019export \xE9tant proratis\xE9 au jour inclus." + (capacity.elapsedMonths !== null ? " P\xE9riode retenue : " + capacity.elapsedMonths.toLocaleString("fr-FR", { maximumFractionDigits: 2 }) + " mois." : " Calcul indisponible : date ou donn\xE9es de la p\xE9riode manquantes.") + (capacity.availableGross < 0 ? " Aucun salaire n\u2019est finan\xE7able : d\xE9ficit avant r\xE9mun\xE9ration de " + fmtEUR(-capacity.availableGross) + "." : "") + " Le r\xE9sultat annuel projet\xE9 d\xE9duit de la marge projet\xE9e le salaire brut annuel pr\xE9vu et les charges annuelles pr\xE9vues dans les objectifs." + (projection ? " Taux historique : " + (projection.rate === null ? "indisponible" : fmtPct(projection.rate, 1) + " (" + projection.reference + ")") + "." + (projection.unavailable ? " " + projection.unavailable : "") + (projection.end === 12 ? " Exercice enti\xE8rement couvert : les cartes affichent le r\xE9alis\xE9, sans ajout des devis restants." : " \xC0 facturer retenu : " + fmtEUR(projection.futureCA) + " HT, r\xE9parti jusqu\u2019\xE0 d\xE9cembre.") : " Projection indisponible : importe les Pi\xE8ces et une p\xE9riode RES compl\xE8te \xE0 date.");
+    document.getElementById("cap-projection-method").textContent = "Le salaire d\xE9gageable correspond \xE0 la marge brute \xE0 date moins les charges de fonctionnement et la contribution coop\xE9rative, avant d\xE9duction des r\xE9mun\xE9rations d\xE9j\xE0 vers\xE9es, pour un r\xE9sultat \xE0 z\xE9ro. La contribution \xE9tant comptabilis\xE9e avec retard, on retient le plus \xE9lev\xE9 entre le montant saisi et la part historique de la marge brute" + (hist.contributionRate !== null ? " (" + fmtPct(hist.contributionRate, 1) + ", moyenne des exercices " + hist.label + ")" : "") + ". Ce disponible est converti en net et divis\xE9 par les mois couverts, le mois de l\u2019export \xE9tant proratis\xE9 au jour inclus." + (capacity.elapsedMonths !== null ? " P\xE9riode retenue : " + capacity.elapsedMonths.toLocaleString("fr-FR", { maximumFractionDigits: 2 }) + " mois." : " Calcul indisponible : date ou donn\xE9es de la p\xE9riode manquantes.") + (capacity.availableGross < 0 ? " Aucun salaire n\u2019est finan\xE7able : d\xE9ficit avant r\xE9mun\xE9ration de " + fmtEUR(-capacity.availableGross) + "." : "") + " Le r\xE9sultat annuel projet\xE9 d\xE9duit de la marge projet\xE9e le salaire brut annuel pr\xE9vu et les charges annuelles pr\xE9vues dans les objectifs." + (projection ? " Taux historique : " + (projection.rate === null ? "indisponible" : fmtPct(projection.rate, 1) + " (" + projection.reference + ")") + "." + (projection.unavailable ? " " + projection.unavailable : "") + (projection.end === 12 ? " Exercice enti\xE8rement couvert : les cartes affichent le r\xE9alis\xE9, sans ajout des devis restants." : " \xC0 facturer retenu : " + fmtEUR(projection.futureCA) + " HT, r\xE9parti jusqu\u2019\xE0 d\xE9cembre.") : " Projection indisponible : importe les Pi\xE8ces et une p\xE9riode RES compl\xE8te \xE0 date.");
   }
   function renderAnnualCap(data) {
     var host = document.getElementById("annual-cap");
@@ -5528,8 +5588,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var deltas = [];
     if (average) deltas.push('<span class="annual-progress-delta average"><strong>' + (cfg.value - average.realized >= 0 ? "+" : "\u2212") + fmtEUR(Math.abs(cfg.value - average.realized)) + "</strong>vs " + esc(refs[0] + "\u2013" + refs[refs.length - 1]) + "</span>");
     if (previousYear) deltas.push('<span class="annual-progress-delta previous"><strong>' + (cfg.value - cfg.samePeriod[previousYear].ytd >= 0 ? "+" : "\u2212") + fmtEUR(Math.abs(cfg.value - cfg.samePeriod[previousYear].ytd)) + "</strong>vs " + esc(previousYear) + "</span>");
-    var accessible = rows.map(function(row) {
-      return esc(row.year + " : " + fmtEUR(row.realized) + " r\xE9alis\xE9 \xE0 date, " + row.totalLabel + " " + fmtEUR(row.total) + (row.projected != null ? ", r\xE9alis\xE9 et pr\xE9visionnel " + fmtEUR(row.projected) : ""));
+    var accessible = rows.map(function(row2) {
+      return esc(row2.year + " : " + fmtEUR(row2.realized) + " r\xE9alis\xE9 \xE0 date, " + row2.totalLabel + " " + fmtEUR(row2.total) + (row2.projected != null ? ", r\xE9alis\xE9 et pr\xE9visionnel " + fmtEUR(row2.projected) : ""));
     }).join(". ");
     return '<section class="card annual-progress-card"><h2>Comparatif d\u2019avancement annuel</h2><p class="annual-progress-subtitle">' + esc(cfg.title) + " \u2014 \xE0 fin " + esc(cfg.asOfLabel) + "</p>" + (deltas.length ? '<div class="annual-progress-deltas">' + deltas.join("") + "</div>" : "") + '<div class="annual-progress-chart" style="height:' + (rows.length * 68 + 28) + 'px"><div style="height:100%" id="chart-annual-progress" role="img" aria-label="' + accessible + '" data-rows="' + esc(JSON.stringify(rows)) + '" data-metric="' + esc(cfg.shortLabel) + '"></div></div>' + forecastOutlookHTML(cfg.outlook, cfg.shortLabel === "CA", fmtEUR, esc) + "</section>";
   }
@@ -5543,11 +5603,11 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         return style.getPropertyValue(name).trim();
       };
       var compact = host.clientWidth < 550;
-      var maxTotal = Math.max.apply(null, rows.map(function(row) {
-        return Math.max(row.total || 0, row.realized || 0, row.projected ?? 0);
+      var maxTotal = Math.max.apply(null, rows.map(function(row2) {
+        return Math.max(row2.total || 0, row2.realized || 0, row2.projected ?? 0);
       }).concat([1]));
-      var minValue = Math.min.apply(null, rows.map(function(row) {
-        return Math.min(row.total || 0, row.realized || 0, row.projected ?? 0);
+      var minValue = Math.min.apply(null, rows.map(function(row2) {
+        return Math.min(row2.total || 0, row2.realized || 0, row2.projected ?? 0);
       }).concat([0]));
       var rich = {
         value: { fontSize: compact ? 12 : 16, fontWeight: 800, color: color("--text"), lineHeight: 22 },
@@ -5556,8 +5616,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       return {
         grid: { left: compact ? 82 : 120, right: compact ? 92 : 130, top: 0, bottom: 30, outerBoundsMode: "none" },
         tooltip: { trigger: "axis", confine: true, formatter: function(params) {
-          var row = rows[params[0].dataIndex];
-          return esc(String(row.year)) + "<br>R\xE9alis\xE9 \xE0 date : " + fmtEUR(row.realized) + "<br>" + row.totalLabel + " : " + fmtEUR(row.total) + (row.projected != null ? "<br>R\xE9alis\xE9 + pr\xE9visionnel : " + fmtEUR(row.projected) + " HT" : "");
+          var row2 = rows[params[0].dataIndex];
+          return esc(String(row2.year)) + "<br>R\xE9alis\xE9 \xE0 date : " + fmtEUR(row2.realized) + "<br>" + row2.totalLabel + " : " + fmtEUR(row2.total) + (row2.projected != null ? "<br>R\xE9alis\xE9 + pr\xE9visionnel : " + fmtEUR(row2.projected) + " HT" : "");
         } },
         xAxis: {
           type: "value",
@@ -5576,14 +5636,14 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
             type: "category",
             inverse: true,
             position: side ? "right" : "left",
-            data: rows.map(function(row) {
-              return String(row.year);
+            data: rows.map(function(row2) {
+              return String(row2.year);
             }),
             axisLine: { show: false },
             axisTick: { show: false },
             axisLabel: { interval: 0, margin: 10, rich, formatter: function(value, index) {
-              var row = rows[index];
-              return side ? "{value|" + fmtEUR(row.total) + "}\n{caption|" + row.totalLabel.toUpperCase().replace(" ANNUEL MOYEN", " ANNUEL\nMOYEN") + "}" : "{value|" + row.year + "}\n{caption|" + row.sublabel + "}";
+              var row2 = rows[index];
+              return side ? "{value|" + fmtEUR(row2.total) + "}\n{caption|" + row2.totalLabel.toUpperCase().replace(" ANNUEL MOYEN", " ANNUEL\nMOYEN") + "}" : "{value|" + row2.year + "}\n{caption|" + row2.sublabel + "}";
             } }
           };
         }),
@@ -5595,8 +5655,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
             barGap: "-100%",
             z: 3,
             itemStyle: { color: "transparent", borderColor: color(host.dataset.metric === "CA" ? "--ca-blue" : "--violet"), borderWidth: 1.5, borderType: "dashed", borderRadius: 4 },
-            data: rows.map(function(row) {
-              return row.projected ?? null;
+            data: rows.map(function(row2) {
+              return row2.projected ?? null;
             })
           },
           {
@@ -5607,8 +5667,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
             silent: true,
             z: 1,
             itemStyle: { color: color("--bg-soft"), borderRadius: 7 },
-            data: rows.map(function(row) {
-              return row.total;
+            data: rows.map(function(row2) {
+              return row2.total;
             })
           },
           {
@@ -5629,10 +5689,10 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
                 return fmtEUR(params.value) + " r\xE9alis\xE9 \xE0 date";
               }
             },
-            data: rows.map(function(row) {
-              return { value: row.realized, itemStyle: {
-                color: color(row.current ? host.dataset.metric === "CA" ? "--ca-blue" : "--violet" : "--gray"),
-                borderRadius: row.realized < 0 || row.realized >= row.total ? 7 : [7, 0, 0, 7]
+            data: rows.map(function(row2) {
+              return { value: row2.realized, itemStyle: {
+                color: color(row2.current ? host.dataset.metric === "CA" ? "--ca-blue" : "--violet" : "--gray"),
+                borderRadius: row2.realized < 0 || row2.realized >= row2.total ? 7 : [7, 0, 0, 7]
               } };
             })
           }
@@ -6094,8 +6154,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       var text = points ? fmtDeltaPts(value) : fmtDelta(value);
       return '<span class="cmp-pill ' + cls + '">' + text + "</span>";
     }
-    function catCell(row, share) {
-      return '<div class="cmp-post"><i class="cmp-dot" style="background:' + row.color + '"></i>' + row.label + '</div><div class="cmp-gauge"><span style="width:' + share + "%;background:" + row.color + '"></span></div>';
+    function catCell(row2, share) {
+      return '<div class="cmp-post"><i class="cmp-dot" style="background:' + row2.color + '"></i>' + row2.label + '</div><div class="cmp-gauge"><span style="width:' + share + "%;background:" + row2.color + '"></span></div>';
     }
     var rows = [
       { label: "Achats mati\xE8res", key: "achats_matieres", color: COLORS.red, cost: true },
@@ -6109,12 +6169,12 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var dateStr = DATA && DATA.file_mtime_iso ? new Date(DATA.file_mtime_iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" }) : "\u2014";
     var ca = ytd(cy, "ca"), prevCA = same(py, "ca"), mb = ytd(cy, "marge_brute"), prevMB = same(py, "marge_brute");
     var html = '<table class="cmp"><thead><tr><th>Poste</th><th>' + cur.year + " \xB7 au " + dateStr + "</th><th>" + pyYear + " m\xEAme p\xE9riode</th><th>\xC9cart</th></tr></thead><tbody>";
-    rows.forEach(function(row) {
-      var now = row.calc ? result(cy, false) : ytd(cy, row.key);
-      var before = row.calc ? result(py, true) : same(py, row.key);
+    rows.forEach(function(row2) {
+      var now = row2.calc ? result(cy, false) : ytd(cy, row2.key);
+      var before = row2.calc ? result(py, true) : same(py, row2.key);
       var delta = now === null || before === null ? null : now - before;
       var share = ca ? Math.max(0, Math.round(now / ca * 100)) : 0;
-      html += "<tr><td>" + catCell(row, share) + "</td><td>" + fmtEUR(now) + (now !== null ? '<br><span class="muted-col">' + share + " % du CA</span>" : "") + "</td><td>" + fmtEUR(before) + "</td><td>" + pill(delta, row.cost, false) + "</td></tr>";
+      html += "<tr><td>" + catCell(row2, share) + "</td><td>" + fmtEUR(now) + (now !== null ? '<br><span class="muted-col">' + share + " % du CA</span>" : "") + "</td><td>" + fmtEUR(before) + "</td><td>" + pill(delta, row2.cost, false) + "</td></tr>";
     });
     var costs = ca - result(cy, false), prevCosts = prevCA === null ? null : prevCA - result(py, true);
     var taux = ca ? mb / ca : null, prevTaux = prevCA ? prevMB / prevCA : null;
@@ -6516,9 +6576,10 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     tip.id = "help-tip";
     document.body.appendChild(tip);
     function place(el) {
-      var txt = el.getAttribute("data-tip");
-      if (!txt) return;
-      tip.textContent = txt;
+      var html = el.getAttribute("data-tip-html"), txt = el.getAttribute("data-tip");
+      if (!html && !txt) return;
+      if (html) tip.innerHTML = html;
+      else tip.textContent = txt;
       tip.style.display = "block";
       var r = el.getBoundingClientRect();
       var tw = tip.offsetWidth, th = tip.offsetHeight;
@@ -6570,7 +6631,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var spb = document.querySelector(".sp-body");
     if (spb) spb.addEventListener("scroll", hide);
   })();
-  var APP_VERSION = "20261008-123928";
+  var APP_VERSION = "20261008-220726";
   function showUpdateBanner(base, v) {
     if (document.getElementById("update-banner")) return;
     var d = document.createElement("div");

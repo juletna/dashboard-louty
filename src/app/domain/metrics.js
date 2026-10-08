@@ -161,6 +161,7 @@ export function historicalPlanReference(data, config) {
     ca: hasHistoricalReference ? totals.ca / count : config.CA_OBJ,
     margin: hasHistoricalReference && totals.ca !== 0 ? totals.mb / totals.ca : config.TAUX_OBJ,
     purchases: hasHistoricalReference && totals.ca !== 0 ? totals.achats / totals.ca : config.RATIO_CIBLE,
+    contributionRate: hasHistoricalReference && totals.mb > 0 ? totals.contribution / totals.mb : null,
     charges: hasHistoricalReference ? annualCharges : Math.max(0, config.MB_AN_OBJ - config.MB_MIN * 12),
     n1: {
       year: latestKey || 'N-1',

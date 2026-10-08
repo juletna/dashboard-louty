@@ -661,6 +661,15 @@
   font-size:12px; font-weight:600; line-height:1.5; padding:10px 12px; border-radius:10px;
   box-shadow:0 8px 24px rgba(0,0,0,0.28); display:none; pointer-events:none;
 }
+#help-tip p { margin:6px 0 0; }
+#help-tip .tip-title { display:block; font-size:13px; font-weight:800; }
+#help-tip .tip-period { color:rgba(255,255,255,0.7); }
+#help-tip .tip-calc { margin-top:8px; }
+#help-tip .tip-row { display:flex; justify-content:space-between; gap:16px; font-variant-numeric:tabular-nums; }
+#help-tip .tip-total { margin-top:3px; padding-top:3px; border-top:1px solid rgba(255,255,255,0.25); }
+#help-tip .tip-formula { color:rgba(255,255,255,0.7); }
+#help-tip .tip-result { font-size:14px; font-weight:800; }
+#help-tip .tip-warning { color:#ffd48a; }
 #update-banner {
   position:fixed; left:50%; bottom:20px; transform:translateX(-50%); z-index:200;
   background:#2b2536; color:#fff; padding:12px 16px; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.3);

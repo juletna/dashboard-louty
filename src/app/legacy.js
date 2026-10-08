@@ -4,7 +4,7 @@ import './parser.js';
 import { advanceMatches, paymentDetails as derivePaymentDetails } from './domain/payments.js';
 import { customerModalRows, renderCustomerAdvances } from './views/customer-payments.js';
 import { salaryCapacityAtDate, projectedPlanResult } from './domain/annual-cap.js';
-import { renderCapProjections } from './views/annual-cap.js';
+import { renderCapProjections, salaryCapacityHelp } from './views/annual-cap.js';
 import { createForecastView } from './views/forecast.js';
 import { createCartesianCharts } from './charts/cartesian.js';
 import {
@@ -528,16 +528,18 @@ function capSectionIcon(kind) { return capIcon(kind).replace('cap-stat-icon', 'c
 
 function updateCapProjections(data) {
   var cur = data.snapshot.current;
-  var capacity = salaryCapacityAtDate(data.years[cur.year], cur.year, cur.mois_renseignes, data.res_export_iso || data.file_mtime_iso, NET_FROM_GROSS);
+  var hist = historicalPlanReference(data);
+  var capacity = salaryCapacityAtDate(data.years[cur.year], cur.year, cur.mois_renseignes, data.res_export_iso || data.file_mtime_iso, NET_FROM_GROSS, hist.contributionRate);
   const projection = forecastProjection(data);
   renderCapProjections(document.getElementById('cap-projections'), {
     year:cur.year, salary:capacity.monthlyNet, result:projectedPlanResult(projection?.totalMB ?? null, PLAN),
     margin:projection?.totalMB ?? null, revenue:projection?.totalCA ?? null,
     goals:{ salary:PLAN.salary / 12 * NET_FROM_GROSS, result:PLAN.surplus,
-      margin:C.MB_AN_OBJ, revenue:C.CA_OBJ }
+      margin:C.MB_AN_OBJ, revenue:C.CA_OBJ },
+    salaryHelp:salaryCapacityHelp(capacity, { money:fmtEUR, escape:esc })
   }, { money:fmtEUR, escape:esc });
   document.getElementById('cap-projection-method').textContent =
-    'Le salaire dégageable correspond à la marge brute à date moins les charges de fonctionnement et la contribution coopérative à date, avant déduction des rémunérations déjà versées, pour un résultat à zéro. Ce disponible est converti en net et divisé par les mois couverts, le mois de l’export étant proratisé au jour inclus.' +
+    'Le salaire dégageable correspond à la marge brute à date moins les charges de fonctionnement et la contribution coopérative, avant déduction des rémunérations déjà versées, pour un résultat à zéro. La contribution étant comptabilisée avec retard, on retient le plus élevé entre le montant saisi et la part historique de la marge brute' + (hist.contributionRate !== null ? ' (' + fmtPct(hist.contributionRate, 1) + ', moyenne des exercices ' + hist.label + ')' : '') + '. Ce disponible est converti en net et divisé par les mois couverts, le mois de l’export étant proratisé au jour inclus.' +
     (capacity.elapsedMonths !== null ? ' Période retenue : ' + capacity.elapsedMonths.toLocaleString('fr-FR', { maximumFractionDigits:2 }) + ' mois.' : ' Calcul indisponible : date ou données de la période manquantes.') +
     (capacity.availableGross < 0 ? ' Aucun salaire n’est finançable : déficit avant rémunération de ' + fmtEUR(-capacity.availableGross) + '.' : '') +
     ' Le résultat annuel projeté déduit de la marge projetée le salaire brut annuel prévu et les charges annuelles prévues dans les objectifs.' +
@@ -1668,8 +1670,9 @@ document.getElementById('welcome-back').addEventListener('click', function () {
   tip.id = 'help-tip';
   document.body.appendChild(tip);
   function place(el) {
-    var txt = el.getAttribute('data-tip'); if (!txt) return;
-    tip.textContent = txt; tip.style.display = 'block';
+    var html = el.getAttribute('data-tip-html'), txt = el.getAttribute('data-tip'); if (!html && !txt) return;
+    if (html) tip.innerHTML = html; else tip.textContent = txt;
+    tip.style.display = 'block';
     var r = el.getBoundingClientRect();
     var tw = tip.offsetWidth, th = tip.offsetHeight;
     var left = Math.max(8, Math.min(r.left + r.width / 2 - tw / 2, window.innerWidth - tw - 8));
@@ -1694,7 +1697,7 @@ document.getElementById('welcome-back').addEventListener('click', function () {
 })();
 
 // Mise à jour automatique : si le fichier hébergé est plus récent, on recharge la dernière version
-var APP_VERSION = "20261008-123928";
+var APP_VERSION = "20261008-220726";
 function showUpdateBanner(base, v) {
   if (document.getElementById('update-banner')) return;
   var d = document.createElement('div');
