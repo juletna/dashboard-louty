@@ -1296,6 +1296,12 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .revenue-forecast .forecast-help:before{content:none}
 .forecast-threshold.at-start span{transform:none}
 @media(pointer:coarse){.revenue-forecast .forecast-link{min-height:44px}}
+
+.forecast-table-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px 12px;flex-wrap:wrap}
+.forecast-quick-confirm{font:inherit;font-size:12px;padding:8px 10px;border:1px solid var(--border-strong);border-radius:8px;background:var(--violet-bg);color:var(--text);cursor:pointer}
+.forecast-quick-confirm:hover{border-color:var(--violet)}
+#forecast-quick-message:empty{display:none}
+@media(max-width:650px){.forecast-table-actions{min-width:85px;gap:4px}.forecast-quick-confirm{font-size:11px;padding:7px;min-height:44px}}
 </style>
 <script>try{var _t=localStorage.getItem("cabestan_dashboard_theme");if(_t==="dark"||_t==="light")document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 </head>
@@ -3248,7 +3254,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       <div class="forecast-table-toolbar"><nav class="forecast-quick-filters" role="tablist" aria-label="Situation des devis">${Object.entries(labels).map(([kind, label]) => `<button type="button" role="tab" id="forecast-tab-${kind}" data-f-filter="${kind}" aria-controls="forecast-dashboard-tables" aria-selected="${activeTab === kind}" tabindex="${activeTab === kind ? 0 : -1}">${label} \xB7 ${counts[kind]}</button>`).join("")}</nav><input id="forecast-dashboard-search" type="search" aria-label="Rechercher dans les devis de cet onglet" placeholder="Client, num\xE9ro ou titre\u2026" value="${esc2(search)}"></div><div id="forecast-dashboard-tables" class="forecast-dashboard-tables" role="tabpanel" aria-labelledby="forecast-tab-${activeTab}">${tables}</div></details>
       <button type="button" class="forecast-link sp-help forecast-help" data-tip="${esc2(help)}" aria-label="Comprendre le pr\xE9visionnel">Comprendre le calcul \u24D8</button>
     </div>
-    <div class="forecast-all"><button class="forecast-link" data-f-action="manage">Tous les devis / g\xE9rer les s\xE9lections</button></div>
+    <p id="forecast-quick-message" class="small" role="status"></p><div class="forecast-all"><button class="forecast-link" data-f-action="manage">Tous les devis / g\xE9rer les s\xE9lections</button></div>
     ${summary.unintegrated.length ? `<details class="forecast-method"><summary>${summary.unintegrated.length} facture(s) / avoir(s) apr\xE8s la p\xE9riode RES \xB7 \xE0 rapprocher</summary><p>Ces pi\xE8ces ne sont pas ajout\xE9es automatiquement : elles pourraient recouper les devis s\xE9lectionn\xE9s.</p><ul>${summary.unintegrated.map((d) => `<li>${esc2(d.date)} \xB7 ${esc2(d.number || d.type)} \xB7 ${esc2(d.client)} : ${money3(d.amount)} HT</li>`).join("")}</ul></details>` : ""}`;
   }
 
@@ -3373,7 +3379,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       const total2 = list.reduce((n, r) => n + (review ? reviewValue(r) ?? 0 : r.choice.remaining), 0);
       return `<section aria-label="Devis ${esc2(label.toLocaleLowerCase("fr"))}"><div class="forecast-table-head"><span class="small">${list.length} devis \xB7 ${review ? "\xC0 v\xE9rifier \xB7 hors totaux" : situation === "confirmed" ? "Reste \xE0 facturer estim\xE9" : "Hors estimation"}</span><strong>${review ? "Montants \xE0 v\xE9rifier" : money3(total2)}</strong></div><div class="forecast-table-scroll"><table><thead><tr><th scope="col">Client / devis</th><th scope="col" class="forecast-table-amount">${review ? "Montant indicatif HT" : "Reste HT"}</th><th scope="col"><span class="sr-only">Action</span></th></tr></thead><tbody>${list.map((r) => {
         const value = review ? reviewValue(r) : r.choice.remaining;
-        return `<tr><td><strong>${esc2(r.client || "Client non renseign\xE9")}</strong><small>${esc2(r.number || "Sans num\xE9ro")} \xB7 ${esc2(r.title || "")}</small>${review ? `<small>${esc2(describe(r))}${!Number.isFinite(r.choice?.remaining) && !Number.isFinite(r.proposed) && Number.isFinite(r.amount) ? " \xB7 Montant total du devis, reste \xE0 d\xE9terminer" : ""}</small>` : ""}</td><td class="forecast-table-amount">${Number.isFinite(value) ? formatMoney(value) : "\xC0 d\xE9terminer"}</td><td><button class="forecast-link" ${r.missing ? 'data-f-action="selected"' : `data-f-edit="${rows.indexOf(r)}"`} aria-label="${review ? "V\xE9rifier" : "Voir le d\xE9tail de"} ${esc2(r.client)} \xB7 ${esc2(r.number)}">${review ? "V\xE9rifier le devis" : "Voir le d\xE9tail"} \u2192</button></td></tr>`;
+        return `<tr><td><strong>${esc2(r.client || "Client non renseign\xE9")}</strong><small>${esc2(r.number || "Sans num\xE9ro")} \xB7 ${esc2(r.title || "")}</small>${review ? `<small>${esc2(describe(r))}${!Number.isFinite(r.choice?.remaining) && !Number.isFinite(r.proposed) && Number.isFinite(r.amount) ? " \xB7 Montant total du devis, reste \xE0 d\xE9terminer" : ""}</small>` : ""}</td><td class="forecast-table-amount">${Number.isFinite(value) ? formatMoney(value) : "\xC0 d\xE9terminer"}</td><td><div class="forecast-table-actions">${situation === "waiting" ? `<button type="button" class="forecast-quick-confirm" data-f-confirm="${rows.indexOf(r)}" aria-label="Passer \xE0 facturer ${esc2(r.client)} \xB7 ${esc2(r.number)}">Passer \xE0 facturer</button>` : ""}<button class="forecast-link" ${r.missing ? 'data-f-action="selected"' : `data-f-edit="${rows.indexOf(r)}"`} aria-label="${review ? "V\xE9rifier" : "Voir le d\xE9tail de"} ${esc2(r.client)} \xB7 ${esc2(r.number)}">${review ? "V\xE9rifier le devis" : "Voir le d\xE9tail"} \u2192</button></div></td></tr>`;
       }).join("") || '<tr><td colspan="3" class="small">Aucun devis</td></tr>'}</tbody></table></div></section>`;
     }
     function renderList() {
@@ -3472,6 +3478,14 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         dashboardSearch = "";
         renderSummary(true);
         el("forecast-tab-" + dashboardTab).focus();
+        return;
+      }
+      if (b.dataset.fConfirm !== void 0) {
+        const row = rows[Number(b.dataset.fConfirm)];
+        if (!row || !selected(row) || row.review || row.missing || row.choice.situation !== "waiting" || !(row.choice.remaining > 0)) return;
+        commit(row, { ...row.choice, situation: "confirmed", quote: quoteSnapshot(row) }, "Devis pass\xE9 \xE0 facturer (estimation).");
+        el("forecast-quick-message").textContent = `${row.client || "Devis"} \xB7 ${row.number || "Sans num\xE9ro"} : pass\xE9 \xE0 facturer (estimation), ${money3(row.choice.remaining)}.${storage.warning ? " Modification appliqu\xE9e pour cette session uniquement." : ""}`;
+        (host.querySelector("[data-f-confirm]") || el("forecast-tab-waiting")).focus();
         return;
       }
       if (b.dataset.fEdit !== void 0) {
@@ -6495,7 +6509,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var spb = document.querySelector(".sp-body");
     if (spb) spb.addEventListener("scroll", hide);
   })();
-  var APP_VERSION = "20261008-121556";
+  var APP_VERSION = "20261008-122435";
   function showUpdateBanner(base, v) {
     if (document.getElementById("update-banner")) return;
     var d = document.createElement("div");

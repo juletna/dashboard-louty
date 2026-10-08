@@ -106,6 +106,30 @@ try {
   assert.equal(await page.locator('.forecast-column').count(),0);
   await page.reload();await page.locator('[data-f-action=manage]').waitFor();
   assert.equal(await page.locator('[data-f-filter=confirmed]').textContent(),'À facturer (estimation) · 3');
+  // Promote a waiting quote in one click, with no editor and a durable manual decision.
+  await page.locator('[data-f-jump=waiting]').click();
+  assert.equal(await page.locator('[data-f-confirm]').count(),1);
+  for(const width of [1440,390]) {
+    await page.setViewportSize({width,height:1100});
+    for(const theme of ['light','dark']) {
+      await page.evaluate(value=>{for(let i=0;i<2&&document.documentElement.getAttribute('data-theme')!==value;i++)document.querySelector('#toggle-theme').click();},theme);
+      if(process.env.SMOKE_SCREENSHOT_DIR)await page.locator('#revenue-forecast').screenshot({path:resolve(process.env.SMOKE_SCREENSHOT_DIR,`quick-confirm-${width}-${theme}.png`)});
+      assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    }
+  }
+  await page.locator('[data-f-confirm]').click();
+  assert.equal(await page.locator('#forecast-editor').evaluate(e=>e.open),false);
+  assert.equal(await page.locator('[data-f-confirm]').count(),0);
+  assert.match(await page.locator('#forecast-quick-message').innerText(),/Q-WAIT.*70 €/);
+  assert.match(await page.locator('.forecast-estimated').innerText(),/350 €/);
+  assert.match(await page.locator('aside[aria-label="En attente client"]').innerText(),/0 €/);
+  await page.reload();await page.locator('[data-f-action=manage]').waitFor();
+  assert.match(await page.locator('.forecast-estimated').innerText(),/350 €/);
+  await page.locator('#forecast-input').setInputFiles(fixtures.billing);
+  await page.locator('[data-f-action=manage]').waitFor();
+  assert.match(await page.locator('.forecast-estimated').innerText(),/350 €/);
+  await page.locator('#forecast-followed').evaluate(e=>e.open=true);
+  assert.match(await page.locator('#forecast-dashboard-tables').innerText(),/Q-WAIT/);
   assert.deepEqual(errors,[]);
   console.log('Facturation : statuts, reste candidat, totaux, acompte séparé, situations impayées, attentes séparées et décision mémorisée validés.');
 } finally {await browser?.close();await new Promise(done=>server.close(done));rmSync(directory,{recursive:true,force:true});}

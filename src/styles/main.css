@@ -1287,3 +1287,9 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .revenue-forecast .forecast-help:before{content:none}
 .forecast-threshold.at-start span{transform:none}
 @media(pointer:coarse){.revenue-forecast .forecast-link{min-height:44px}}
+
+.forecast-table-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px 12px;flex-wrap:wrap}
+.forecast-quick-confirm{font:inherit;font-size:12px;padding:8px 10px;border:1px solid var(--border-strong);border-radius:8px;background:var(--violet-bg);color:var(--text);cursor:pointer}
+.forecast-quick-confirm:hover{border-color:var(--violet)}
+#forecast-quick-message:empty{display:none}
+@media(max-width:650px){.forecast-table-actions{min-width:85px;gap:4px}.forecast-quick-confirm{font-size:11px;padding:7px;min-height:44px}}

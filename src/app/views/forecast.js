@@ -53,7 +53,7 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
     const total = list.reduce((n,r) => n + (review ? reviewValue(r) ?? 0 : r.choice.remaining),0);
     return `<section aria-label="Devis ${esc(label.toLocaleLowerCase('fr'))}"><div class="forecast-table-head"><span class="small">${list.length} devis · ${review ? 'À vérifier · hors totaux' : situation === 'confirmed' ? 'Reste à facturer estimé' : 'Hors estimation'}</span><strong>${review ? 'Montants à vérifier' : money(total)}</strong></div><div class="forecast-table-scroll"><table><thead><tr><th scope="col">Client / devis</th><th scope="col" class="forecast-table-amount">${review ? 'Montant indicatif HT' : 'Reste HT'}</th><th scope="col"><span class="sr-only">Action</span></th></tr></thead><tbody>${list.map(r => {
       const value = review ? reviewValue(r) : r.choice.remaining;
-      return `<tr><td><strong>${esc(r.client || 'Client non renseigné')}</strong><small>${esc(r.number || 'Sans numéro')} · ${esc(r.title || '')}</small>${review ? `<small>${esc(describe(r))}${!Number.isFinite(r.choice?.remaining) && !Number.isFinite(r.proposed) && Number.isFinite(r.amount) ? ' · Montant total du devis, reste à déterminer' : ''}</small>` : ''}</td><td class="forecast-table-amount">${Number.isFinite(value) ? formatMoney(value) : 'À déterminer'}</td><td><button class="forecast-link" ${r.missing ? 'data-f-action="selected"' : `data-f-edit="${rows.indexOf(r)}"`} aria-label="${review ? 'Vérifier' : 'Voir le détail de'} ${esc(r.client)} · ${esc(r.number)}">${review ? 'Vérifier le devis' : 'Voir le détail'} →</button></td></tr>`;
+      return `<tr><td><strong>${esc(r.client || 'Client non renseigné')}</strong><small>${esc(r.number || 'Sans numéro')} · ${esc(r.title || '')}</small>${review ? `<small>${esc(describe(r))}${!Number.isFinite(r.choice?.remaining) && !Number.isFinite(r.proposed) && Number.isFinite(r.amount) ? ' · Montant total du devis, reste à déterminer' : ''}</small>` : ''}</td><td class="forecast-table-amount">${Number.isFinite(value) ? formatMoney(value) : 'À déterminer'}</td><td><div class="forecast-table-actions">${situation === 'waiting' ? `<button type="button" class="forecast-quick-confirm" data-f-confirm="${rows.indexOf(r)}" aria-label="Passer à facturer ${esc(r.client)} · ${esc(r.number)}">Passer à facturer</button>` : ''}<button class="forecast-link" ${r.missing ? 'data-f-action="selected"' : `data-f-edit="${rows.indexOf(r)}"`} aria-label="${review ? 'Vérifier' : 'Voir le détail de'} ${esc(r.client)} · ${esc(r.number)}">${review ? 'Vérifier le devis' : 'Voir le détail'} →</button></div></td></tr>`;
     }).join('') || '<tr><td colspan="3" class="small">Aucun devis</td></tr>'}</tbody></table></div></section>`;
   }
   function renderList() {
@@ -146,6 +146,15 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
       dashboardSearch = '';
       renderSummary(true);
       el('forecast-tab-' + dashboardTab).focus();
+      return;
+    }
+    if (b.dataset.fConfirm !== undefined) {
+      const row = rows[Number(b.dataset.fConfirm)];
+      // Only active waiting selections can be promoted without reopening reconciliation.
+      if (!row || !selected(row) || row.review || row.missing || row.choice.situation !== 'waiting' || !(row.choice.remaining > 0)) return;
+      commit(row, { ...row.choice, situation:'confirmed', quote:quoteSnapshot(row) }, 'Devis passé à facturer (estimation).');
+      el('forecast-quick-message').textContent = `${row.client || 'Devis'} · ${row.number || 'Sans numéro'} : passé à facturer (estimation), ${money(row.choice.remaining)}.${storage.warning ? ' Modification appliquée pour cette session uniquement.' : ''}`;
+      (host.querySelector('[data-f-confirm]') || el('forecast-tab-waiting')).focus();
       return;
     }
     if (b.dataset.fEdit !== undefined) { returnFocus = b; openEditor(Number(b.dataset.fEdit)); return; }
