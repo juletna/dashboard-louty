@@ -143,7 +143,7 @@ function renderCAMB(cy, curYear, years) {
               if (DATA?.forecast?.monthly[i] != null) {
                 lines.push('CA à facturer (estimation) : ' + fmtEUR(DATA.forecast.monthly[i]) + ' HT');
                 if (outlook?.monthlyCosts[i] != null) {
-                  lines.push('Coûts estimés après déduction des dépenses déjà engagées.');
+                  lines.push('Marge et coûts estimés avec le taux historique lissé.');
                   lines.push('Répartition mensuelle au prorata du CA à facturer (estimation).');
                 } else lines.push('Répartition marge / coûts indisponible.');
               }

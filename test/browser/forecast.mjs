@@ -87,16 +87,19 @@ try {
   assert.deepEqual(chartForecast.ca,[...Array(7).fill(null),120,120,120,120,120]);
   assert.deepEqual(chartForecast.margin.slice(7),[72,72,72,72,72]);
   assert.deepEqual(chartForecast.costs.slice(7),[48,48,48,48,48]);
+  const cardValue=async title=>Number((await page.locator('.cap-projection').filter({hasText:title}).locator('.cap-projection-value').innerText()).replace(/[^0-9−-]/g,'').replace('−','-'));
   const projectedSeries=()=>page.evaluate(()=>Chart.getChart(document.querySelector('#chart-cumul')).data.datasets.find(d=>d.label.includes('Réalisé +'))?.data);
   assert.ok((await projectedSeries())[11]!==null,'uniform scenario reaches December');
   await page.locator('[data-pilotage-metric=ca]').click();const ca=await projectedSeries();
   assert.equal(ca[11]-ca[6],600);
+  assert.equal(await cardValue('Projection chiffre'),Math.round(ca[11]));
   assert.deepEqual(ca.slice(7).map((v,i)=>v-ca[6]),[120,240,360,480,600]);
   assert.equal(JSON.parse(await page.locator('#chart-annual-progress').getAttribute('data-rows'))[0].projected,ca[11]);
   await page.locator('[data-pilotage-metric=mb]').click();
+  assert.equal(await cardValue('Projection marge'),Math.round((await projectedSeries())[11]));
   await page.locator('.forecast-outlook summary').click();
   assert.match(await page.locator('.forecast-outlook').innerText(),/réparti uniformément/);
-  assert.match(await page.locator('.forecast-outlook').innerText(),/Coûts déjà comptabilisés/);
+  assert.match(await page.locator('.forecast-outlook').innerText(),/Le taux historique s’applique uniquement/);
   await filter('confirmed').click();
   assert.equal(await page.locator('.forecast-dashboard-tables table').count(),1);
   assert.equal(await page.locator('.forecast-dashboard-tables th').filter({hasText:'Mois'}).count(),0);
@@ -111,7 +114,7 @@ try {
     await page.setViewportSize({width,height:width===390?844:1100});
     for(const theme of ['light','dark']) {
       await page.evaluate(value=>{for(let i=0;i<2&&document.documentElement.getAttribute('data-theme')!==value;i++)document.querySelector('#toggle-theme').click();},theme);
-      for(const [selector,name] of [['#revenue-forecast','forecast'],['#chart-ca-mb','monthly'],['#chart-annual-progress','annual'],['#chart-cumul','cumulative']]) {
+      for(const [selector,name] of [['#cap-projections','projections'],['#revenue-forecast','forecast'],['#chart-ca-mb','monthly'],['#chart-annual-progress','annual'],['#chart-cumul','cumulative']]) {
         await page.locator(selector).scrollIntoViewIfNeeded();await shot(`${name}-${width}-${theme}`);
       }
       await page.locator('#forecast-followed').evaluate(e=>e.open=true);await filter('confirmed').click();await page.locator('#forecast-dashboard-tables tr').filter({hasText:'DEV-MANUAL'}).locator('[data-f-edit]').click();
@@ -131,11 +134,13 @@ try {
   await page.locator('[data-f-action=close-manager]').click();
   await page.locator('#file-input').setInputFiles(fixtures.res);await page.locator('[data-f-action=import]').waitFor();
   assert.match(await page.locator('#revenue-forecast').innerText(),/choix sont conservés/);
+  assert.equal(await page.locator('.cap-projection').filter({hasText:'Projection chiffre'}).locator('.cap-projection-value').innerText(),'—');
   await page.locator('#forecast-input').setInputFiles(fixtures.changed);await page.locator('[data-f-action=manage]').waitFor();
   assert.equal(await filter('waiting').textContent(),'En attente client · 2');
   await page.locator('#forecast-followed').evaluate(e=>e.open=true);await filter('confirmed').click();await page.locator('#forecast-dashboard-tables tr').filter({hasText:'DEV-MANUAL'}).locator('[data-f-edit]').click();
   await page.getByRole('button',{name:'Retirer du prévisionnel',exact:true}).click();await page.keyboard.press('Escape');
   assert.equal(await projectedSeries(),undefined,'removing confirmed work clears its cumulative scenario');
+  assert.equal(await cardValue('Projection chiffre'),Math.round(ca[6]),'removing future work updates annual card to actual');
   assert.equal(await page.locator('.forecast-outlook').count(),0);
   assert.equal(await filter('confirmed').textContent(),'À facturer (estimation) · 0');
   assert.deepEqual(errors,[]);

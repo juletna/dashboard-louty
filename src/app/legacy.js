@@ -1,4 +1,4 @@
-import { forecastOutlook } from './domain/forecast-outlook.js';
+import { forecastOutlook, forecastProjection } from './domain/forecast-outlook.js';
 import { forecastOutlookHTML } from './views/forecast-outlook.js';
 import './parser.js';
 import { advanceMatches, paymentDetails as derivePaymentDetails } from './domain/payments.js';
@@ -136,6 +136,7 @@ let distributionYear = null;
 let pilotageMetric = 'mb';
 const forecastView = createForecastView({ money: fmtEUR, escape: esc, onChange: function (summary) {
   DATA.forecast = summary;
+  updateCapProjections(DATA);
   const year = DATA.snapshot.current.year;
   renderCAMB(DATA.years[year], year, DATA.years);
   renderBanner(DATA, DATA.snapshot.current, DATA.snapshot.previous);
@@ -161,8 +162,8 @@ function render(data) {
   const prevYearKey = String(parseInt(currentYear) - 1);
   const py = years[prevYearKey] || null;
 
-  renderAnnualCap(data);
   forecastView.render(data, C.CA_OBJ);
+  renderAnnualCap(data);
   renderBanner(data, cur, prev);
   renderSante(data, cur);
   renderPerformanceKpis(cy, py, cur);
@@ -525,6 +526,24 @@ function capIcon(kind, tone) {
 }
 function capSectionIcon(kind) { return capIcon(kind).replace('cap-stat-icon', 'cap-section-icon'); }
 
+function updateCapProjections(data) {
+  var cur = data.snapshot.current;
+  var capacity = salaryCapacityAtDate(data.years[cur.year], cur.year, cur.mois_renseignes, data.res_export_iso || data.file_mtime_iso, NET_FROM_GROSS);
+  const projection = forecastProjection(data);
+  renderCapProjections(document.getElementById('cap-projections'), {
+    year:cur.year, salary:capacity.monthlyNet, result:projectedPlanResult(projection?.totalMB ?? null, PLAN),
+    margin:projection?.totalMB ?? null, revenue:projection?.totalCA ?? null,
+    goals:{ salary:PLAN.salary / 12 * NET_FROM_GROSS, result:PLAN.surplus,
+      margin:C.MB_AN_OBJ, revenue:C.CA_OBJ }
+  }, { money:fmtEUR, escape:esc });
+  document.getElementById('cap-projection-method').textContent =
+    'Le salaire dégageable correspond à la marge brute à date moins les charges de fonctionnement et la contribution coopérative à date, avant déduction des rémunérations déjà versées, pour un résultat à zéro. Ce disponible est converti en net et divisé par les mois couverts, le mois de l’export étant proratisé au jour inclus.' +
+    (capacity.elapsedMonths !== null ? ' Période retenue : ' + capacity.elapsedMonths.toLocaleString('fr-FR', { maximumFractionDigits:2 }) + ' mois.' : ' Calcul indisponible : date ou données de la période manquantes.') +
+    (capacity.availableGross < 0 ? ' Aucun salaire n’est finançable : déficit avant rémunération de ' + fmtEUR(-capacity.availableGross) + '.' : '') +
+    ' Le résultat annuel projeté déduit de la marge projetée le salaire brut annuel prévu et les charges annuelles prévues dans les objectifs.' +
+    (projection ? ' Taux historique : ' + (projection.rate === null ? 'indisponible' : fmtPct(projection.rate, 1) + ' (' + projection.reference + ')') + '.' + (projection.unavailable ? ' ' + projection.unavailable : '') + (projection.end === 12 ? ' Exercice entièrement couvert : les cartes affichent le réalisé, sans ajout des devis restants.' : ' À facturer retenu : ' + fmtEUR(projection.futureCA) + ' HT, réparti jusqu’à décembre.') : ' Projection indisponible : importe les Pièces et une période RES complète à date.');
+}
+
 function renderAnnualCap(data) {
   var host = document.getElementById('annual-cap');
   if (!host) return;
@@ -542,7 +561,7 @@ function renderAnnualCap(data) {
     '<div class="annual-cap-head"><div><h2 id="annual-cap-title">Mon cap annuel</h2><p class="annual-cap-intro">Tes objectifs et les projections au même endroit.</p></div></div>' +
     '<div class="cap-overview"><div class="cap-section-head"><h3 class="cap-section-heading">' + capSectionIcon('compass') + 'Ce que je vise</h3><button type="button" class="btn ghost" id="cap-edit" aria-haspopup="dialog" aria-controls="cap-drawer">Modifier mes objectifs</button></div><div id="cap-projections" class="cap-projections"></div>' +
       '<h3 class="cap-section-heading">' + capSectionIcon('trend') + 'Où j’en suis</h3><div id="cap-actual" class="cap-actual"></div>' +
-      '<details class="cap-explanation"><summary>Comprendre la projection</summary><p>Les projections de marge brute et de chiffre d’affaires additionnent le réalisé à date et la moyenne des mois restants des exercices complets de référence. Sans historique exploitable, la projection est indisponible.</p><p id="cap-projection-method"></p><p>Le salaire net est une estimation avant impôt, calculée avec le coefficient personnel de conversion du brut Louty. Ces montants annuels ne décrivent pas la trésorerie disponible ni un bulletin de paie.</p></details></div>' +
+      '<details class="cap-explanation"><summary>Comprendre la projection</summary><p>Le chiffre d’affaires projeté additionne le CA réalisé à date et le CA à facturer (estimation). La marge brute projetée additionne la marge réalisée et ce CA à facturer multiplié par la part historique de marge brute dans le CA. Ce taux est lissé sur les deux derniers exercices complets disponibles avant l’année courante : total des marges brutes ÷ total des CA. Les devis en attente ou à examiner sont exclus.</p><p id="cap-projection-method"></p><p>Le salaire net est une estimation avant impôt, calculée avec le coefficient personnel de conversion du brut Louty. Ces montants annuels ne décrivent pas la trésorerie disponible ni un bulletin de paie.</p></details></div>' +
     '<div class="cap-sim" id="cap-sim" hidden>' +
       '<div class="cap-sim-head"><div><h3>Modifier mon cap et mes hypothèses</h3><p><span class="cap-origin">Référence</span> vient de tes données réelles ; <span class="cap-origin custom">Personnalisé</span> signale une valeur modifiée.</p></div><button type="button" class="btn ghost" id="cap-close">Fermer</button></div>' +
       '<div class="cap-inputs">' +
@@ -552,19 +571,7 @@ function renderAnnualCap(data) {
         '<div class="cap-field cap-slider-field"><label for="cap-charges"><span class="cap-label-copy">Charges annuelles à financer prévisionnelles <span class="sp-help" data-tip="Les charges à financer regroupent les charges de fonctionnement et la contribution coopérative. Elles s’ajoutent au salaire brut et au résultat visé pour calculer la marge brute nécessaire. N-1 (' + ref.n1.year + ') : ' + fmtEUR(ref.n1.chargesFonct) + ' de charges de fonctionnement + ' + fmtEUR(ref.n1.contribution) + ' de contribution coopérative = ' + fmtEUR(ref.n1.charges) + '." tabindex="0" aria-label="Détail des charges annuelles à financer">?</span></span></label><output class="cap-slider-value" id="cap-charges-out">' + fmtEUR(PLAN.charges) + '</output><div class="cap-control-row"><div class="cap-range"><input id="cap-charges" type="range" min="0" max="' + maxCharges + '" step="1" value="' + Math.min(maxCharges, Math.round(PLAN.charges)) + '"><span class="cap-range-marker" style="left:' + Math.max(0, Math.min(100, chargesReference / maxCharges * 100)) + '%" title="Référence : ' + fmtEUR(chargesReference) + ' · ' + chargesReferencePeriod + '"><span class="cap-range-ref-value">' + fmtEUR(chargesReference) + '</span><span class="cap-range-ref-period">' + chargesReferencePeriod + '</span></span></div><button type="button" class="cap-mini-btn" id="cap-charges-n1">N-1 : ' + fmtEUR(ref.n1.charges) + '</button></div></div>' +
       '</div><div class="cap-result" id="cap-result"></div><div class="cap-actions"><button type="button" class="btn primary" id="cap-apply">Utiliser cette trajectoire</button><button type="button" class="btn ghost" id="cap-reset">Revenir à mon historique</button></div><div class="cap-preview-status" id="cap-preview-status"></div>' +
     '</div>';
-  var cur = data.snapshot.current;
-  var capacity = salaryCapacityAtDate(data.years[cur.year], cur.year, cur.mois_renseignes, data.res_export_iso || data.file_mtime_iso, NET_FROM_GROSS);
-  renderCapProjections(document.getElementById('cap-projections'), {
-    year:cur.year, salary:capacity.monthlyNet, result:projectedPlanResult(cur.projection_mb_seasonal, PLAN),
-    margin:cur.projection_mb_seasonal, revenue:cur.projection_ca_seasonal,
-    goals:{ salary:PLAN.salary / 12 * NET_FROM_GROSS, result:PLAN.surplus,
-      margin:C.MB_AN_OBJ, revenue:C.CA_OBJ }
-  }, { money:fmtEUR, escape:esc });
-  document.getElementById('cap-projection-method').textContent =
-    'Le salaire dégageable correspond à la marge brute à date moins les charges de fonctionnement et la contribution coopérative à date, avant déduction des rémunérations déjà versées, pour un résultat à zéro. Ce disponible est converti en net et divisé par les mois couverts, le mois de l’export étant proratisé au jour inclus.' +
-    (capacity.elapsedMonths !== null ? ' Période retenue : ' + capacity.elapsedMonths.toLocaleString('fr-FR', { maximumFractionDigits:2 }) + ' mois.' : ' Calcul indisponible : date ou données de la période manquantes.') +
-    (capacity.availableGross < 0 ? ' Aucun salaire n’est finançable : déficit avant rémunération de ' + fmtEUR(-capacity.availableGross) + '.' : '') +
-    ' Le résultat annuel projeté déduit de la marge projetée le salaire brut annuel prévu et les charges annuelles prévues dans les objectifs. Références de projection : ' + (cur.reference_years.join(', ') || 'aucune') + '.';
+  updateCapProjections(data);
   var capDrawer = document.getElementById('cap-drawer');
   var capDrawerBackdrop = document.getElementById('cap-drawer-backdrop');
   var capSim = host.querySelector('#cap-sim');
@@ -1687,7 +1694,7 @@ document.getElementById('welcome-back').addEventListener('click', function () {
 })();
 
 // Mise à jour automatique : si le fichier hébergé est plus récent, on recharge la dernière version
-var APP_VERSION = "20261008-123153";
+var APP_VERSION = "20261008-123928";
 function showUpdateBanner(base, v) {
   if (document.getElementById('update-banner')) return;
   var d = document.createElement('div');

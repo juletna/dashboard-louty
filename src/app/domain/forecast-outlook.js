@@ -1,30 +1,46 @@
-import { historicalPlanReference, sumPeriod } from './metrics.js';
-import { isPeriodCovered, isFiniteNumber } from './schema.js';
+import { sumPeriod } from './metrics.js';
+import { isPeriodCovered, isFiniteNumber, hasObservedValue } from './schema.js';
 
 const round = value => Math.round(value * 100) / 100;
 
-// A scenario for the confirmed order book spread over the remaining months, not the seasonal projection.
-// Costs already incurred consume the annual envelope before future costs are estimated.
-export function forecastOutlook(data) {
+// Shared annual scenario for the overview and graphs. No statistical CA fallback.
+export function forecastProjection(data) {
   const forecast = data?.forecast;
   if (!forecast?.cutoff || !isFiniteNumber(forecast.actual)) return null;
   const end = Number(forecast.cutoff.slice(5));
   const source = data.years?.[forecast.year];
-  if (!end || !isPeriodCovered(source, end)) return null;
+  if (!Number.isInteger(end) || end < 1 || end > 12 || !isPeriodCovered(source, end)) return null;
+  // Missing Pièces is not a zero order book. A closed exercise needs no future estimate.
+  if (end < 12 && !Array.isArray(data.revenue_distribution?.documents)) return null;
   const monthly = Array.from({ length:12 }, (_, i) => i >= end && isFiniteNumber(forecast.monthly?.[i]) ? forecast.monthly[i] : 0);
   const futureCA = monthly.reduce((sum, value) => sum + value, 0);
-  if (!(futureCA > 0)) return null;
-  const last = forecast.monthly.findLastIndex((value, i) => i >= end && isFiniteNumber(value));
   const actualMB = sumPeriod(source, 'marge_brute', end);
-  const reference = historicalPlanReference(data, {});
-  const referenceCA = reference.years.reduce((sum, year) => sum + sumPeriod(data.years[year], 'ca'), 0);
-  const rate = referenceCA > 0 ? reference.margin : null;
-  const validRate = isFiniteNumber(rate) && rate >= 0 && rate <= 1;
+  const referenceYears = Object.keys(data.years).filter(year => year < forecast.year &&
+    isPeriodCovered(data.years[year], 12) && ['ca', 'marge_brute'].every(key => hasObservedValue(data.years[year].monthly[key])))
+    .sort().slice(-2);
+  const referenceCA = referenceYears.reduce((sum, year) => sum + sumPeriod(data.years[year], 'ca'), 0);
+  const referenceMB = referenceYears.reduce((sum, year) => sum + sumPeriod(data.years[year], 'marge_brute'), 0);
+  const rate = referenceCA > 0 ? referenceMB / referenceCA : null;
   const totalCA = forecast.actual + futureCA;
-  const actualCosts = actualMB === null ? null : forecast.actual - actualMB;
-  const annualCosts = validRate ? totalCA * (1 - rate) : null;
-  const futureCosts = actualCosts !== null && annualCosts !== null ? Math.max(0, annualCosts - actualCosts) : null;
-  const totalMB = futureCosts === null ? null : actualMB + futureCA - futureCosts;
+  const futureMargin = futureCA === 0 ? 0 : rate === null ? null : futureCA * rate;
+  const futureCosts = futureMargin === null ? null : futureCA - futureMargin;
+  const totalMB = actualMB === null || futureMargin === null ? null : actualMB + futureMargin;
+  return {
+    end, actualCA:forecast.actual, actualMB, futureCA:round(futureCA),
+    totalCA:round(totalCA), totalMB:totalMB === null ? null : round(totalMB),
+    futureCosts, rate, referenceYears, reference:referenceYears.join(' et ') || 'historique indisponible',
+    unavailable:actualMB === null ? 'Marge réalisée indisponible sur la période.' : futureMargin === null ? 'Taux de marge historique indisponible.' : null,
+  };
+}
+
+// Only extend graphs when there is future work; zero remains usable on annual cards.
+export function forecastOutlook(data) {
+  const projection = forecastProjection(data);
+  if (!projection || !(projection.futureCA > 0)) return null;
+  const { end, actualMB, futureCA, futureCosts, totalMB } = projection;
+  const forecast = data.forecast;
+  const monthly = Array.from({ length:12 }, (_, i) => i >= end && isFiniteNumber(forecast.monthly?.[i]) ? forecast.monthly[i] : 0);
+  const last = forecast.monthly.findLastIndex((value, i) => i >= end && isFiniteNumber(value));
   const ca = Array(12).fill(null), mb = Array(12).fill(null);
   ca[end - 1] = forecast.actual;
   if (totalMB !== null) mb[end - 1] = actualMB;
@@ -43,10 +59,5 @@ export function forecastOutlook(data) {
       allocatedCosts = costsToDate;
     }
   }
-  return {
-    ca, mb, monthlyCosts, monthlyMargin, end, last, actualCA:forecast.actual, actualMB, futureCA:round(futureCA),
-    totalCA:round(totalCA), totalMB:totalMB === null ? null : round(totalMB),
-    actualCosts, annualCosts, futureCosts, rate:validRate ? rate : null, reference:reference.label,
-    unavailable:actualMB === null ? 'Marge réalisée indisponible sur la période.' : !validRate ? 'Taux de marge historique exploitable indisponible.' : null,
-  };
+  return { ...projection, ca, mb, monthlyCosts, monthlyMargin, last };
 }

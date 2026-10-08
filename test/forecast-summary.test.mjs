@@ -21,3 +21,16 @@ test('coverage presentation distinguishes remaining need, exact coverage and exc
   assert.match(excess,/width:75%/);
   assert.match(excess,/\+20 HT/);
 });
+
+test('zero potential cards disappear while unknown review amounts remain actionable',()=>{
+  const options={summary:{actual:40,confirmed:60,year:'2026',waiting:0,validation:0,reviewCount:0,unintegrated:[]},goal:100,reviewCount:0,reviewAmount:0,reviewUnknown:0,warning:'',expanded:false,search:'',tables:'',activeTab:'confirmed',counts:{confirmed:1,waiting:0,validation:0,review:0},money:String,escape:String};
+  assert.doesNotMatch(renderForecastSummary(options),/<aside/);
+  assert.match(renderForecastSummary(options),/data-potential-columns="0"/);
+  options.summary.waiting=20;options.counts.waiting=1;
+  assert.match(renderForecastSummary(options),/data-potential-columns="1"/);
+  options.reviewCount=1;options.reviewUnknown=1;options.counts.review=1;
+  const html=renderForecastSummary(options);
+  assert.match(html,/data-potential-columns="2"/);
+  assert.match(html,/À déterminer/);
+  assert.match(html,/Vérifier 1 devis/);
+});

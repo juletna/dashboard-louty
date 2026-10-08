@@ -8,10 +8,14 @@ export function renderForecastSummary({ summary, goal, reviewCount, reviewAmount
   const covered = coverage ? Math.min(coverage.need, estimated) : 0;
   const surplus = coverage ? -coverage.balance : 0;
   const labels = { confirmed:'À facturer (estimation)', waiting:'En attente client', validation:'En attente de validation', review:'À examiner' };
-  const help = 'Montants HT. Le besoin restant correspond à l’objectif annuel moins le CA réalisé. Les devis acceptés et vérifiés alimentent le montant à facturer estimé, qui reste susceptible d’ajustements. Les attentes et les devis à examiner restent hors estimation. Pour les devis à examiner, le montant saisi ou le reste candidat est affiché lorsqu’il est connu ; sinon, le montant total du devis sert de repère, sans constituer un reste à facturer validé. Les montants inconnus sont signalés. Le scénario annuel répartit l’estimation uniformément après la période RES jusqu’à décembre ; il ne constitue pas un calendrier de facturation et ne s’ajoute pas à la projection statistique.';
-  const potential = (kind, amount, note) => `<aside class="forecast-potential" aria-label="${labels[kind]}"><h3>${labels[kind]}</h3><strong>${money(amount)} <small>HT</small></strong><div class="forecast-potential-foot"><span>${note}</span><button class="forecast-link" data-f-jump="${kind}">${counts[kind] === 1 ? 'Voir le devis' : `Voir les ${counts[kind]} devis`} →</button></div></aside>`;
+  const help = 'Montants HT. Le besoin restant correspond à l’objectif annuel moins le CA réalisé. Les devis acceptés et vérifiés alimentent le montant à facturer estimé, qui reste susceptible d’ajustements. Les attentes et les devis à examiner restent hors estimation. Pour les devis à examiner, le montant saisi ou le reste candidat est affiché lorsqu’il est connu ; sinon, le montant total du devis sert de repère, sans constituer un reste à facturer validé. Les montants inconnus sont signalés. Le scénario annuel répartit l’estimation uniformément après la période RES jusqu’à décembre ; il ne constitue pas un calendrier de facturation et alimente les projections du cap annuel.';
+  const potential = (kind, amount, note) => `<aside class="forecast-potential forecast-potential-${kind}" aria-label="${labels[kind]}"><h3>${labels[kind]}</h3><strong>${money(amount)} <small>HT</small></strong><div class="forecast-potential-foot"><span>${note}</span><button class="forecast-link" data-f-jump="${kind}">${counts[kind] === 1 ? 'Voir le devis' : `Voir les ${counts[kind]} devis`} →</button></div></aside>`;
+  const showWaiting = summary.waiting !== 0;
+  const showValidation = summary.validation !== 0;
+  const showReview = reviewAmount !== 0 || reviewUnknown > 0;
+  const columns = Number(showWaiting) + Number(showValidation || showReview);
   return `<div class="forecast-head"><div><h2 id="forecast-title">Chiffre d’affaires prévisionnel</h2><p class="small">Restant à facturer · exercice ${esc(summary.year)} · montants HT</p></div></div>${warning}
-    <div class="forecast-future-layout">
+    <div class="forecast-future-layout" data-potential-columns="${columns}">
       <section id="cap-forecast" class="forecast-coverage" aria-label="Couverture du CA restant à produire">
         <div class="forecast-estimated"><strong>${money(estimated)}</strong> <span>HT · À facturer (estimation)</span></div>
         ${coverage ? `<p class="forecast-difference ${surplus < 0 ? 'shortfall' : ''}"><strong>${surplus > 0 ? '+' : surplus < 0 ? '−' : ''}${money(Math.abs(surplus))}</strong> HT par rapport à l’objectif, <em>selon cette estimation</em>.</p>
@@ -20,11 +24,13 @@ export function renderForecastSummary({ summary, goal, reviewCount, reviewAmount
           <div class="forecast-coverage-legend"><span><span><i></i>${surplus < 0 ? 'Besoin couvert par l’estimé' : 'Besoin couvert'}</span><strong>${money(covered)} HT</strong></span><span><span><i class="${surplus < 0 ? 'forecast-gap-dot' : 'forecast-excess-dot'}"></i>${surplus < 0 ? 'Reste à trouver' : 'Dépassement estimé'}</span><strong>${surplus > 0 ? '+' : ''}${money(Math.abs(surplus))} HT</strong></span></div>
         </div>` : '<p class="small">Besoin indisponible : un objectif et une période RES couverte sont nécessaires.</p>'}
       </section>
-      <div class="forecast-potentials">
-        ${potential('waiting', summary.waiting, 'Hors estimation')}
-        ${potential('validation', summary.validation, 'Hors estimation')}
-        <aside class="forecast-potential forecast-review-card" aria-label="À examiner"><h3>À examiner</h3><strong>${reviewUnknown === reviewCount && reviewCount > 0 ? 'À déterminer' : money(reviewAmount) + ' <small>HT</small>'}</strong><div class="forecast-potential-foot"><span>Montants indicatifs · hors totaux${reviewUnknown ? ` · ${reviewUnknown} non renseigné(s)` : ''}</span><button class="forecast-link" data-f-jump="review">Vérifier ${reviewCount} devis →</button></div></aside>
-      </div>
+      ${columns ? `<div class="forecast-potentials" style="--potential-columns:${columns}">
+        ${showWaiting ? potential('waiting', summary.waiting, 'Hors estimation') : ''}
+        ${showValidation || showReview ? `<div class="forecast-potential-stack">
+        ${showValidation ? potential('validation', summary.validation, 'Hors estimation') : ''}
+        ${showReview ? `<aside class="forecast-potential forecast-review-card" aria-label="À examiner"><h3>À examiner</h3><strong>${reviewUnknown === reviewCount && reviewCount > 0 ? 'À déterminer' : money(reviewAmount) + ' <small>HT</small>'}</strong><div class="forecast-potential-foot"><span>Montants indicatifs · hors totaux${reviewUnknown ? ` · ${reviewUnknown} non renseigné(s)` : ''}</span><button class="forecast-link" data-f-jump="review">Vérifier ${reviewCount} devis →</button></div></aside>` : ''}
+        </div>` : ''}
+      </div>` : ''}
     </div>
     ${summary.reviewCount ? `<p class="forecast-warning">${summary.reviewCount} devis sélectionné(s) à vérifier après actualisation du rapprochement. Leurs montants saisis sont conservés, mais suspendus des totaux. <button class="forecast-link" data-f-action="selected">Vérifier</button></p>` : ''}
     <div class="forecast-details-row"><details id="forecast-followed" class="forecast-followed" ${expanded ? 'open' : ''}><summary><span class="forecast-show-label">Afficher les devis →</span><span class="forecast-hide-label">Masquer les devis ↑</span></summary>

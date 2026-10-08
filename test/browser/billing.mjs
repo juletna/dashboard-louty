@@ -18,10 +18,12 @@ let browser;
 try {
   browser=await chromium.launch();
   const page=await browser.newPage({viewport:{width:1440,height:1100},reducedMotion:'reduce'});
+  const openActions=async scope=>{const toggle=scope.locator('.forecast-actions-toggle');if(await toggle.isVisible() && await toggle.getAttribute('aria-expanded')==='false'){await toggle.click();assert.equal(await page.locator('#forecast-manager').evaluate(e=>e.open),false);}};
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto(process.env.FORECAST_BASE_URL || `http://127.0.0.1:${server.address().port}/`);
   await page.locator('#file-input').setInputFiles([fixtures.res,fixtures.billing]);
   await page.locator('[data-f-action=manage]').waitFor();
+  const originalGaugeWidth=(await page.locator('#cap-forecast').boundingBox()).width;
   assert.equal(await page.locator('[data-f-filter=confirmed]').textContent(),'À facturer (estimation) · 2');
   assert.equal(await page.locator('.forecast-quick-filters [data-f-filter=waiting]').textContent(),'En attente client · 1');
   assert.equal(await page.locator('.forecast-quick-filters [data-f-filter=validation]').textContent(),'En attente de validation · 2');
@@ -39,13 +41,14 @@ try {
   assert.match(await page.locator('#forecast-dashboard-tables').innerText(),/Q-SCOPE/);
   assert.match(await page.locator('#forecast-dashboard-tables').innerText(),/reste à déterminer/);
   assert.match(await page.locator('.forecast-estimated').innerText(),/250 €/);
-  await page.locator('.forecast-row-menu > summary').click();
+  await openActions(page);
   await page.locator('[data-f-target=confirmed]').click();
   assert.equal(await page.locator('#forecast-editor').evaluate(e=>e.open),true,'ambiguous amounts require examination');
   assert.equal(await page.locator('#forecast-situation').inputValue(),'confirmed');
   assert.equal(await page.locator('#forecast-amount').inputValue(),'30','candidate remainder, not the whole quote');
   await page.keyboard.press('Escape');
   assert.match(await page.locator('.forecast-estimated').innerText(),/250 €/,'opening the editor does not reactivate the quote');
+  await page.waitForFunction(()=>!document.querySelector('#forecast-editor').open);
   await page.locator('[data-f-filter=review]').press('Home');
   assert.equal(await page.locator('[data-f-filter=confirmed]').getAttribute('aria-selected'),'true');
   await page.locator('#forecast-dashboard-search').fill('Q-DEPOSIT');
@@ -124,14 +127,14 @@ try {
       assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     }
   }
-  await page.locator('.forecast-row-menu > summary').click();
+  await openActions(page);
   assert.equal(await page.locator('[data-f-transition]').count(),4);
   await page.locator('[data-f-target=confirmed]').click();
   assert.equal(await page.locator('#forecast-editor').evaluate(e=>e.open),false);
   assert.equal(await page.locator('[data-f-target=confirmed]').count(),0);
   assert.match(await page.locator('#forecast-quick-message').innerText(),/Q-WAIT.*À facturer/);
   assert.match(await page.locator('.forecast-estimated').innerText(),/350 €/);
-  assert.match(await page.locator('aside[aria-label="En attente client"]').innerText(),/0 €/);
+  assert.equal(await page.locator('aside[aria-label="En attente client"]').count(),0);
   await page.reload();await page.locator('[data-f-action=manage]').waitFor();
   assert.match(await page.locator('.forecast-estimated').innerText(),/350 €/);
   await page.locator('#forecast-input').setInputFiles(fixtures.billing);
@@ -144,7 +147,7 @@ try {
   const transition=async (from,to)=>{
     await page.locator('#forecast-followed').evaluate(e=>e.open=true);
     await page.locator(`[data-f-filter=${from}]`).click();
-    await tableRow().locator('.forecast-row-menu > summary').click();
+    await openActions(tableRow());
     assert.equal(await tableRow().locator('[data-f-transition]').count(),4);
     assert.equal(await tableRow().locator(`[data-f-target=${from}]`).count(),0);
     await tableRow().locator(`[data-f-target=${to}]`).click();
@@ -156,18 +159,19 @@ try {
   await page.locator('[data-f-jump=review]').click();
   assert.match(await tableRow().innerText(),/Mis à examiner manuellement/);
   if(process.env.SMOKE_SCREENSHOT_DIR){
-    await tableRow().locator('.forecast-row-menu > summary').click();
+    await openActions(tableRow());
     for(const width of [1440,390]){
       await page.setViewportSize({width,height:1100});
       for(const theme of ['light','dark']){
         await page.evaluate(value=>{for(let i=0;i<2&&document.documentElement.getAttribute('data-theme')!==value;i++)document.querySelector('#toggle-theme').click();},theme);
         await page.locator('[data-f-jump=review]').click();
-        await tableRow().locator('.forecast-row-menu > summary').click();
+        await openActions(tableRow());
         await page.locator('#revenue-forecast').screenshot({path:resolve(process.env.SMOKE_SCREENSHOT_DIR,`actions-${width}-${theme}.png`)});
         assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
       }
     }
   }
+  await page.setViewportSize({width:390,height:844});
   await transition('review','validation');
   assert.equal(await page.locator('#forecast-editor').evaluate(e=>e.open),false);
   assert.match(await page.locator('aside[aria-label="En attente de validation"]').innerText(),/180 €/);
@@ -175,9 +179,36 @@ try {
   assert.match(await page.locator('aside[aria-label="En attente client"]').innerText(),/70 €/);
   await transition('waiting','exclude');
   await page.locator('#forecast-input').setInputFiles(fixtures.billing);
-  await page.locator('[data-f-jump=waiting]').click();
+  await page.locator('#forecast-followed').evaluate(e=>e.open=true);
+  await page.locator('[data-f-filter=waiting]').click();
   assert.equal(await tableRow().count(),0);
-  assert.match(await page.locator('aside[aria-label="En attente client"]').innerText(),/0 €/);
+  assert.equal(await page.locator('aside[aria-label="En attente client"]').count(),0);
+  await page.setViewportSize({width:1440,height:1100});
+  for(const kind of ['validation','review']) {
+    await page.locator(`[data-f-filter=${kind}]`).click();
+    while(await page.locator('[data-f-target=waiting]').count())await page.locator('[data-f-target=waiting]').first().click();
+  }
+  assert.equal(await page.locator('.forecast-potential').count(),1);
+  assert.equal(await page.locator('.forecast-potential-stack').count(),0);
+  assert.ok((await page.locator('#cap-forecast').boundingBox()).width>originalGaugeWidth);
+  const snapshotLayout=async name=>{
+    for(const width of [1440,390]){
+      await page.setViewportSize({width,height:1100});
+      for(const theme of ['light','dark']){
+        await page.evaluate(value=>{for(let i=0;i<2&&document.documentElement.getAttribute('data-theme')!==value;i++)document.querySelector('#toggle-theme').click();},theme);
+        if(process.env.SMOKE_SCREENSHOT_DIR)await page.locator('#revenue-forecast').screenshot({path:resolve(process.env.SMOKE_SCREENSHOT_DIR,`${name}-${width}-${theme}.png`)});
+        assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+      }
+    }
+  };
+  await snapshotLayout('one-column');
+  await page.setViewportSize({width:1440,height:1100});
+  await page.locator('[data-f-filter=waiting]').click();
+  while(await page.locator('[data-f-target=exclude]').count())await page.locator('[data-f-target=exclude]').first().click();
+  assert.equal(await page.locator('.forecast-potential').count(),0);
+  assert.equal(await page.locator('.forecast-potentials').count(),0);
+  assert.ok(Math.abs((await page.locator('#cap-forecast').boundingBox()).width-(await page.locator('.forecast-future-layout').boundingBox()).width)<1);
+  await snapshotLayout('gauge-full');
   assert.deepEqual(errors,[]);
   console.log('Facturation : statuts, reste candidat, totaux, acompte séparé, situations impayées, attentes séparées et décision mémorisée validés.');
 } finally {await browser?.close();await new Promise(done=>server.close(done));rmSync(directory,{recursive:true,force:true});}
