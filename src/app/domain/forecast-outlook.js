@@ -3,7 +3,7 @@ import { isPeriodCovered, isFiniteNumber } from './schema.js';
 
 const round = value => Math.round(value * 100) / 100;
 
-// A scenario for the dated, confirmed order book, not the seasonal projection.
+// A scenario for the confirmed order book spread over the remaining months, not the seasonal projection.
 // Costs already incurred consume the annual envelope before future costs are estimated.
 export function forecastOutlook(data) {
   const forecast = data?.forecast;
@@ -14,7 +14,7 @@ export function forecastOutlook(data) {
   const monthly = Array.from({ length:12 }, (_, i) => i >= end && isFiniteNumber(forecast.monthly?.[i]) ? forecast.monthly[i] : 0);
   const futureCA = monthly.reduce((sum, value) => sum + value, 0);
   if (!(futureCA > 0)) return null;
-  const last = monthly.findLastIndex(value => value !== 0);
+  const last = forecast.monthly.findLastIndex((value, i) => i >= end && isFiniteNumber(value));
   const actualMB = sumPeriod(source, 'marge_brute', end);
   const reference = historicalPlanReference(data, {});
   const referenceCA = reference.years.reduce((sum, year) => sum + sumPeriod(data.years[year], 'ca'), 0);

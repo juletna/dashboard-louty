@@ -8,9 +8,9 @@ export function validateChoice(choice) {
     (choice.billed === undefined || typeof choice.billed === 'boolean') &&
     (choice.billingKeys === undefined || (Array.isArray(choice.billingKeys) && choice.billingKeys.every(key => typeof key === 'string') && new Set(choice.billingKeys).size === choice.billingKeys.length)) &&
     typeof choice.fingerprint === 'string' && choice.quote && typeof choice.quote === 'object' &&
-    (choice.action === 'exclude' || (['confirmed', 'waiting'].includes(choice.situation) &&
+    (choice.action === 'exclude' || (['confirmed', 'waiting', 'validation'].includes(choice.situation) &&
       Number.isFinite(choice.remaining) && choice.remaining >= 0 &&
-      (choice.month === null || validMonth(choice.month))));
+      (choice.month === undefined || choice.month === null || validMonth(choice.month))));
 }
 
 // Independent of the RES cache: refreshing RES clears complementary imports,

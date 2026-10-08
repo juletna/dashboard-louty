@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { prepareDocuments, matchQuotes, reconcileForecast, forecastSummary, forecastCalendar } from '../src/app/domain/forecast.js';
+import { prepareDocuments, matchQuotes, reconcileForecast, forecastSummary } from '../src/app/domain/forecast.js';
 import { createForecastStorage, FORECAST_KEY } from '../src/app/state/forecast.js';
 import { parseExportDate } from '../src/app/state/import.js';
 import { parsePieces } from '../src/app/parser.js';
@@ -91,16 +91,16 @@ test('choices survive reordered imports, changed invoices require review, missin
   const missing = reconcileForecast([], choices)[0];
   assert.equal(missing.missing, true); assert.equal(missing.choice.remaining, 100);
 });
-test('annual forecast separates waits, undated, covered months, other years and stale selections', () => {
+test('annual forecast ignores legacy months and separates waits and stale selections', () => {
   const documents = prepareDocuments(Array.from({ length: 6 }, (_, i) => doc('q' + i, 100, 'Devis', { client_id: String(i) })));
   const r = matchQuotes(documents);
   const choices = new Map(r.map((q, i) => [q.key, choice(q, [ {}, { situation: 'waiting' }, { month: null }, { month: '2026-09' }, { month: '2027-01' }, { fingerprint: 'stale' } ][i])]));
   const data = { years: { 2026: { monthly: { ca: [100, null, 200] }, months_present: [1,2,3,4,5,6,7,8,9] } }, snapshot: { current: { year: '2026' } } };
   const s = forecastSummary(reconcileForecast(documents, choices), data, 1000);
-  assert.equal(s.confirmed, 400); assert.equal(s.waiting, 100); assert.equal(s.undated, 100);
-  assert.equal(s.annualConfirmed, 100); assert.equal(s.actual, 300); assert.equal(s.actualPlusConfirmed, 400);
-  assert.equal(s.gap, 600); assert.equal(s.reviewCount, 1); assert.equal(s.coveredCount, 1);
-  assert.equal(s.monthly[9], 100); assert.equal(s.monthly[8], null);
+  assert.equal(s.confirmed, 400); assert.equal(s.waiting, 100);
+  assert.equal(s.annualConfirmed, 400); assert.equal(s.actual, 300); assert.equal(s.actualPlusConfirmed, 700);
+  assert.equal(s.gap, 300); assert.equal(s.reviewCount, 1);
+  assert.deepEqual(s.monthly.slice(9), [133.33,133.34,133.33]); assert.equal(s.monthly[8], null);
   data.years[2026].monthly.ca.fill(null);
   assert.equal(forecastSummary([], data, 1000).actualPlusConfirmed, null);
 });
@@ -189,7 +189,7 @@ test('agreement auto-includes only usable unmatched or partial quotes, with no i
   }
   for (const date of [null,'','not-a-date','2026-02-30','2026-13-01']) {
     const [row] = reconcileForecast(prepareDocuments([{...q,agreement_date:date}]),new Map());
-    assert.equal(row.accepted,false); assert.equal(row.choice,undefined);
+    assert.equal(row.accepted,false); assert.equal(row.choice.situation,'waiting');
   }
 });
 
@@ -309,13 +309,4 @@ test('different IDs with identical name and TTC require manual confirmation desp
   const alreadyMatched = match([q, f, doc('Q-OTHER',82.5,'Devis',{client_id:'002',amount_ttc:99})]);
   assert.equal(alreadyMatched[0].probableInvoices,undefined);
   assert.equal(alreadyMatched[1].status,'complete');
-});
-
-
-test('confirmed calendar ends at last booked month, keeps interior gaps and excludes waiting dates', () => {
-  const row=(month,remaining,situation='confirmed')=>({choice:{month,remaining,situation}});
-  assert.deepEqual(forecastCalendar([row('2026-11',100),row('2027-01',200),row('2027-05',999,'waiting'),row(null,500)]),[
-    {month:'2026-11',confirmed:100},{month:'2026-12',confirmed:0},{month:'2027-01',confirmed:200}]);
-  assert.deepEqual(forecastCalendar([row(null,50),row('2028-01',500,'waiting')]),[]);
-  assert.deepEqual(forecastCalendar([row('2026-10',10),row('2026-10',20)]),[{month:'2026-10',confirmed:30}]);
 });

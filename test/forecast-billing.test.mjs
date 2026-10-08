@@ -20,7 +20,7 @@ test('paid advance alone keeps the whole accepted HT without planning or payment
   assert.equal(r.proposed,100); assert.equal(r.auto,true); assert.equal(r.choice.month,null);
   assert.equal(forecastStatus(r),'Confirmé · À facturer');
   const s = forecastSummary([r],data,1000);
-  assert.equal(s.confirmed,100); assert.equal(s.undated,100); assert.equal(s.annualConfirmed,0);
+  assert.equal(s.confirmed,100); assert.equal(s.annualConfirmed,100);
   for (const patch of [{paid:29.99},{state:'Attente valid.'},{date:'2025-01-01'},{amount_ttc:null}]) {
     const [next] = run([q,{...a,...patch}]);
     if (patch.date) assert.equal(next.proposed,100); else assert.equal(next.auto,false);
@@ -147,9 +147,9 @@ test('same-name cross-ID coverage is a persistent manual decision, conflicting c
   assert.equal(changed[0].review,true);
 });
 
-test('manual amount and schedule decide scope review; only admissible months add to RES', () => {
+test('manual amount decides scope review; legacy schedule does not alter uniform distribution', () => {
   const [r]=run([q,bill(90,108)]);
-  for (const [month,expected] of [[null,0],['2026-02',0],['2026-03',10],['2027-03',0]]) {
+  for (const [month,expected] of [[null,10],['2026-02',10],['2026-03',10],['2027-03',10]]) {
     const [manual]=run([q,bill(90,108)],new Map([[r.key,choice(r,{remaining:10,month})]]));
     const s=forecastSummary([manual],data,1000);
     assert.equal(s.confirmed,10); assert.equal(s.annualConfirmed,expected); assert.equal(s.actual,30);

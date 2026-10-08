@@ -1210,7 +1210,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
   .forecast-situation-filters button[aria-pressed="true"] { color:var(--violet); border-color:var(--violet); background:var(--violet-bg); font-weight:800; }
   .forecast-situation { display:block; width:fit-content; border-radius:6px; padding:5px 8px; margin-bottom:8px; font-size:12px; font-weight:800; background:var(--bg-inset); color:var(--text-dim); }
   .forecast-situation.confirmed { background:var(--violet-bg); color:var(--violet); }
-  .forecast-situation.waiting { background:var(--amber-bg); color:var(--text); }
+  .forecast-situation.waiting, .forecast-situation.validation { background:var(--amber-bg); color:var(--text); }
 
   .forecast-history-scroll { overflow:auto; max-height:340px; }
   .forecast-history-table { width:100%; min-width:900px; border-collapse:collapse; font-size:12px; }
@@ -1229,7 +1229,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
   .forecast-column-bar { display:block; width:32px; max-width:55%; background:var(--ca-blue); border-radius:4px 4px 0 0; position:relative; }
   .forecast-column-bar b { position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%); white-space:nowrap; font-size:11px; color:var(--text-dim); }
   .forecast-column-label { position:absolute; top:171px; font-size:10px; color:var(--text-dim); }
-  .forecast-dashboard-tables { display:grid; grid-template-columns:1.15fr 1fr; gap:24px; margin-top:16px; }
+  .forecast-dashboard-tables { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; margin-top:16px; }
   .forecast-dashboard-tables section { min-width:0; }
   .forecast-table-head { display:flex; justify-content:space-between; gap:10px; align-items:center; }
   .forecast-table-head h3 { font-size:13px; margin:0; }
@@ -1249,7 +1249,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
   .forecast-kpis strong { font-size:24px; }
   .forecast-kpis > div:first-child { background:transparent; }
   .sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
-  #forecast-month-field[hidden], #forecast-waiting-note[hidden], #forecast-remove-editor[hidden] { display:none; }
+  #forecast-remove-editor[hidden] { display:none; }
   @media(max-width:850px) { .forecast-dashboard-tables { grid-template-columns:1fr; gap:20px; } }
 
   .forecast-axis { position:relative; transform:none; }
@@ -1302,10 +1302,10 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .revenue-forecast .forecast-cap>.small{margin:12px 0 0}
 @media(max-width:650px){.revenue-forecast .forecast-cap-values{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.revenue-forecast .forecast-cap-values>div{min-width:0}.revenue-forecast .forecast-cap-values>span[aria-hidden]{display:none}.revenue-forecast .forecast-cap-values strong{font-size:18px}}
 
-/* Prévisionnel : besoin futur, confirmé daté et potentiel distinct. */
+/* Prévisionnel : besoin futur, confirmé et attentes distinctes. */
 .revenue-forecast{max-width:none}
 .forecast-head .forecast-help{border:0;background:none;padding:0;font-family:inherit}
-.forecast-future-layout{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1.15fr) minmax(160px,.48fr);gap:26px;align-items:center;margin:24px 0}
+.forecast-future-layout{display:grid;grid-template-columns:minmax(0,1.5fr) repeat(2,minmax(180px,.65fr));gap:26px;align-items:center;margin:24px 0}
 .forecast-coverage{min-width:0}
 .forecast-coverage h3{font-size:14px;font-weight:600;color:var(--text-dim);margin:0 0 5px}
 .forecast-need{display:block;font-size:34px;line-height:1.25;letter-spacing:-.7px;font-weight:800;font-variant-numeric:tabular-nums}
@@ -1342,8 +1342,8 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .revenue-forecast .forecast-link{color:var(--text-faint)}
 .revenue-forecast .forecast-link:hover,.revenue-forecast .forecast-link:focus-visible{color:var(--violet)}
 .forecast-table-scroll{position:relative}
-@media(max-width:1100px){.forecast-future-layout{grid-template-columns:minmax(0,1fr) 220px;gap:24px}.forecast-coverage{grid-column:1;grid-row:1}.forecast-potential{grid-column:2;grid-row:1}.forecast-future-layout .forecast-schedule{grid-column:1/-1;grid-row:2;border-left:0;border-top:1px solid var(--border);padding:20px 0 0}.forecast-details-row{column-gap:16px}.forecast-quick-filters{gap:6px 14px}}
-@media(max-width:650px){.forecast-future-layout{grid-template-columns:minmax(0,1fr);gap:22px}.forecast-coverage,.forecast-potential,.forecast-future-layout .forecast-schedule{grid-column:1;grid-row:auto}.forecast-potential{grid-row:2}.forecast-future-layout .forecast-schedule{grid-row:3}.forecast-need{font-size:32px}.forecast-details-row{grid-template-columns:minmax(0,1fr);row-gap:8px}.forecast-quick-filters{grid-column:1;grid-row:2}.forecast-details-row .forecast-table-toolbar{grid-row:3}.forecast-details-row .forecast-dashboard-tables{grid-row:4}.revenue-forecast .forecast-help{min-height:24px;min-width:24px}.forecast-details-row .forecast-followed>summary{padding:12px 0}}
+@media(max-width:1100px){.forecast-future-layout{grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}.forecast-coverage{grid-column:1/-1}.forecast-details-row{column-gap:16px}.forecast-quick-filters{gap:6px 14px}}
+@media(max-width:650px){.forecast-future-layout{grid-template-columns:minmax(0,1fr);gap:22px}.forecast-coverage{grid-column:1}.forecast-need{font-size:32px}.forecast-details-row{grid-template-columns:minmax(0,1fr);row-gap:8px}.forecast-quick-filters{grid-column:1;grid-row:2}.forecast-details-row .forecast-table-toolbar{grid-row:3}.forecast-details-row .forecast-dashboard-tables{grid-row:4}.revenue-forecast .forecast-help{min-height:24px;min-width:24px}.forecast-details-row .forecast-followed>summary{padding:12px 0}}
 /* Let expanded detail content span the toolbar grid instead of an anonymous column. */
 .forecast-followed::details-content{display:contents}
 .forecast-details-row .forecast-followed>summary::before{content:none}

@@ -23,9 +23,13 @@ try {
   await page.locator('#file-input').setInputFiles([fixtures.res,fixtures.billing]);
   await page.locator('[data-f-action=manage]').waitFor();
   assert.equal(await page.locator('[data-f-filter=confirmed]').innerText(),'Confirmés · 2');
-  assert.equal(await page.locator('[data-f-filter=undated]').innerText(),'À planifier · 2');
+  assert.equal(await page.locator('.forecast-quick-filters [data-f-filter=waiting]').innerText(),'En attente client · 1');
+  assert.equal(await page.locator('.forecast-quick-filters [data-f-filter=validation]').innerText(),'À valider · 2');
+  assert.match(await page.locator('aside[aria-label="En attente client"]').innerText(),/70 €/);
+  assert.match(await page.locator('aside[aria-label="En attente de validation"]').innerText(),/110 €/);
+  assert.equal(await page.locator('#forecast-month').count(),0);
+  assert.equal(await page.locator('.forecast-schedule').count(),0);
   assert.match(await page.locator('.forecast-coverage-legend').innerText(),/Confirmé\s+250 €/);
-  assert.match(await page.locator('#cap-forecast').innerText(),/250 € HT à planifier/);
   assert.equal(await page.locator('.forecast-column').count(),0);
   assert.ok(await page.locator('.forecast-coverage-track > span').evaluate(e=>parseFloat(e.style.width)>0));
   for(const width of [1440,390]) {
@@ -62,14 +66,13 @@ try {
   }
   await page.locator('[data-f-situation=review]').click();assert.equal(await page.locator('#forecast-list .forecast-row').count(),1);
   await row('Q-SCOPE').getByRole('button',{name:'Ajouter',exact:true}).click();
-  await page.locator('#forecast-month').fill('2025-10');await page.locator('#forecast-form button[type=submit]').click();
+  await page.locator('#forecast-form button[type=submit]').click();
   assert.equal(await page.locator('#forecast-list .forecast-row').count(),0);
   await page.locator('[data-f-action=close-manager]').click();
   assert.match(await page.locator('.forecast-coverage-legend').innerText(),/Confirmé\s+280 €/);
-  assert.match(await page.locator('#cap-forecast').innerText(),/250 € HT à planifier/);
-  assert.equal(await page.locator('.forecast-column').count(),1);
+  assert.equal(await page.locator('.forecast-column').count(),0);
   await page.reload();await page.locator('[data-f-action=manage]').waitFor();
   assert.equal(await page.locator('[data-f-filter=confirmed]').innerText(),'Confirmés · 3');
   assert.deepEqual(errors,[]);
-  console.log('Facturation : statuts, reste candidat, totaux, acompte séparé, situations impayées, planification et décision mémorisée validés.');
+  console.log('Facturation : statuts, reste candidat, totaux, acompte séparé, situations impayées, attentes séparées et décision mémorisée validés.');
 } finally {await browser?.close();await new Promise(done=>server.close(done));rmSync(directory,{recursive:true,force:true});}

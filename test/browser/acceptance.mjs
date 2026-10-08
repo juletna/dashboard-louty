@@ -23,8 +23,7 @@ try {
   await page.locator('#file-input').setInputFiles([fixtures.res,fixtures.accepted,fixtures.zeroBal]);
   await page.locator('[data-f-action=manage]').waitFor();
   assert.equal(await page.locator('[data-f-filter=confirmed]').innerText(),'Confirmés · 2');
-  assert.equal(await page.locator('[data-f-filter=undated]').innerText(),'À planifier · 2');
-  await page.locator('[data-f-filter=undated]').click();
+  await page.locator('[data-f-filter=confirmed]').click();
   assert.equal(await page.locator('#forecast-list .forecast-row').count(),2);
   assert.equal(await page.locator('#forecast-list .forecast-row').filter({hasText:'ajout automatique'}).count(),2);
   await page.keyboard.press('Escape');
@@ -36,7 +35,7 @@ try {
   await page.locator('[data-f-action=manage]').click();
   const row=number=>page.locator('.forecast-row').filter({has:page.locator('p').filter({hasText:new RegExp('^'+number+' ·')})});
   await page.locator('[data-f-tab=selected]').click();
-  assert.equal(await page.locator('.forecast-row').count(),2);
+  assert.equal(await page.locator('.forecast-row').count(),3);
   await row('AUTO').getByRole('button',{name:'Retirer',exact:true}).click();
   await page.locator('[data-f-tab=all]').click();
   assert.match(await row('REPEAT-1').innerText(),/Couverture complète probable du groupe/);
@@ -55,7 +54,7 @@ try {
   assert.match(await page.locator('#forecast-advance-balance').innerText(),/2\s?520.*TTC/);
   assert.equal(await page.locator('#forecast-amount').inputValue(),'');
   await page.locator('#forecast-amount').fill('3000');
-  await page.locator('#forecast-month').fill('2025-10');await shot('advance-editor-desktop-light');
+  assert.equal(await page.locator('#forecast-month').count(),0);await shot('advance-editor-desktop-light');
   await page.locator('#forecast-form button[type=submit]').click();
   await row('ADV-OTHER').getByRole('button',{name:'Ajouter',exact:true}).click();
   assert.equal(await page.locator('[data-advance-key]').isDisabled(),true);

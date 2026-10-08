@@ -11,5 +11,5 @@ export function forecastOutlookHTML(outlook, isCA, money, escape) {
     calculation += '<br>Marge estimée totale : ' + money(outlook.actualMB) + ' + ' + money(outlook.futureCA) + ' − ' + money(outlook.futureCosts) + ' = ' + money(outlook.totalMB) + ' HT.';
     calculation += '<br>Les coûts futurs sont répartis au prorata du CA confirmé par mois. Les achats déjà engagés sont pris en compte, sans mesure du stock disponible.';
   }
-  return '<div class="forecast-outlook"><p>' + result + '</p><details><summary>Comprendre le prévisionnel</summary><p>' + calculation + '</p><p>Chantiers confirmés, datés après la période importée et dans l’exercice. En attente et sans date exclus. Ce scénario ne s’ajoute pas à la projection statistique du cap annuel.</p></details></div>';
+  return '<div class="forecast-outlook"><p>' + result + '</p><details><summary>Comprendre le prévisionnel</summary><p>' + calculation + '</p><p>Le confirmé est réparti uniformément sur les mois restant après la période RES, jusqu’à décembre. Les devis en attente client ou de validation sont exclus. Cette répartition est un scénario, pas un calendrier de facturation. Ce scénario ne s’ajoute pas à la projection statistique du cap annuel.</p></details></div>';
 }

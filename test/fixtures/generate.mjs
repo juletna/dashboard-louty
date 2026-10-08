@@ -220,7 +220,9 @@ export function createBillingFixtureFiles(directory) {
     d('Q-PROGRESS','Devis',200,240,'Client Situation'),d('S','Facture de situation',50,60,'Client Situation'),d('AS',"Facture d'acompte",20,24,'Client Situation',24),
     d('Q-SCOPE','Devis',300,360,'Client Périmètre'),d('FS','Facture',270,324,'Client Périmètre'),
     d('Q-COVERED','Devis',100,120,'Client Couvert'),d('FC','Facture',90,120,'Client Couvert'),
-    d('Q-WAIT','Devis',70,84,'Client Attente',0,null)];
+    d('Q-WAIT','Devis',70,84,'Client Attente',0,null),
+    ['Devis','2025-06-01','Client Validation',80,'Attente valid.','V1','Q-VALIDATION','Pièce fictive','ACT',96,0,0,null],
+    ['Devis','2025-06-01','Client Validation sans numéro',30,'Attente valid.','V2','','Pièce fictive','ACT',36,0,0,null]];
   const book=X.utils.book_new();appendSheet(X,book,'Pièces fictives',rows);
   files.billing=resolve(directory,'Pieces_billing_250815_120000.xlsx');writeWorkbook(X,book,files.billing);
   return files;

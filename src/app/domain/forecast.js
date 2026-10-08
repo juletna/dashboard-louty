@@ -168,17 +168,28 @@ export function matchQuotes(documents = []) {
   return classifyBilling(documents, matchQuoteCandidates(documents));
 }
 
+// Agreement takes priority over the administrative state. Only a numbered,
+// validated/printed quote is inferred to have been sent to the client.
+export function quoteSituation(row) {
+  if (row.accepted) return 'confirmed';
+  const state = normalizedName(row.state);
+  if (state === 'attente valid.') return 'validation';
+  if (state === 'validé & imp.' && row.number?.trim()) return 'waiting';
+  return null;
+}
+
 export function forecastStatus(row) {
   if (row.missing || row.review) return 'À vérifier';
   if (row.choice?.action === 'exclude' && row.choice.billed) return 'Entièrement facturé';
   if (row.choice?.action === 'include') {
     if (row.choice.remaining === 0) return 'Entièrement facturé';
     if (row.choice.situation === 'waiting') return 'En attente client';
+    if (row.choice.situation === 'validation') return 'En attente de validation';
     return row.matched?.some(d => d.type !== "Facture d'acompte") ? 'Confirmé · Partiellement facturé' : 'Confirmé · À facturer';
   }
   if (['ambiguous', 'no-id'].includes(row.status)) return 'À vérifier';
   if (row.status === 'complete') return 'Entièrement facturé';
-  if (!row.accepted) return 'En attente client';
+  if (!row.accepted) return quoteSituation(row) === 'waiting' ? 'En attente client' : quoteSituation(row) === 'validation' ? 'En attente de validation' : 'À vérifier';
   return row.status === 'partial' ? 'Confirmé · Partiellement facturé' : 'Confirmé · À facturer';
 }
 
@@ -225,8 +236,9 @@ export function reconcileForecast(documents, choices) {
 
   const result = rows.map(row => {
     const manual = choices.get(row.key);
-    const auto = !manual && row.accepted && ['unmatched', 'partial'].includes(row.status) && row.proposed > 0;
-    const choice = manual || (auto ? { action: 'include', situation: 'confirmed', month: null,
+    const situation = quoteSituation(row);
+    const auto = !manual && !!situation && ['unmatched', 'partial'].includes(row.status) && row.proposed > 0;
+    const choice = manual || (auto ? { action: 'include', situation,
       remaining: row.proposed, fingerprint: row.fingerprint, quote: row } : undefined);
     return { ...row, choice, auto, missing: false,
       review: !!choice && (choice.fingerprint !== row.fingerprint || allocationConflict(row)),
@@ -237,7 +249,8 @@ export function reconcileForecast(documents, choices) {
       result.push({ ...choice.quote, key, choice, missing: true, review: true, eligible: false });
     }
   }
-  return result.map(row => row.choice?.action === 'include' && row.choice.situation === 'waiting'
+  // Legacy month values remain in storage but no longer classify or schedule work.
+  return result.map(row => row.choice?.action === 'include'
     ? { ...row, choice: { ...row.choice, month: null } } : row);
 }
 
@@ -247,29 +260,30 @@ export function forecastSummary(rows, data, goal) {
   const sum = (list) => money(list.reduce((total, r) => total + r.choice.remaining, 0));
   const confirmed = active.filter(r => r.choice.situation === 'confirmed');
   const waiting = active.filter(r => r.choice.situation === 'waiting');
+  const validation = active.filter(r => r.choice.situation === 'validation');
   const snap = data.snapshot.current;
   const year = String(snap.year);
   const source = data.years[year];
   const months = source.months_present || [];
   const lastMonth = months.length ? Math.max(...months) : 0;
   const cutoff = lastMonth ? `${year}-${String(lastMonth).padStart(2, '0')}` : null;
-  const dated = confirmed.filter(r => validMonth(r.choice.month) && r.choice.month.startsWith(year + '-') && r.choice.month > cutoff);
-  // RES month is treated conservatively as covered in full; pending amounts
-  // assigned to that month remain visible but never stack onto its actuals.
   const actual = lastMonth && isPeriodCovered(source, lastMonth) && hasObservedValue(source.monthly.ca, 1, lastMonth)
     ? money(source.monthly.ca.slice(0, lastMonth).reduce((n, v) => n + (v ?? 0), 0)) : null;
-  const annualConfirmed = sum(dated);
+  // A uniform scenario, not invoice due dates. Never project onto RES actuals.
+  // Cumulative cent rounding conserves the full amount, including thirds.
+  const annualConfirmed = actual !== null && lastMonth < 12 ? sum(confirmed) : 0;
   const actualPlusConfirmed = actual === null ? null : money(actual + annualConfirmed);
   const monthly = Array(12).fill(null);
-  for (const row of dated) {
-    const i = Number(row.choice.month.slice(5)) - 1;
-    monthly[i] = money((monthly[i] ?? 0) + row.choice.remaining);
+  if (actual !== null && lastMonth < 12 && annualConfirmed > 0) {
+    const count = 12 - lastMonth;
+    for (let i = 0; i < count; i++) {
+      monthly[lastMonth + i] = (Math.round(cents(annualConfirmed) * (i + 1) / count) - Math.round(cents(annualConfirmed) * i / count)) / 100;
+    }
   }
-  return { year, cutoff, active, included, confirmed: sum(confirmed), waiting: sum(waiting),
-    undated: sum(confirmed.filter(r => !r.choice.month)), reviewCount: included.filter(r => r.review).length,
+  return { year, cutoff, active, included, confirmed: sum(confirmed), waiting: sum(waiting), validation: sum(validation),
+    reviewCount: included.filter(r => r.review).length,
     actual, annualConfirmed, actualPlusConfirmed, monthly,
     gap: actualPlusConfirmed !== null && Number.isFinite(goal) ? money(goal - actualPlusConfirmed) : null,
-    coveredCount: confirmed.filter(r => r.choice.month && cutoff && r.choice.month <= cutoff).length,
     // These invoices are displayed as an informational bridge only. Adding
     // their total to RES or selections without explicit links risks duplicates.
     unintegrated: (data.revenue_distribution?.documents || []).filter(d => ['Facture', 'Facture de situation', 'Avoir'].includes(d.type) &&
@@ -277,24 +291,11 @@ export function forecastSummary(rows, data, goal) {
   };
 }
 
-// Calendar includes interior gaps, but never adds months past the last booking.
-export function forecastCalendar(rows) {
-  const dated = rows.filter(r => r.choice?.situation === 'confirmed' && validMonth(r.choice.month));
-  if (!dated.length) return [];
-  const ordinal = m => Number(m.slice(0,4)) * 12 + Number(m.slice(5)) - 1;
-  const totals = new Map();
-  for (const r of dated) { const n = ordinal(r.choice.month); totals.set(n, (totals.get(n) || 0) + r.choice.remaining); }
-  const first = Math.min(...totals.keys()), last = Math.max(...totals.keys());
-  return Array.from({length:last-first+1}, (_,i) => {const n=first+i;return {month:`${String(Math.floor(n/12)).padStart(4,'0')}-${String(n%12+1).padStart(2,'0')}`,confirmed:money(totals.get(n) || 0)};});
-}
-
-// Future coverage includes undated confirmed work; only the dated admissible
-// part feeds the annual scenario. Keep the actual/goal comparison separate from the
-// historical scenario so an already reached goal never produces a negative need.
+// Compare all confirmed work with the remaining annual need, independently of RES coverage.
 export function forecastCoverage(summary, goal) {
   if (!Number.isFinite(goal) || !Number.isFinite(summary.actual)) return null;
   const need = Math.max(0, money(goal - summary.actual));
-  const confirmed = money(summary.annualConfirmed + (summary.undated ?? 0));
+  const confirmed = money(summary.confirmed);
   const balance = money(need - confirmed);
   return { need, confirmed, balance, percent: need > 0 ? Math.max(0, Math.min(100, confirmed / need * 100)) : 100 };
 }

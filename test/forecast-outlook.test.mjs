@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { forecastSummary } from '../src/app/domain/forecast.js';
 import { forecastOutlook } from '../src/app/domain/forecast-outlook.js';
 import { HISTORICAL_METRICS } from '../src/app/domain/schema.js';
 function data(actualMB = 40) {
@@ -31,7 +32,7 @@ test('missing historical or current margin leaves CA usable without invented mar
   const missing=data();missing.years[2026].monthly.marge_brute.fill(null);
   assert.equal(forecastOutlook(missing).totalMB,null);
 });
-test('no projection without confirmed future revenue or covered actual, stop at last dated month',()=>{
+test('no projection without confirmed future revenue or covered actual, stop at last available forecast month',()=>{
   const input=data();input.forecast.monthly[11]=null;
   assert.equal(forecastOutlook(input).ca[10],null);
   input.forecast.monthly[9]=null;assert.equal(forecastOutlook(input),null);
@@ -48,4 +49,19 @@ test('monthly estimated costs and margin reconcile to confirmed revenue and annu
   assert.equal(result.monthlyMargin.reduce((n,v)=>n+(v??0),0),21.25);
   assert.equal(forecastOutlook(data()).monthlyCosts[9],0);
   assert.ok(forecastOutlook(data(150)).monthlyMargin[9]<0);
+});
+
+test('uniform confirmed scenario reaches December even with rounded zero months and reconciles all curves',()=>{
+  const input=data(80);
+  input.snapshot={current:{year:'2026'}};
+  const rows=[{choice:{action:'include',situation:'confirmed',remaining:.01}}];
+  input.forecast=forecastSummary(rows,input,1000);
+  assert.deepEqual(input.forecast.monthly.slice(9),[0,.01,0]);
+  let result=forecastOutlook(input);
+  assert.equal(result.last,11);assert.equal(result.ca[11],100.01);assert.equal(result.totalCA,100.01);
+  assert.equal(result.mb[11],result.totalMB);
+  rows[0].choice.remaining=100;
+  input.forecast=forecastSummary(rows,input,1000);result=forecastOutlook(input);
+  assert.equal(result.totalCA,200);assert.equal(result.ca[11],200);
+  for(let i=9;i<12;i++)assert.equal(Math.round((result.monthlyCosts[i]+result.monthlyMargin[i])*100),Math.round(input.forecast.monthly[i]*100));
 });
