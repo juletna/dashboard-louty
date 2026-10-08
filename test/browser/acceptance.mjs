@@ -22,7 +22,7 @@ try {
   await page.goto(process.env.FORECAST_BASE_URL || `http://127.0.0.1:${server.address().port}/`);
   await page.locator('#file-input').setInputFiles([fixtures.res,fixtures.accepted,fixtures.zeroBal]);
   await page.locator('[data-f-action=manage]').waitFor();
-  assert.equal(await page.locator('[data-f-filter=confirmed]').textContent(),'À facturer (estimation) · 2');
+  assert.equal(await page.locator('[data-f-filter=confirmed]').textContent(),'À facturer (estimation) 2');
   await page.locator('[data-f-action=manage]').click();
   await page.locator('[data-f-situation=confirmed]').click();
   assert.equal(await page.locator('#forecast-list .forecast-row').count(),2);

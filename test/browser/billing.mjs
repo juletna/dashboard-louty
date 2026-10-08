@@ -24,9 +24,9 @@ try {
   await page.locator('#file-input').setInputFiles([fixtures.res,fixtures.billing]);
   await page.locator('[data-f-action=manage]').waitFor();
   const originalGaugeWidth=(await page.locator('#cap-forecast').boundingBox()).width;
-  assert.equal(await page.locator('[data-f-filter=confirmed]').textContent(),'À facturer (estimation) · 2');
-  assert.equal(await page.locator('.forecast-quick-filters [data-f-filter=waiting]').textContent(),'En attente client · 1');
-  assert.equal(await page.locator('.forecast-quick-filters [data-f-filter=validation]').textContent(),'En attente de validation · 2');
+  assert.equal(await page.locator('[data-f-filter=confirmed]').textContent(),'À facturer (estimation) 2');
+  assert.equal(await page.locator('.forecast-quick-filters [data-f-filter=waiting]').textContent(),'En attente client 1');
+  assert.equal(await page.locator('.forecast-quick-filters [data-f-filter=validation]').textContent(),'En attente de validation 2');
   assert.match(await page.locator('aside[aria-label="En attente client"]').innerText(),/70 €/);
   assert.match(await page.locator('aside[aria-label="En attente de validation"]').innerText(),/110 €/);
   assert.equal(await page.locator('#forecast-month').count(),0);
@@ -114,7 +114,7 @@ try {
   assert.match(await page.locator('.forecast-estimated').innerText(),/235 €/);
   assert.equal(await page.locator('.forecast-column').count(),0);
   await page.reload();await page.locator('[data-f-action=manage]').waitFor();
-  assert.equal(await page.locator('[data-f-filter=confirmed]').textContent(),'À facturer (estimation) · 3');
+  assert.equal(await page.locator('[data-f-filter=confirmed]').textContent(),'À facturer (estimation) 3');
   // Promote a waiting quote in one click, with no editor and a durable manual decision.
   await page.locator('[data-f-jump=waiting]').click();
   assert.equal(await page.locator('[data-f-target=confirmed]').count(),1);

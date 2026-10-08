@@ -43,8 +43,8 @@ try {
   const manual = () => row('DEV-MANUAL');
   const filter = kind => page.locator(`.forecast-quick-filters [data-f-filter="${kind}"]`);
   // Administrative buckets are computed from the imported states, without saving choices.
-  assert.equal(await filter('waiting').textContent(),'En attente client · 1');
-  assert.equal(await filter('validation').textContent(),'En attente de validation · 2');
+  assert.equal(await filter('waiting').textContent(),'En attente client 1');
+  assert.equal(await filter('validation').textContent(),'En attente de validation 2');
   assert.equal(await page.locator('#forecast-month').count(),0);
   assert.equal(await page.locator('.forecast-schedule').count(),0);
   await page.locator('[data-f-action="manage"]').click();
@@ -122,7 +122,7 @@ try {
     }
   }
   await page.reload();await page.locator('[data-f-action=manage]').waitFor();
-  assert.equal(await filter('waiting').textContent(),'En attente client · 2');
+  assert.equal(await filter('waiting').textContent(),'En attente client 2');
   assert.equal(await page.locator('#forecast-followed').getAttribute('open'),null);
   await page.locator('#forecast-input').setInputFiles(fixtures.changed);
   await page.waitForFunction(()=>document.querySelector('#revenue-forecast').textContent.includes('1 devis sélectionné(s) à vérifier'));
@@ -134,13 +134,13 @@ try {
   assert.match(await page.locator('#revenue-forecast').innerText(),/choix sont conservés/);
   assert.equal(await page.locator('.cap-projection').filter({hasText:'Projection chiffre'}).locator('.cap-projection-value').innerText(),'—');
   await page.locator('#forecast-input').setInputFiles(fixtures.changed);await page.locator('[data-f-action=manage]').waitFor();
-  assert.equal(await filter('waiting').textContent(),'En attente client · 2');
+  assert.equal(await filter('waiting').textContent(),'En attente client 2');
   await page.locator('#forecast-followed').evaluate(e=>e.open=true);await filter('confirmed').click();await page.locator('#forecast-dashboard-tables tr').filter({hasText:'DEV-MANUAL'}).locator('[data-f-edit]').click();
   await page.getByRole('button',{name:'Retirer du prévisionnel',exact:true}).click();await page.keyboard.press('Escape');
   assert.equal(await projectedSeries(),undefined,'removing confirmed work clears its cumulative scenario');
   assert.equal(await cardValue('Projection chiffre'),Math.round(ca[6]),'removing future work updates annual card to actual');
   assert.equal(await page.locator('.forecast-outlook').count(),0);
-  assert.equal(await filter('confirmed').textContent(),'À facturer (estimation) · 0');
+  assert.equal(await filter('confirmed').textContent(),'À facturer (estimation) 0');
   assert.deepEqual(errors,[]);
   console.log('Prévisionnel : trois catégories, projection uniforme, choix manuels, réimports, cache, graphiques, thèmes et mobile validés.');
 } finally {
