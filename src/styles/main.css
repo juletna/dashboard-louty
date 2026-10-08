@@ -1253,5 +1253,6 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .kpi-card .kpi-card-action { align-self:flex-start; margin-top:auto; padding:10px 0 0; border:0; background:none; font:inherit; font-size:12px; font-weight:700; text-align:left; color:var(--violet); cursor:pointer; text-decoration:underline; text-underline-offset:3px; }
 .kpi-card .kpi-card-action:focus-visible { outline:2px solid var(--violet); outline-offset:3px; }
 .kpi-card.is-empty { background:transparent; border:1px dashed var(--border); }
-.kpi-card.is-empty .kpi-card-icon, .kpi-card.is-empty .kpi-card-label, .kpi-card.is-empty .kpi-card-value { opacity:.55; }
+.kpi-card.is-empty .kpi-card-icon { background:var(--bg-inset); color:var(--text-faint); }
+.kpi-card.is-empty .kpi-card-label, .kpi-card.is-empty .kpi-card-value { opacity:.55; }
 @media(max-width:650px) { .kpi-card { padding:14px; } }

@@ -1262,7 +1262,8 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .kpi-card .kpi-card-action { align-self:flex-start; margin-top:auto; padding:10px 0 0; border:0; background:none; font:inherit; font-size:12px; font-weight:700; text-align:left; color:var(--violet); cursor:pointer; text-decoration:underline; text-underline-offset:3px; }
 .kpi-card .kpi-card-action:focus-visible { outline:2px solid var(--violet); outline-offset:3px; }
 .kpi-card.is-empty { background:transparent; border:1px dashed var(--border); }
-.kpi-card.is-empty .kpi-card-icon, .kpi-card.is-empty .kpi-card-label, .kpi-card.is-empty .kpi-card-value { opacity:.55; }
+.kpi-card.is-empty .kpi-card-icon { background:var(--bg-inset); color:var(--text-faint); }
+.kpi-card.is-empty .kpi-card-label, .kpi-card.is-empty .kpi-card-value { opacity:.55; }
 @media(max-width:650px) { .kpi-card { padding:14px; } }
 </style>
 <script>try{var _t=localStorage.getItem("cabestan_dashboard_theme");if(_t==="dark"||_t==="light")document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
@@ -6797,7 +6798,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var spb = document.querySelector(".sp-body");
     if (spb) spb.addEventListener("scroll", hide);
   })();
-  var APP_VERSION = "20261009-002819";
+  var APP_VERSION = "20261009-003103";
   function showUpdateBanner(base, v) {
     if (document.getElementById("update-banner")) return;
     var d = document.createElement("div");
