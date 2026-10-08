@@ -1,13 +1,20 @@
 import { forecastCoverage } from '../domain/forecast.js';
 
 // Presentation only: the underlying confirmed selections and annual scenario are unchanged.
-export function renderForecastSummary({ summary, goal, reviewCount, reviewAmount, reviewUnknown, warning, expanded, search, tables, activeTab, counts, money, escape: esc }) {
+export const FORECAST_TAB_LABELS = { confirmed:'À facturer (estimation)', waiting:'En attente client', validation:'En attente de validation', review:'À examiner' };
+
+// Tabs, search and table of the quotes modal; the summary only keeps the entry button.
+export function renderQuotesPanel({ search, tables, activeTab, counts, escape: esc }) {
+  return `<div class="forecast-table-toolbar"><nav class="forecast-quick-filters" role="tablist" aria-label="Situation des devis">${Object.entries(FORECAST_TAB_LABELS).map(([kind,label]) => `<button type="button" role="tab" class="${counts[kind] ? '' : 'is-zero'}" id="forecast-tab-${kind}" data-f-filter="${kind}" aria-controls="forecast-dashboard-tables" aria-selected="${activeTab === kind}" tabindex="${activeTab === kind ? 0 : -1}">${label} <span class="forecast-count">${counts[kind]}</span></button>`).join('')}</nav><input id="forecast-dashboard-search" type="search" aria-label="Rechercher dans les devis de cet onglet" placeholder="Client, numéro ou titre…" value="${esc(search)}"></div><div id="forecast-dashboard-tables" class="forecast-dashboard-tables" role="tabpanel" aria-labelledby="forecast-tab-${activeTab}">${tables}</div><p id="forecast-quick-message" class="small" role="status"></p>`;
+}
+
+export function renderForecastSummary({ summary, goal, reviewCount, reviewAmount, reviewUnknown, warning, counts, money, escape: esc }) {
   const coverage = forecastCoverage(summary, goal);
   const estimated = summary.confirmed;
   const scale = coverage ? Math.max(coverage.need, estimated) : 0;
   const covered = coverage ? Math.min(coverage.need, estimated) : 0;
   const surplus = coverage ? -coverage.balance : 0;
-  const labels = { confirmed:'À facturer (estimation)', waiting:'En attente client', validation:'En attente de validation', review:'À examiner' };
+  const labels = FORECAST_TAB_LABELS;
   const help = 'Montants HT. Le besoin restant correspond à l’objectif annuel moins le CA réalisé. Les devis acceptés et vérifiés alimentent le montant à facturer estimé, qui reste susceptible d’ajustements. Les attentes et les devis à examiner restent hors estimation. Pour les devis à examiner, le montant saisi ou le reste candidat est affiché lorsqu’il est connu ; sinon, le montant total du devis sert de repère, sans constituer un reste à facturer validé. Les montants inconnus sont signalés. Le scénario annuel répartit l’estimation uniformément après la période RES jusqu’à décembre ; il ne constitue pas un calendrier de facturation et alimente les projections du cap annuel.';
   const potential = (kind, amount, note) => {
     const empty = amount === 0 && !counts[kind];
@@ -44,10 +51,9 @@ export function renderForecastSummary({ summary, goal, reviewCount, reviewAmount
       </div>`}
     </div>
     ${summary.reviewCount ? `<p class="forecast-warning">${summary.reviewCount} devis sélectionné(s) à vérifier après actualisation du rapprochement. Leurs montants saisis sont conservés, mais suspendus des totaux. <button class="forecast-link" data-f-jump="review">Vérifier</button></p>` : ''}
-    <div class="forecast-details-row"><details id="forecast-followed" class="forecast-followed" ${expanded ? 'open' : ''}><summary><span class="forecast-show-label">Afficher les devis →</span><span class="forecast-hide-label">Masquer les devis ↑</span></summary>
-      <div class="forecast-table-toolbar"><nav class="forecast-quick-filters" role="tablist" aria-label="Situation des devis">${Object.entries(labels).map(([kind,label]) => `<button type="button" role="tab" class="${counts[kind] ? '' : 'is-zero'}" id="forecast-tab-${kind}" data-f-filter="${kind}" aria-controls="forecast-dashboard-tables" aria-selected="${activeTab === kind}" tabindex="${activeTab === kind ? 0 : -1}">${label} <span class="forecast-count">${counts[kind]}</span></button>`).join('')}</nav><input id="forecast-dashboard-search" type="search" aria-label="Rechercher dans les devis de cet onglet" placeholder="Client, numéro ou titre…" value="${esc(search)}"></div><div id="forecast-dashboard-tables" class="forecast-dashboard-tables" role="tabpanel" aria-labelledby="forecast-tab-${activeTab}">${tables}</div></details>
+    <div class="forecast-details-row"><button type="button" class="forecast-link forecast-open-quotes" data-f-action="quotes" aria-haspopup="dialog">Afficher les devis →</button>
       <button type="button" class="forecast-link sp-help forecast-help" data-tip="${esc(help)}" aria-label="Comprendre le prévisionnel">Comprendre le calcul ⓘ</button>
     </div>
-    <p id="forecast-quick-message" class="small" role="status"></p><div class="forecast-all"><button class="forecast-link" data-f-action="manage">Ajouter ou retrouver un devis</button></div>
+    <div class="forecast-all"><button class="forecast-link" data-f-action="manage">Ajouter ou retrouver un devis</button></div>
     ${summary.unintegrated.length ? `<details class="forecast-method"><summary>${summary.unintegrated.length} facture(s) / avoir(s) après la période RES · à rapprocher</summary><p>Ces pièces ne sont pas ajoutées automatiquement : elles pourraient recouper les devis sélectionnés.</p><ul>${summary.unintegrated.map(d => `<li>${esc(d.date)} · ${esc(d.number || d.type)} · ${esc(d.client)} : ${money(d.amount)} HT</li>`).join('')}</ul></details>` : ''}`;
 }

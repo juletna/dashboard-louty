@@ -1,5 +1,5 @@
 import { FORECAST_STATES, quickForecastChoice } from '../domain/forecast-actions.js';
-import { renderForecastSummary } from './forecast-summary.js';
+import { renderForecastSummary, renderQuotesPanel } from './forecast-summary.js';
 import { reconcileForecast, forecastSummary, forecastStatus, quoteSituation, MATCH_LABELS, REASON_LABELS } from '../domain/forecast.js';
 import { normalizedName } from '../domain/clients.js';
 import { forecastAdvances } from '../domain/forecast-advances.js';
@@ -12,8 +12,9 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
   const host = document.getElementById('revenue-forecast');
   const manager = document.getElementById('forecast-manager');
   const editor = document.getElementById('forecast-editor');
+  const quotes = document.getElementById('forecast-quotes');
   const el = id => document.getElementById(id);
-  let data, goal, rows = [], summary, editingKey = null, returnFocus;
+  let data, goal, rows = [], summary, editingKey = null, returnFocus, quotesOpener;
   let situationFilter = '', dashboardSearch = '', dashboardTab = 'confirmed';
   const situationOf = r => forecastStatus(r) === 'Entièrement facturé' ? 'complete' : forecastStatus(r) === 'À vérifier' ? 'review' : r.choice?.action === 'include' ? (r.choice.remaining === 0 ? 'complete' : r.choice.situation) : r.status === 'complete' ? 'complete' : quoteSituation(r) || 'review';
   const selected = r => r.choice?.action === 'include';
@@ -31,20 +32,33 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
     summary = forecastSummary(rows, data, goal);
     data.forecast = summary;
   }
-  function renderSummary(expand = false) {
-    const expanded = expand || !!el('forecast-followed')?.open;
+  function renderSummary() {
     const hasDocuments = Array.isArray(data.revenue_distribution?.documents);
     const legacyPieces = hasDocuments && data.revenue_distribution.documents.some(d => !Object.hasOwn(d, 'agreement_date'));
     const warning = (legacyPieces ? '<p class="forecast-warning">Réimporte les Pièces pour lire les dates d’accord, montants TTC et règlements nécessaires aux nouveaux rapprochements.</p>' : '') + (storage.warning ? `<p class="forecast-warning" role="alert">${esc(storage.warning)}</p>` : '');
     if (!hasDocuments) {
+      if (quotes.open) quotes.close();
       host.innerHTML = `<div class="forecast-head"><div><h2 id="forecast-title">Chiffre d’affaires prévisionnel</h2></div><button class="btn" data-f-action="import">Importer les Pièces</button></div><p class="small">Ajoute un export Pièces incluant tous les devis, même non facturés. Les brouillons sont exclus automatiquement.</p>${warning}${summary.included.length ? '<p class="forecast-warning">Tes choix sont conservés. Réimporte les Pièces pour les rapprocher et réactiver le prévisionnel.</p>' : ''}`;
       return;
     }
     const review = reviewRows();
     host.innerHTML = renderForecastSummary({ summary, goal, reviewCount: review.length,
       reviewAmount: review.reduce((n,r) => n + (reviewValue(r) ?? 0), 0), reviewUnknown: review.filter(r => !Number.isFinite(reviewValue(r))).length,
-      counts: Object.fromEntries(['confirmed','waiting','validation','review'].map(k => [k,dashboardRows(k).length])), activeTab: dashboardTab,
-      warning, expanded, search: dashboardSearch, tables: dashboardTable(dashboardTab), money: formatMoney, escape: esc });
+      counts: quoteCounts(), warning, money: formatMoney, escape: esc });
+    if (quotes.open) renderQuotes();
+  }
+  const quoteCounts = () => Object.fromEntries(['confirmed','waiting','validation','review'].map(k => [k,dashboardRows(k).length]));
+  function renderQuotes() {
+    el('forecast-quotes-body').innerHTML = renderQuotesPanel({ counts: quoteCounts(), activeTab: dashboardTab,
+      search: dashboardSearch, tables: dashboardTable(dashboardTab), escape: esc });
+  }
+  // Opens the quotes modal on a tab; every entry point (cards, warning, button) goes through here.
+  function openQuotes(tab, opener) {
+    dashboardTab = tab || dashboardTab; dashboardSearch = '';
+    quotesOpener = opener;
+    renderQuotes();
+    if (!quotes.open) quotes.showModal();
+    el('forecast-tab-' + dashboardTab).focus();
   }
   function dashboardTable(situation) {
     const label = { confirmed:'À facturer (estimation)', waiting:'En attente client', validation:'En attente de validation', review:'À examiner' }[situation];
@@ -53,7 +67,7 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
       .sort((a,b) => a.client.localeCompare(b.client) || String(a.number).localeCompare(String(b.number)));
     const review = situation === 'review';
     const total = list.reduce((n,r) => n + (review ? reviewValue(r) ?? 0 : r.choice.remaining),0);
-    return `<section aria-label="Devis ${esc(label.toLocaleLowerCase('fr'))}"><div class="forecast-table-head"><span class="small">${list.length} devis · ${review ? 'À vérifier · hors totaux' : situation === 'confirmed' ? 'Reste à facturer estimé' : 'Hors estimation'}</span><strong>${review ? 'Montants à vérifier' : money(total)}</strong></div><div class="forecast-table-scroll"><table><thead><tr><th scope="col">Client / devis</th><th scope="col" class="forecast-table-amount">Devis HT</th><th scope="col" class="forecast-table-amount">Acompte repris HT</th><th scope="col" class="forecast-table-amount">${review ? 'CA prévisionnel indicatif HT' : 'CA prévisionnel retenu HT'}</th><th scope="col"><span class="sr-only">Action</span></th></tr></thead><tbody>${list.map(r => {
+    return `<section aria-label="Devis ${esc(label.toLocaleLowerCase('fr'))}"><div class="forecast-table-head"><span class="small">${review ? 'À vérifier · hors totaux' : situation === 'confirmed' ? 'Reste à facturer estimé' : 'Hors estimation'}</span><strong>${review ? 'Montants à vérifier' : money(total)}</strong></div><div class="forecast-table-scroll"><table><thead><tr><th scope="col">Client / devis</th><th scope="col" class="forecast-table-amount">Devis HT</th><th scope="col" class="forecast-table-amount">Acompte repris HT</th><th scope="col" class="forecast-table-amount">${review ? 'CA prévisionnel indicatif HT' : 'CA prévisionnel retenu HT'}</th><th scope="col"><span class="sr-only">Action</span></th></tr></thead><tbody>${list.map(r => {
       const value = review ? reviewValue(r) : r.choice.remaining;
       return `<tr><td><strong>${esc(r.client || 'Client non renseigné')}</strong><small>${esc(r.number || 'Sans numéro')} · ${esc(r.title || '')}</small>${review ? `<small>${esc(describe(r))}${!Number.isFinite(r.choice?.remaining) && !Number.isFinite(r.proposed) && Number.isFinite(r.amount) ? ' · Montant total du devis, reste à déterminer' : ''}</small>` : ''}</td><td class="forecast-table-amount">${Number.isFinite(r.amount) ? formatMoney(r.amount) : '—'}</td><td class="forecast-table-amount">${r.advanceDeductedHT > 0 ? '− ' + formatMoney(r.advanceDeductedHT) : '—'}</td><td class="forecast-table-amount">${Number.isFinite(value) ? formatMoney(value) : 'À déterminer'}${Number.isFinite(r.amount) && r.advanceDeductedHT > 0 ? `<small class="forecast-mobile-note">devis ${formatMoney(r.amount)} − acompte ${formatMoney(r.advanceDeductedHT)}</small>` : ''}${(r.billedHT ?? 0) - (r.advanceDeductedHT || 0) > 0.005 && r.status === 'partial' ? `<small>après ${formatMoney(r.billedHT - (r.advanceDeductedHT || 0))} déjà facturé</small>` : ''}</td><td><div class="forecast-table-actions"><div class="forecast-row-menu"><button type="button" class="forecast-link forecast-actions-toggle" data-f-menu aria-expanded="false" aria-controls="forecast-actions-${rows.indexOf(r)}" aria-label="Actions pour ${esc(r.client)} · ${esc(r.number)}">Actions</button><div class="forecast-row-menu-items" id="forecast-actions-${rows.indexOf(r)}">${Object.entries({...FORECAST_STATES, exclude:'Exclure'}).filter(([target]) => target !== situation).map(([target,text]) => `<button type="button" data-f-transition="${rows.indexOf(r)}" data-f-target="${target}" ${r.missing && target !== 'exclude' ? 'disabled title="Devis absent : réimporte les Pièces avant de le reclasser"' : ''}>${text}</button>`).join('')}</div></div>${r.missing ? '' : `<button class="forecast-link" data-f-edit="${rows.indexOf(r)}" aria-label="${review ? 'Vérifier' : 'Voir le détail de'} ${esc(r.client)} · ${esc(r.number)}">${review ? 'Vérifier le devis' : 'Voir le détail'} →</button>`}</div></td></tr>`;
     }).join('') || '<tr><td colspan="5" class="small">Aucun devis</td></tr>'}</tbody></table></div></section>`;
@@ -130,21 +144,22 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
     el('forecast-remove-editor').hidden = !selected(row);
     editor.showModal();
   }
-  host.addEventListener('input', e => {
+  quotes.addEventListener('input', e => {
     if (e.target.id !== 'forecast-dashboard-search') return;
     dashboardSearch = e.target.value;
     el('forecast-dashboard-tables').innerHTML = dashboardTable(dashboardTab);
   });
-  host.addEventListener('click', e => {
+  const onDashboardClick = e => {
     const b = e.target.closest('button'); if (!b) return;
     if (b.classList.contains('sp-help')) return;
-    if (b.dataset.fFilter || b.dataset.fJump) {
-      dashboardTab = b.dataset.fFilter || b.dataset.fJump;
-      dashboardSearch = '';
-      renderSummary(true);
-      el('forecast-tab-' + dashboardTab).focus();
+    if (b.dataset.fJump) { openQuotes(b.dataset.fJump, b); return; }
+    if (b.dataset.fFilter) {
+      dashboardTab = b.dataset.fFilter; dashboardSearch = '';
+      renderQuotes(); el('forecast-tab-' + dashboardTab).focus();
       return;
     }
+    if (b.dataset.fAction === 'quotes') { openQuotes(dashboardTab, b); return; }
+    if (b.dataset.fAction === 'close-quotes') { quotes.close(); return; }
     if (b.hasAttribute('data-f-menu')) {
       b.setAttribute('aria-expanded', String(b.getAttribute('aria-expanded') !== 'true'));
       return;
@@ -169,14 +184,16 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
     if (b.dataset.fEdit !== undefined) { returnFocus = b; openEditor(Number(b.dataset.fEdit)); return; }
     if (b.dataset.fAction === 'import') el('forecast-input').click();
     else if (b.dataset.fAction === 'manage') openManager();
-  });
-  host.addEventListener('keydown', e => {
+  };
+  host.addEventListener('click', onDashboardClick);
+  quotes.addEventListener('click', onDashboardClick);
+  quotes.addEventListener('keydown', e => {
     if (!e.target.matches('[role=tab]') || !['ArrowLeft','ArrowRight','Home','End'].includes(e.key)) return;
     e.preventDefault();
     const tabs = ['confirmed','waiting','validation','review'];
     const index = tabs.indexOf(dashboardTab);
     dashboardTab = tabs[e.key === 'Home' ? 0 : e.key === 'End' ? 3 : (index + (e.key === 'ArrowRight' ? 1 : 3)) % 4];
-    dashboardSearch = ''; renderSummary(true); el('forecast-tab-' + dashboardTab).focus();
+    dashboardSearch = ''; renderQuotes(); el('forecast-tab-' + dashboardTab).focus();
   });
   manager.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
@@ -233,7 +250,10 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
     const target = returnFocus?.isConnected ? returnFocus : host.querySelector('[data-f-action="manage"]');
     target?.focus();
   });
-  editor.addEventListener('close', () => { if (manager.open) el('forecast-search').focus(); else (returnFocus?.isConnected ? returnFocus : el('forecast-tab-' + dashboardTab) || host.querySelector('[data-f-action="manage"]'))?.focus(); });
+  quotes.addEventListener('close', () => {
+    (quotesOpener?.isConnected ? quotesOpener : host.querySelector('[data-f-action="quotes"]') || host.querySelector('[data-f-action="manage"]'))?.focus();
+  });
+  editor.addEventListener('close', () => { if (manager.open) el('forecast-search').focus(); else (returnFocus?.isConnected ? returnFocus : quotes.open ? el('forecast-tab-' + dashboardTab) : host.querySelector('[data-f-action="quotes"]') || host.querySelector('[data-f-action="manage"]'))?.focus(); });
   return {
     render(nextData, nextGoal) {
       if (data && data !== nextData && editor.open) editor.close();

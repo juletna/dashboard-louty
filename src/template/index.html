@@ -144,6 +144,10 @@
 
 </div>
 
+<dialog id="forecast-quotes" class="forecast-dialog forecast-quotes" aria-labelledby="forecast-quotes-title">
+  <div class="forecast-head"><div><h2 id="forecast-quotes-title">Devis du prévisionnel</h2><p class="small">Montants HT. Le CA prévisionnel retenu déduit les acomptes déjà comptés dans le CA réalisé.</p></div><button class="btn" type="button" data-f-action="close-quotes" aria-label="Fermer la liste des devis">Fermer</button></div>
+  <div id="forecast-quotes-body"></div>
+</dialog>
 <dialog id="forecast-manager" class="forecast-dialog" aria-labelledby="forecast-manager-title">
   <div class="forecast-head"><div><h2 id="forecast-manager-title">Tous les devis</h2><p class="small">Les devis acceptés et rapprochés sans ambiguïté sont ajoutés automatiquement. Tes choix manuels restent prioritaires.</p></div><button class="btn" type="button" data-f-action="close-manager">Fermer</button></div>
   <div class="forecast-situation-filters" role="group" aria-label="Situation du devis"><button type="button" data-f-situation="" aria-pressed="true">Toutes les situations</button><button type="button" data-f-situation="waiting" aria-pressed="false">En attente client</button><button type="button" data-f-situation="validation" aria-pressed="false">En attente de validation</button><button type="button" data-f-situation="confirmed" aria-pressed="false">À facturer (estimation)</button><button type="button" data-f-situation="complete" aria-pressed="false">Entièrement facturés</button>
