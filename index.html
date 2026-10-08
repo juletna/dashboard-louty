@@ -3408,7 +3408,12 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         ${potential("waiting", summary.waiting, "Hors estimation")}
         <div class="forecast-potential-stack">
         ${potential("validation", summary.validation, "Hors estimation")}
-        ${showReview ? `<aside class="forecast-potential forecast-review-card" aria-label="\xC0 examiner"><h3>\xC0 examiner</h3><strong>${reviewUnknown === reviewCount && reviewCount > 0 ? "\xC0 d\xE9terminer" : money3(reviewAmount) + " <small>HT</small>"}</strong><div class="forecast-potential-foot"><span>Montants indicatifs \xB7 hors totaux${reviewUnknown ? ` \xB7 ${reviewUnknown} non renseign\xE9(s)` : ""}</span><button class="forecast-link" data-f-jump="review">V\xE9rifier ${reviewCount} devis \u2192</button></div></aside>` : ""}
+        ${(() => {
+      const empty = !showReview;
+      const amount = reviewUnknown === reviewCount && reviewCount > 0 ? "\xC0 d\xE9terminer" : money3(reviewAmount) + " <small>HT</small>";
+      const foot = empty ? "<span>Aucun devis</span>" : `<span>Montants indicatifs \xB7 hors totaux${reviewUnknown ? ` \xB7 ${reviewUnknown} non renseign\xE9(s)` : ""}</span><button class="forecast-link" data-f-jump="review">V\xE9rifier ${reviewCount} devis \u2192</button>`;
+      return `<aside class="forecast-potential forecast-review-card${empty ? " is-empty" : ""}" aria-label="\xC0 examiner"${empty ? ' aria-disabled="true"' : ""}><h3>\xC0 examiner</h3><strong>${amount}</strong><div class="forecast-potential-foot">${foot}</div></aside>`;
+    })()}
         </div>
       </div>`}
     </div>

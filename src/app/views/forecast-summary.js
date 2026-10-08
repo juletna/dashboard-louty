@@ -32,7 +32,14 @@ export function renderForecastSummary({ summary, goal, reviewCount, reviewAmount
         ${potential('waiting', summary.waiting, 'Hors estimation')}
         <div class="forecast-potential-stack">
         ${potential('validation', summary.validation, 'Hors estimation')}
-        ${showReview ? `<aside class="forecast-potential forecast-review-card" aria-label="À examiner"><h3>À examiner</h3><strong>${reviewUnknown === reviewCount && reviewCount > 0 ? 'À déterminer' : money(reviewAmount) + ' <small>HT</small>'}</strong><div class="forecast-potential-foot"><span>Montants indicatifs · hors totaux${reviewUnknown ? ` · ${reviewUnknown} non renseigné(s)` : ''}</span><button class="forecast-link" data-f-jump="review">Vérifier ${reviewCount} devis →</button></div></aside>` : ''}
+        ${(() => {
+          const empty = !showReview;
+          const amount = reviewUnknown === reviewCount && reviewCount > 0 ? 'À déterminer' : money(reviewAmount) + ' <small>HT</small>';
+          const foot = empty
+            ? '<span>Aucun devis</span>'
+            : `<span>Montants indicatifs · hors totaux${reviewUnknown ? ` · ${reviewUnknown} non renseigné(s)` : ''}</span><button class="forecast-link" data-f-jump="review">Vérifier ${reviewCount} devis →</button>`;
+          return `<aside class="forecast-potential forecast-review-card${empty ? ' is-empty' : ''}" aria-label="À examiner"${empty ? ' aria-disabled="true"' : ''}><h3>À examiner</h3><strong>${amount}</strong><div class="forecast-potential-foot">${foot}</div></aside>`;
+        })()}
         </div>
       </div>`}
     </div>
