@@ -182,7 +182,6 @@
   .small { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
   header { margin-bottom: 24px; }
 
-  .kpi-value, table.cmp td, table.cmp th, .heat-cell .val, .donut-big,
   .delta-pos, .delta-neg, .delta-zero { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
 
   /* Onglets — pilule */
@@ -252,30 +251,6 @@
   .delta-zero { color: var(--text-dim); font-weight: 600; }
 
   /* KPI (avec pastille d'icône) */
-  .kpi {
-    background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 18px 18px 20px; box-shadow: var(--shadow-sm);
-    transition: box-shadow .2s ease, transform .2s ease;
-  }
-  .kpi:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
-  .kpi-top { display: flex; align-items: center; gap: 11px; margin-bottom: 12px; }
-  .kpi-ico {
-    width: 38px; height: 38px; border-radius: 12px; flex: none;
-    display: inline-flex; align-items: center; justify-content: center;
-    background: var(--violet-bg); color: var(--violet);
-  }
-  .kpi-ico svg { width: 20px; height: 20px; }
-  .kpi.green  .kpi-ico { background: var(--green-bg);  color: var(--green); }
-  .kpi.orange .kpi-ico { background: var(--amber-bg);  color: var(--amber); }
-  .kpi.red    .kpi-ico { background: var(--red-bg);    color: var(--red); }
-  .kpi .kpi-label { font-size: 12.5px; color: var(--text-dim); font-weight: 700; margin: 0; }
-  .kpi .kpi-value { font-size: 27px; font-weight: 800; margin-top: 2px; letter-spacing: -0.02em; line-height: 1.15; }
-  .kpi .kpi-sub { font-size: 12px; color: var(--text-dim); margin-top: 6px; font-weight: 500; }
-  .kpi.red .kpi-value { color: var(--red); }
-  .kpi.orange .kpi-value { color: var(--amber); }
-  .kpi.green .kpi-value { color: var(--green); }
-  .card .kpi { background: var(--bg-inset); box-shadow: none; border-color: transparent; }
-  .card .kpi:hover { transform: none; box-shadow: none; }
 
   /* Anneaux / donuts (jauges) */
   .donut-row { display: flex; gap: 16px; flex-wrap: wrap; justify-content: space-around; }
@@ -429,15 +404,6 @@
   .spark-wrap { display: flex; flex-direction: column; gap: 6px; }
   .spark-title { font-size: 11px; color: var(--text-faint); font-weight: 700; }
   .spark { width: 100%; height: 56px; display: block; }
-  .kpi { border-left: 3px solid var(--violet); }
-  .kpi.green { border-left-color: var(--green); }
-  .kpi.orange { border-left-color: var(--amber); }
-  .kpi.red { border-left-color: var(--red); }
-  .card .kpi { border-left: 3px solid var(--violet); }
-  .card .kpi.green { border-left-color: var(--green); background: var(--green-bg); }
-  .card .kpi.orange { border-left-color: var(--amber); background: var(--amber-bg); }
-  .card .kpi.red { border-left-color: var(--red); background: var(--red-bg); }
-  .card .kpi.green .kpi-ico, .card .kpi.orange .kpi-ico, .card .kpi.red .kpi-ico { background: var(--bg-card); }
 
   /* --- v3.2 : synthèse sans dégradé + CA/Taux remontés --- */
   .card.synth, .card.synth.green, .card.synth.orange, .card.synth.red { background: var(--bg-card); border-color: var(--border); }
@@ -468,7 +434,6 @@
   .mb-foot { margin-top: 14px; color: var(--text-faint); }
   #bloc-sante > .card { display: flex; flex-direction: column; }
   #bloc-sante .grid-3 { flex: 1; grid-auto-rows: 1fr; }
-  #bloc-sante .kpi { display: flex; flex-direction: column; justify-content: center; }
 
   /* --- v3.5 : barre dégradée rouge->vert + reste à faire --- */
   .prog-scale-track { position: relative; height: 10px; border-radius: 6px; overflow: hidden; background: var(--bg-soft); }
@@ -486,35 +451,14 @@
   .bridge-wrap { position: relative; flex: 1; min-height: 168px; }
 
   /* Accents sur le chiffre-clé (pas de fond) */
-  .kpi.accent-blue { border-left-color: #3b82f6; }
-  .kpi.accent-blue .kpi-value { color: #3b82f6; }
-  .kpi.accent-blue .kpi-ico { background: rgba(59,130,246,0.12); color: #3b82f6; }
-  .kpi.accent-orange { border-left-color: #E1961F; }
-  .kpi.accent-orange .kpi-value { color: #E1961F; }
-  .kpi.accent-orange .kpi-ico { background: rgba(225,150,31,0.14); color: #E1961F; }
-  .kpi.accent-green { border-left-color: #16a34a; }
-  .kpi.accent-green .kpi-value { color: #16a34a; }
-  .kpi.accent-green .kpi-ico { background: rgba(22,163,74,0.12); color: #16a34a; }
-  .kpi.accent-red { border-left-color: #dc2626; }
-  .kpi.accent-red .kpi-value { color: #dc2626; }
-  .kpi.accent-red .kpi-ico { background: rgba(220,38,38,0.12); color: #dc2626; }
 
   /* Santé : KPI sans effet carte-dans-carte */
-  #bloc-sante .card .kpi { background: transparent; border: none; box-shadow: none; border-radius: 0; }
-  #bloc-sante .card .kpi:hover { background: transparent; box-shadow: none; transform: none; }
   #bloc-sante .grid.grid-3 { gap: 0; }
-  #bloc-sante .grid.grid-3 > .kpi { padding: 6px 22px; }
-  #bloc-sante .grid.grid-3 > .kpi + .kpi { border-left: 1px solid var(--border); }
-  @media (max-width: 700px) {
-    #bloc-sante .grid.grid-3 > .kpi + .kpi { border-left: none; border-top: 1px solid var(--border); }
-  }
   /* Santé sur une seule ligne : jauge compacte + 4 KPI */
   .sante-oneline { display: grid; grid-template-columns: 1.3fr repeat(4, minmax(0, 1fr)); align-items: stretch; gap: 14px; margin-top: 8px; }
   .sante-oneline > * { min-width: 0; }
   .sante-oneline .sante-gauge { display: flex; flex-direction: column; justify-content: center; }
   .sante-oneline .financial-health-chart { margin: 12px 0 10px; }
-  /* 4 indicateurs en cartes grises distinctes (spécificité qui bat #bloc-sante .card .kpi{background:transparent}) */
-  #bloc-sante .card .sante-oneline > .kpi { display: flex; flex-direction: column; justify-content: flex-start; background: var(--bg-inset); border-radius: var(--radius-sm); padding: 14px 16px; }
   @media (max-width: 1180px) {
     .sante-oneline { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .sante-oneline .sante-gauge { grid-column: 1 / -1; }
@@ -592,9 +536,6 @@
   padding:14px 16px; font-size:13.5px; line-height:1.6; margin-top:18px; text-align:left;
   box-shadow:var(--shadow-sm);
 }
-.kpi.accent-violet { border-left-color: var(--violet); }
-.kpi.accent-violet .kpi-value { color: var(--violet); }
-.kpi.accent-violet .kpi-ico { background: var(--violet-bg); color: var(--violet); }
 .wc-tag {
   display:inline-block; font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.04em;
   color:#fff; background:var(--amber); padding:2px 9px; border-radius:999px; margin-right:8px; vertical-align:middle;
@@ -709,8 +650,7 @@
 .mb-foot { font-size:12px; margin-top:10px; }
 .mb-foot strong { color:var(--text); font-weight:800; }
 
-/* KPI carte Santé : icône à gauche du titre + badge de variation */
-.kpi-main { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+/* Badge de variation (carte chiffre clé) */
 .kpi-pill { display:inline-flex; align-items:center; gap:4px; font-size:12.5px; font-weight:800; padding:3px 9px; border-radius:999px; line-height:1; }
 .kpi-pill.up { color:var(--green); background:var(--green-bg); }
 .kpi-pill.down { color:var(--red); background:var(--red-bg); }
@@ -798,11 +738,6 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 #quote-margin-distribution { display:flex; flex:1; min-height:0; }
 #quote-margin-distribution .chart-wrap { flex:1; min-width:0; width:100%; height:auto; min-height:180px; }
 .performance-kpis { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:12px; margin:16px 0 24px; }
-.performance-kpi { background:var(--bg-inset); border-radius:var(--radius-sm); padding:14px 16px; }
-.performance-kpi .label { color:var(--text-dim); font-size:12px; font-weight:700; }
-.performance-kpi .value { color:var(--text); font-size:26px; font-weight:800; letter-spacing:-0.025em; margin-top:5px; }
-.performance-kpi .delta { color:var(--green); font-size:13px; font-weight:800; margin-top:8px; }
-.performance-kpi .delta.bad { color:var(--red); }
 .structure-chart { height:230px; margin-bottom:20px; }
 .table-section-title { font-size:17px; font-weight:800; color:var(--text); letter-spacing:-0.015em; margin:0 0 9px; }
 .cmp .cmp-post { display:flex; align-items:center; gap:7px; }
@@ -946,7 +881,6 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 
 /* === Carte "Santé financière" — un seul accent (icônes + pill Résultat) === */
 /* Valeurs des 3 indicateurs en noir (la couleur ne porte plus de sens sur les montants) */
-#bloc-sante .kpi .kpi-value { color:var(--text); }
 /* Légende de la barre : Position nette à gauche (sous le violet), Dettes à droite (sous l'orange) */
 .pn-legend { justify-content:space-between; }
 .pn-leg { display:inline-flex; align-items:center; }
@@ -1174,16 +1108,6 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .cap-overview { padding:12px 26px 24px; }
 .cap-section-heading { display:flex; align-items:center; gap:9px; margin:14px 0 20px; color:var(--text-dim); font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; }
 .cap-projections { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; margin-bottom:32px; }
-.cap-projection { min-width:0; padding:22px; border-radius:14px; background:light-dark(#f6f5f9,#282530); }
-.cap-projection h4 { color:var(--text); margin:0 0 18px; font-size:14px; font-weight:800; line-height:1.4; }
-.cap-projection-value { display:block; color:var(--text); font-size:30px; font-weight:900; line-height:1.2; letter-spacing:-.035em; font-variant-numeric:tabular-nums; }
-.cap-projection-unit { font-size:12px; color:var(--text-dim); font-weight:600; letter-spacing:0; white-space:nowrap; }
-.cap-projection-delta { display:block; margin-top:4px; font-size:12px; font-weight:800; }
-.cap-projection-delta.positive { color:var(--green); }
-.cap-projection-delta.negative { color:var(--orange); }
-.cap-projection-delta.unavailable { color:var(--text-dim); }
-.cap-projection-goal { display:block; margin-top:8px; color:var(--text-dim); font-size:13px; }
-.cap-projection-goal b { color:var(--text); }
 .cap-overview #cap-actual { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; padding:0; background:none; }
 .cap-overview .actual-performance-card { padding:24px; border:0; border-radius:14px; background:light-dark(#f8f3ff,#2b243b); --actual-rest:light-dark(#e9e4ef,#403849); }
 .cap-overview .actual-performance-card--ca { background:light-dark(#f0f7ff,#202e3d); }
@@ -1201,11 +1125,9 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .cap-overview .cap-comparison,.cap-overview .actual-progress-item { font-size:12px; }
 .cap-explanation { margin-top:22px; color:var(--text-dim); font-size:12px; line-height:1.6; }
 .cap-explanation summary { color:var(--violet); cursor:pointer; width:fit-content; margin-left:auto; }
-@media(min-width:1500px) { .cap-projection-value { font-size:34px; } }
 @media(max-width:1100px) { .cap-projections { grid-template-columns:repeat(2,minmax(0,1fr)); } .cap-overview .actual-performance-footer { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-@media(max-width:700px) { .cap-overview { padding:12px 18px 22px; } .cap-overview #cap-actual { grid-template-columns:1fr; } .cap-projection { padding:18px; } .cap-projection-value { font-size:27px; } }
+@media(max-width:700px) { .cap-overview { padding:12px 18px 22px; } .cap-overview #cap-actual { grid-template-columns:1fr; } }
 @media(max-width:460px) { .cap-projections { grid-template-columns:1fr; } .cap-overview .actual-performance-card { padding:18px; } .cap-overview .actual-gauge-summary .actual-gauge-realized strong { font-size:30px; } }
-.cap-salary-context { display:block; margin-top:8px; color:var(--text-dim); font-size:11px; }
 
 .cap-section-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:4px 0 20px; }
 .cap-section-head .cap-section-heading { margin:0; }
@@ -1259,24 +1181,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .forecast-future-layout[data-potential-columns="1"]{grid-template-columns:minmax(0,3.6fr) minmax(0,1fr)}
 .forecast-future-layout[data-potential-columns="0"]{grid-template-columns:1fr}
 .forecast-potentials{display:grid;grid-template-columns:repeat(var(--potential-columns),minmax(0,1fr));gap:16px;align-self:stretch}
-.forecast-potential-stack{display:grid;grid-auto-rows:1fr;gap:10px;min-width:0}
-.forecast-potential{min-width:0;padding:12px 16px;border-radius:var(--radius-sm);background:var(--bg-inset)}
-.forecast-potential-waiting{display:flex;flex-direction:column;justify-content:flex-start;padding:12px 16px}
 
-.forecast-potential .kpi-top{margin-bottom:10px}
-.forecast-potential-waiting .kpi-ico{background:var(--amber-bg);color:var(--amber)}
-.forecast-potential-validation .kpi-ico{background:rgba(59,130,246,.12);color:#3b82f6}
-.forecast-potential.is-empty .kpi-ico{opacity:.55}
-.forecast-potential h3{font-size:12.5px;font-weight:700;text-transform:none;letter-spacing:0;color:var(--text-dim);margin:0}
-.forecast-potential h3:before{display:none}
-.forecast-potential>strong{display:block;font-size:23px;font-weight:800;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
-.forecast-potential small{font-size:12px;font-weight:400;color:var(--text-dim);letter-spacing:0}
-.forecast-potential-foot{display:flex;align-items:center;justify-content:space-between;gap:0 10px;flex-wrap:wrap;font-size:11px;color:var(--text-dim)}
-.forecast-potential-waiting .forecast-potential-foot{display:block;font-size:12px}
-.forecast-potential-waiting .forecast-link{display:block}
-.forecast-potential.is-empty{background:transparent;border:1px dashed var(--border);color:var(--text-dim)}
-.forecast-potential.is-empty>strong,.forecast-potential.is-empty h3{color:var(--text-dim);opacity:.55;font-weight:inherit}
-.forecast-potential.is-empty>strong{font-weight:800}
 .revenue-forecast .forecast-link{color:var(--violet);text-decoration:none}
 .revenue-forecast .forecast-link:hover{color:var(--text);text-decoration:underline}
 .forecast-details-row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;border-top:1px solid var(--border);padding-top:12px}
@@ -1300,7 +1205,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .forecast-dashboard-tables .forecast-table-amount{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
 .forecast-dashboard-tables td:last-child{text-align:right}.forecast-dashboard-tables td:last-child button{font-size:12px}
 @media(max-width:1100px){.forecast-future-layout,.forecast-future-layout[data-potential-columns]{grid-template-columns:1fr;gap:24px}.forecast-potentials{max-width:none}}
-@media(max-width:650px){.forecast-estimated strong{font-size:32px}.forecast-future-layout{gap:20px}.forecast-potentials{gap:10px}.forecast-potential,.forecast-potential-waiting{padding:12px}.forecast-potential>strong,.forecast-potential-waiting>strong{font-size:21px}.forecast-potential-foot{font-size:11px}.forecast-followed>summary{font-size:12px}.forecast-quick-filters{gap:16px}.forecast-quick-filters button{font-size:12px}#forecast-dashboard-search{width:100%;font-size:16px}.forecast-dashboard-tables th,.forecast-dashboard-tables td{padding:11px 3px}.forecast-dashboard-tables td:first-child{width:auto}.forecast-dashboard-tables .forecast-table-amount{font-size:12px}.forecast-dashboard-tables td:last-child{width:65px}.forecast-dashboard-tables td:last-child button{font-size:11px}.forecast-coverage-legend{font-size:11px}}
+@media(max-width:650px){.forecast-estimated strong{font-size:32px}.forecast-future-layout{gap:20px}.forecast-potentials{gap:10px}.forecast-followed>summary{font-size:12px}.forecast-quick-filters{gap:16px}.forecast-quick-filters button{font-size:12px}#forecast-dashboard-search{width:100%;font-size:16px}.forecast-dashboard-tables th,.forecast-dashboard-tables td{padding:11px 3px}.forecast-dashboard-tables td:first-child{width:auto}.forecast-dashboard-tables .forecast-table-amount{font-size:12px}.forecast-dashboard-tables td:last-child{width:65px}.forecast-dashboard-tables td:last-child button{font-size:11px}.forecast-coverage-legend{font-size:11px}}
 
 .forecast-threshold.at-start span{transform:none}
 @media(pointer:coarse){.revenue-forecast .forecast-link{min-height:44px}}
@@ -1332,6 +1237,33 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .forecast-quotes .forecast-table-toolbar{padding-top:8px}
 .forecast-open-quotes{font-size:13px;font-weight:600;color:var(--text);padding:10px 0}
 @media(max-width:650px){.forecast-potentials{grid-template-columns:1fr}}
+
+/* === Carte chiffre clé unique (kpi-card) : cap, CA prévisionnel, santé financière, performance === */
+.kpi-card { --kpi-tone:var(--violet); --kpi-tone-bg:var(--violet-bg); min-width:0; display:flex; flex-direction:column; padding:16px; border-radius:var(--radius-sm); background:var(--bg-inset); color:var(--text); }
+.kpi-card.tone-blue { --kpi-tone:#3b82f6; --kpi-tone-bg:rgba(59,130,246,.12); }
+.kpi-card.tone-amber { --kpi-tone:var(--amber); --kpi-tone-bg:var(--amber-bg); }
+.kpi-card.tone-green { --kpi-tone:var(--green); --kpi-tone-bg:var(--green-bg); }
+.kpi-card.tone-red { --kpi-tone:var(--red); --kpi-tone-bg:var(--red-bg); }
+.kpi-card-head { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+.kpi-card-icon { width:32px; height:32px; flex:none; display:inline-flex; align-items:center; justify-content:center; border-radius:10px; background:var(--kpi-tone-bg); color:var(--kpi-tone); }
+.kpi-card-icon svg { width:18px; height:18px; }
+.kpi-card-label { margin:0; min-width:0; color:var(--text-dim); font-size:13px; font-weight:700; line-height:1.3; letter-spacing:0; }
+.kpi-card-head .sp-help { margin-left:0; }
+.kpi-card-main { display:flex; align-items:center; flex-wrap:wrap; gap:6px 10px; }
+.kpi-card-value { color:var(--text); font-size:28px; font-weight:800; line-height:1.15; letter-spacing:-.025em; font-variant-numeric:tabular-nums; }
+.kpi-card-unit { color:var(--text-dim); font-size:12px; font-weight:600; letter-spacing:0; white-space:nowrap; }
+.kpi-card-delta { display:block; margin-top:6px; font-size:12px; font-weight:800; }
+.kpi-card-delta.is-good { color:var(--green); }
+.kpi-card-delta.is-warn { color:var(--orange); }
+.kpi-card-delta.is-bad { color:var(--red); }
+.kpi-card-delta.is-none { color:var(--text-dim); }
+.kpi-card-meta { display:block; margin-top:6px; color:var(--text-dim); font-size:12px; line-height:1.4; }
+.kpi-card-meta b { color:var(--text); }
+.kpi-card .kpi-card-action { align-self:flex-start; margin-top:auto; padding:10px 0 0; border:0; background:none; font:inherit; font-size:12px; font-weight:700; text-align:left; color:var(--violet); cursor:pointer; text-decoration:underline; text-underline-offset:3px; }
+.kpi-card .kpi-card-action:focus-visible { outline:2px solid var(--violet); outline-offset:3px; }
+.kpi-card.is-empty { background:transparent; border:1px dashed var(--border); }
+.kpi-card.is-empty .kpi-card-icon, .kpi-card.is-empty .kpi-card-label, .kpi-card.is-empty .kpi-card-value { opacity:.55; }
+@media(max-width:650px) { .kpi-card { padding:14px; } }
 </style>
 <script>try{var _t=localStorage.getItem("cabestan_dashboard_theme");if(_t==="dark"||_t==="light")document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 </head>
@@ -3349,6 +3281,55 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     };
   }
 
+  // src/app/views/kpi-card.js
+  var svg = (inner) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
+  var KPI_ICONS = {
+    salary: svg('<path d="M3 7h15a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h11"/><circle cx="16.5" cy="12.5" r="1.1"/>'),
+    result: svg('<polyline points="3 17 9 11 13 15 21 7"/><polyline points="15 7 21 7 21 13"/>'),
+    margin: svg('<line x1="19" y1="5" x2="5" y2="19"/><circle cx="7" cy="7" r="2"/><circle cx="17" cy="17" r="2"/>'),
+    revenue: svg('<circle cx="12" cy="12" r="9"/><path d="M15.5 9.5a4 4 0 1 0 0 5"/><line x1="8" y1="11" x2="13" y2="11"/><line x1="8" y1="13.5" x2="13" y2="13.5"/>'),
+    costs: svg('<circle cx="9" cy="20" r="1.3"/><circle cx="18" cy="20" r="1.3"/><path d="M2 3h3l2.4 12.1a1.6 1.6 0 0 0 1.6 1.3h8.5a1.6 1.6 0 0 0 1.6-1.3L22 7H6"/>'),
+    receipt: svg('<path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 7h6M9 11h6"/>'),
+    reserve: svg('<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/>'),
+    debt: svg('<circle cx="12" cy="12" r="9"/><line x1="8" y1="12" x2="16" y2="12"/>'),
+    waiting: svg('<circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/>'),
+    validation: svg('<circle cx="12" cy="12" r="9"/><polyline points="8 12.5 11 15.5 16 9"/>'),
+    review: svg('<circle cx="11" cy="11" r="6.5"/><line x1="20" y1="20" x2="15.8" y2="15.8"/>')
+  };
+  var TONES = ["violet", "blue", "amber", "green", "red"];
+  var DELTA_TONES = ["good", "warn", "bad", "none"];
+  var PILL_TONES = ["up", "down"];
+  function renderKpiCard({
+    tag = "div",
+    icon,
+    tone = "violet",
+    label,
+    help,
+    value,
+    unit,
+    pill,
+    delta,
+    meta = [],
+    action,
+    variant,
+    classes = "",
+    attrs = {},
+    valueClass = ""
+  }, { escape: esc2 }) {
+    const attributes = Object.entries(attrs).map(([name, content]) => ` ${name}="${esc2(content)}"`).join("");
+    const helpHtml = help ? `<span class="sp-help" data-tip-html="${esc2(help.html)}" tabindex="0" role="button" aria-label="${esc2(help.label)}">?</span>` : "";
+    const pillHtml = pill ? `<span class="kpi-pill ${PILL_TONES.includes(pill.tone) ? pill.tone : "up"}"><span class="tri">${pill.tone === "down" ? "\u25BC" : "\u25B2"}</span>${esc2(pill.text)}</span>` : "";
+    const deltaHtml = delta ? `<span class="kpi-card-delta is-${DELTA_TONES.includes(delta.tone) ? delta.tone : "none"}">${esc2(delta.text)}</span>` : "";
+    const metaHtml = meta.filter(Boolean).map((line) => Array.isArray(line) ? `<span class="kpi-card-meta">${esc2(line[0])} <b>${esc2(line[1])}</b></span>` : `<span class="kpi-card-meta">${esc2(line)}</span>`).join("");
+    const actionHtml = action ? `<button type="button" class="kpi-card-action${action.className ? " " + action.className : ""}"${Object.entries(action.attrs || {}).map(([name, content]) => ` ${name}="${esc2(content)}"`).join("")}>${esc2(action.label)} \u2192</button>` : "";
+    const unitHtml = unit ? ` <span class="kpi-card-unit">${esc2(unit)}</span>` : "";
+    const classNames = ["kpi-card", `tone-${TONES.includes(tone) ? tone : "violet"}`, classes, variant === "empty" ? "is-empty" : ""].filter(Boolean).join(" ");
+    return `<${tag} class="${classNames}"${attributes}>
+    <div class="kpi-card-head"><span class="kpi-card-icon">${icon || ""}</span><h4 class="kpi-card-label">${esc2(label)}</h4>${helpHtml}</div>
+    <div class="kpi-card-main"><strong class="kpi-card-value${valueClass ? " " + valueClass : ""}">${esc2(value)}${unitHtml}</strong>${pillHtml}</div>
+    ${deltaHtml}${metaHtml}${actionHtml}</${tag}>`;
+  }
+
   // src/app/views/annual-cap.js
   var INTRO = "Ce que ton activit\xE9 aurait pu te verser par mois depuis janvier, en finissant \xE0 z\xE9ro de r\xE9sultat.";
   function row(label, value, className = "") {
@@ -3428,16 +3409,26 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   }
   function renderCapProjections(host, { year, salary, result, margin, revenue, goals, salaryHelp, resultHelp, marginHelp, revenueHelp }, { money: money3, escape }) {
     const cards = [
-      ["Salaire net d\xE9gageable", salary, goals.salary, true, salaryHelp, "D\xE9tail du calcul du salaire net d\xE9gageable"],
-      ["Projection r\xE9sultat " + year, result, goals.result, false, resultHelp, "D\xE9tail du calcul de la projection du r\xE9sultat"],
-      ["Projection marge brute " + year, margin, goals.margin, false, marginHelp, "D\xE9tail du calcul de la projection de la marge brute"],
-      ["Projection chiffre d\u2019affaires " + year, revenue, goals.revenue, false, revenueHelp, "D\xE9tail du calcul de la projection du chiffre d\u2019affaires"]
+      ["Salaire net d\xE9gageable", salary, goals.salary, true, salaryHelp, "D\xE9tail du calcul du salaire net d\xE9gageable", "salary"],
+      ["Projection r\xE9sultat " + year, result, goals.result, false, resultHelp, "D\xE9tail du calcul de la projection du r\xE9sultat", "result"],
+      ["Projection marge brute " + year, margin, goals.margin, false, marginHelp, "D\xE9tail du calcul de la projection de la marge brute", "margin"],
+      ["Projection chiffre d\u2019affaires " + year, revenue, goals.revenue, false, revenueHelp, "D\xE9tail du calcul de la projection du chiffre d\u2019affaires", "revenue"]
     ];
-    host.innerHTML = cards.map(([title, value, goal, monthly, helpHtml, helpLabel]) => {
+    host.innerHTML = cards.map(([title, value, goal, monthly, helpHtml, helpLabel, icon]) => {
       const available = Number.isFinite(value);
       const delta = available ? Math.round(value - goal) : null;
-      const help = helpHtml ? '<span class="sp-help" data-tip-html="' + escape(helpHtml) + '" tabindex="0" role="button" aria-label="' + escape(helpLabel) + '">?</span>' : "";
-      return '<article class="cap-projection"><h4>' + escape(title) + help + '</h4><strong class="cap-projection-value">' + (available ? "\u2248 " + money3(value) : "\u2014") + (monthly ? ' <span class="cap-projection-unit">/ mois</span>' : "") + '</strong><span class="cap-projection-delta ' + (available ? delta >= 0 ? "positive" : "negative" : "unavailable") + '">' + (available ? (delta > 0 ? "+" : "") + money3(delta) + " vs objectif" : "Projection indisponible") + '</span><span class="cap-projection-goal">Objectif : <b>' + money3(goal) + "</b></span>" + (monthly ? '<span class="cap-salary-context">\xC0 date \xB7 r\xE9sultat \xE0 l\u2019\xE9quilibre</span>' : "") + "</article>";
+      return renderKpiCard({
+        tag: "article",
+        icon: KPI_ICONS[icon],
+        label: title,
+        classes: "cap-projection",
+        valueClass: "cap-projection-value",
+        help: helpHtml ? { html: helpHtml, label: helpLabel } : null,
+        value: available ? "\u2248 " + money3(value) : "\u2014",
+        unit: monthly ? "/ mois" : "",
+        delta: { tone: available ? delta >= 0 ? "good" : "warn" : "none", text: available ? (delta > 0 ? "+" : "") + money3(delta) + " vs objectif" : "Projection indisponible" },
+        meta: [["Objectif :", money3(goal)], monthly ? "\xC0 date \xB7 r\xE9sultat \xE0 l\u2019\xE9quilibre" : null]
+      }, { escape });
     }).join("");
   }
 
@@ -3464,13 +3455,6 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   function renderQuotesPanel({ search, tables, activeTab, counts, escape: esc2 }) {
     return `<div class="forecast-table-toolbar"><nav class="forecast-quick-filters" role="tablist" aria-label="Situation des devis">${Object.entries(FORECAST_TAB_LABELS).map(([kind, label]) => `<button type="button" role="tab" class="${counts[kind] ? "" : "is-zero"}" id="forecast-tab-${kind}" data-f-filter="${kind}" aria-controls="forecast-dashboard-tables" aria-selected="${activeTab === kind}" tabindex="${activeTab === kind ? 0 : -1}">${label} <span class="forecast-count">${counts[kind]}</span></button>`).join("")}</nav><input id="forecast-dashboard-search" type="search" aria-label="Rechercher dans les devis de cet onglet" placeholder="Client, num\xE9ro ou titre\u2026" value="${esc2(search)}"></div><div id="forecast-dashboard-tables" class="forecast-dashboard-tables" role="tabpanel" aria-labelledby="forecast-tab-${activeTab}">${tables}</div><p id="forecast-quick-message" class="small" role="status"></p>`;
   }
-  var svg = (inner) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
-  var POTENTIAL_ICONS = {
-    waiting: svg('<circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/>'),
-    validation: svg('<circle cx="12" cy="12" r="9"/><polyline points="8 12.5 11 15.5 16 9"/>'),
-    review: svg('<circle cx="11" cy="11" r="6.5"/><line x1="20" y1="20" x2="15.8" y2="15.8"/>')
-  };
-  var potentialHead = (kind, label) => `<div class="kpi-top"><span class="kpi-ico">${POTENTIAL_ICONS[kind]}</span><h3>${label}</h3></div>`;
   function renderForecastSummary({ summary, goal, reviewCount, reviewAmount, reviewUnknown, warning, counts, money: money3, escape: esc2 }) {
     const coverage = forecastCoverage(summary, goal);
     const estimated = summary.confirmed;
@@ -3480,8 +3464,19 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     const labels = FORECAST_TAB_LABELS;
     const potential = (kind, amount, note) => {
       const empty = amount === 0 && !counts[kind];
-      const foot = empty ? "<span>Aucun devis</span>" : `<span>${note}</span><button class="forecast-link" data-f-jump="${kind}">${counts[kind] === 1 ? "Voir le devis" : `Voir les ${counts[kind]} devis`} \u2192</button>`;
-      return `<aside class="forecast-potential forecast-potential-${kind}${empty ? " is-empty" : ""}" aria-label="${labels[kind]}"${empty ? ' aria-disabled="true"' : ""}>${potentialHead(kind, labels[kind])}<strong>${money3(amount)} <small>HT</small></strong><div class="forecast-potential-foot">${foot}</div></aside>`;
+      return renderKpiCard({
+        tag: "aside",
+        icon: KPI_ICONS[kind],
+        tone: kind === "waiting" ? "amber" : kind === "validation" ? "blue" : "violet",
+        label: labels[kind],
+        classes: `forecast-potential forecast-potential-${kind}`,
+        variant: empty ? "empty" : "",
+        attrs: { "aria-label": labels[kind], ...empty ? { "aria-disabled": "true" } : {} },
+        value: money3(amount),
+        unit: "HT",
+        meta: [empty ? "Aucun devis" : note],
+        action: empty ? null : { label: counts[kind] === 1 ? "Voir le devis" : `Voir les ${counts[kind]} devis`, className: "forecast-link", attrs: { "data-f-jump": kind } }
+      }, { escape: esc2 });
     };
     const showReview = reviewAmount !== 0 || reviewUnknown > 0;
     const columns = 3;
@@ -3500,9 +3495,19 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         ${potential("validation", summary.validation, "Hors estimation")}
         ${(() => {
       const empty = !showReview;
-      const amount = reviewUnknown === reviewCount && reviewCount > 0 ? "\xC0 d\xE9terminer" : money3(reviewAmount) + " <small>HT</small>";
-      const foot = empty ? "<span>Aucun devis</span>" : `<span>Montants indicatifs \xB7 hors totaux${reviewUnknown ? ` \xB7 ${reviewUnknown} non renseign\xE9(s)` : ""}</span><button class="forecast-link" data-f-jump="review">V\xE9rifier ${reviewCount} devis \u2192</button>`;
-      return `<aside class="forecast-potential forecast-review-card${empty ? " is-empty" : ""}" aria-label="\xC0 examiner"${empty ? ' aria-disabled="true"' : ""}>${potentialHead("review", "\xC0 examiner")}<strong>${amount}</strong><div class="forecast-potential-foot">${foot}</div></aside>`;
+      const unknownOnly = reviewUnknown === reviewCount && reviewCount > 0;
+      return renderKpiCard({
+        tag: "aside",
+        icon: KPI_ICONS.review,
+        label: "\xC0 examiner",
+        classes: "forecast-potential forecast-review-card",
+        variant: empty ? "empty" : "",
+        attrs: { "aria-label": "\xC0 examiner", ...empty ? { "aria-disabled": "true" } : {} },
+        value: unknownOnly ? "\xC0 d\xE9terminer" : money3(reviewAmount),
+        unit: unknownOnly ? "" : "HT",
+        meta: [empty ? "Aucun devis" : `Montants indicatifs \xB7 hors totaux${reviewUnknown ? ` \xB7 ${reviewUnknown} non renseign\xE9(s)` : ""}`],
+        action: empty ? null : { label: `V\xE9rifier ${reviewCount} devis`, className: "forecast-link", attrs: { "data-f-jump": "review" } }
+      }, { escape: esc2 });
     })()}
       </div>`}
     </div>
@@ -4855,57 +4860,6 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   var CHART_TOOLTIP_BG = DARK ? "#2a2536" : "#2b2536";
   var CHART_FONT = "'Nunito', ui-rounded, -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif";
   setChartTheme({ font: CHART_FONT, text: CHART_TEXT, grid: CHART_GRID, tooltip: CHART_TOOLTIP_BG });
-  var _ic = (inner) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + inner + "</svg>";
-  var ICON = {
-    wallet: _ic('<path d="M3 7h15a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h11"/><circle cx="16.5" cy="12.5" r="1.1"/>'),
-    receipt: _ic('<path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 7h6M9 11h6"/>'),
-    percent: _ic('<line x1="19" y1="5" x2="5" y2="19"/><circle cx="7" cy="7" r="2"/><circle cx="17" cy="17" r="2"/>'),
-    target: _ic('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4"/>'),
-    trending: _ic('<polyline points="3 17 9 11 13 15 21 7"/><polyline points="15 7 21 7 21 13"/>'),
-    gauge: _ic('<path d="M4 15a8 8 0 1 1 16 0"/><line x1="12" y1="15" x2="16" y2="10"/>'),
-    cart: _ic('<circle cx="9" cy="20" r="1.3"/><circle cx="18" cy="20" r="1.3"/><path d="M2 3h3l2.4 12.1a1.6 1.6 0 0 0 1.6 1.3h8.5a1.6 1.6 0 0 0 1.6-1.3L22 7H6"/>'),
-    ratio: _ic('<circle cx="12" cy="6" r="1.4"/><circle cx="12" cy="18" r="1.4"/><line x1="5" y1="12" x2="19" y2="12"/>'),
-    pie: _ic('<path d="M21 12a9 9 0 1 1-9-9v9z"/><path d="M13 3.5a9 9 0 0 1 7.5 7.5H13z"/>'),
-    spark: _ic('<path d="M12 3l1.7 5.1L19 10l-5.3 1.9L12 17l-1.7-5.1L5 10l5.3-1.9z"/>')
-  };
-  var KPI_ICON_MAP = [
-    ["Tr\xE9sorerie", "wallet"],
-    ["Cr\xE9ances", "receipt"],
-    ["TVA", "percent"],
-    ["Projection marge", "target"],
-    ["Projection CA", "trending"],
-    ["Atteinte", "gauge"],
-    ["Total achats", "cart"],
-    ["Ratio achats", "ratio"],
-    ["destruction", "pie"]
-  ];
-  function decorateKpis() {
-    document.querySelectorAll(".kpi").forEach((k) => {
-      if (k.querySelector(".kpi-ico")) return;
-      const labelEl = k.querySelector(".kpi-label");
-      if (!labelEl) return;
-      const label = labelEl.textContent || "";
-      let name = "spark";
-      for (const [kw, ic] of KPI_ICON_MAP) {
-        if (label.indexOf(kw) !== -1) {
-          name = ic;
-          break;
-        }
-      }
-      const top = document.createElement("div");
-      top.className = "kpi-top";
-      const chip = document.createElement("span");
-      chip.className = "kpi-ico";
-      chip.innerHTML = ICON[name] || ICON.spark;
-      labelEl.parentNode.insertBefore(top, labelEl);
-      top.appendChild(chip);
-      top.appendChild(labelEl);
-    });
-  }
-  ICON.balance = _ic('<path d="M12 3v18"/><path d="M6 21h12"/><path d="M5 7h14"/><path d="M7 7l-2.5 5a2.5 2.5 0 0 0 5 0z"/><path d="M17 7l-2.5 5a2.5 2.5 0 0 0 5 0z"/>');
-  ICON.debt = _ic('<circle cx="12" cy="12" r="9"/><line x1="8" y1="12" x2="16" y2="12"/>');
-  ICON.reserve = _ic('<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/>');
-  KPI_ICON_MAP.unshift(["Position", "balance"], ["Dettes", "debt"], ["R\xE9sultat", "trending"], ["Compte courant", "reserve"]);
   var C = {
     MB_AN_OBJ: 55e3,
     MB_MIN: 3e3,
@@ -5005,7 +4959,6 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     renderAchats(cy, cur);
     renderAchatsCAChart(cy);
     renderTrendChart(years);
-    decorateKpis();
   }
   function _distributionRows(raw) {
     var rows = [];
@@ -6154,10 +6107,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       }, 0);
     };
     var margeNette = cur.ytd_mb - ytdK("charges_fonct") - ytdK("contribution_coop") - ytdK("remunerations");
-    var mn_cls = margeNette >= 0 ? "accent-green" : "accent-red";
     var dsoRatio = cur.ytd_ca > 0 ? sante.creances_clients / cur.ytd_ca : null;
-    var creances_cls = "accent-orange";
-    if (dsoRatio !== null && dsoRatio > 0.25) creances_cls = "accent-red";
     var tva = sante.dettes_tva != null ? sante.dettes_tva : Math.max(0, sante.tva_a_payer || 0);
     var dFourn = sante.dettes_fournisseurs || 0, dSoc = sante.dettes_sociales_fiscales || 0, dAccLiab = sante.dettes_acomptes_clients || 0;
     var dAccCA = sante.acomptes_en_ca || 0, dAcc = dAccLiab + dAccCA;
@@ -6172,7 +6122,6 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var acompteKnown = acompteKnownBalance;
     var dexpl = tva + dFourn + dSoc + dAcc;
     var cca = -(sante.comptes_courants_associes || 0);
-    var cca_cls = cca < 0 ? "accent-red" : "accent-blue";
     var treso = sante.tresorerie_totale;
     var position = treso - dexpl;
     var asOfDate = sante.as_of ? new Date(sante.as_of).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" }) : "\u2014";
@@ -6189,11 +6138,11 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var _refYr = cur.previous_year || cur.reference_year, _py = _refYr ? data.years[_refYr] : null, _n = cur.mois_renseignes, _rN1 = null;
     if (_py) _rN1 = healthResultForPeriod(_py, _n);
     var _delta = _rN1 !== null ? margeNette - _rN1 : null;
-    var resultatPill = "";
+    var resultatPill = null;
     if (_delta !== null) {
       var _up = _delta >= 0;
       var _txt = _rN1 > 0 ? fmtPct(Math.abs(_delta) / _rN1, 1) : fmtEUR(Math.abs(_delta));
-      resultatPill = '<span class="kpi-pill ' + (_up ? "up" : "down") + '"><span class="tri">' + (_up ? "\u25B2" : "\u25BC") + "</span>" + _txt + "</span>";
+      resultatPill = { tone: _up ? "up" : "down", text: _txt };
     }
     var resultatSub = _rN1 !== null && _n > 0 ? "vs " + fmtEUR(_rN1) + " (jan\u2013" + MONTH_NAMES[_n - 1].toLowerCase() + " " + _refYr + ")" : "Reste apr\xE8s charges, coop, salaire, km";
     var advancesModal;
@@ -6223,8 +6172,31 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         return sum + item.amount;
       }, 0), totalLabel: "Total des impay\xE9s dans l\u2019export" }
     };
-    var acompteKpi = '<div class="kpi accent-orange" data-kpi="acomptes-a-honorer"><div class="kpi-top"><span class="kpi-ico">' + ICON.debt + '</span><div class="kpi-label">Acomptes \xE0 honorer</div></div><div class="kpi-value">' + (acompteKnown ? fmtEUR(dAccCA) : "Indisponible") + '</div><div class="kpi-sub">' + (acompteKnown ? "Encaiss\xE9s, d\xE9j\xE0 en CA \xB7 travaux restant \xE0 r\xE9aliser" : sante.acompte_ca_accounts_present === void 0 ? "R\xE9importe la Balance pour les calculer" : "Aucun compte d\u2019acompte dans cette Balance") + "</div>" + (openAdv.length ? '<button type="button" class="sante-detail-link" data-customer-detail="open-advances">D\xE9tail des acomptes \u2192</button>' : "") + "</div>";
-    var kpis = '<div class="kpi ' + cca_cls + '"><div class="kpi-top"><span class="kpi-ico">' + ICON.reserve + '</span><div class="kpi-label">Compte courant associ\xE9</div></div><div class="kpi-value">' + fmtEUR(cca) + '</div><div class="kpi-sub">Tes r\xE9serves dans la scop</div></div><div class="kpi ' + creances_cls + '"><div class="kpi-top"><span class="kpi-ico">' + ICON.receipt + '</span><div class="kpi-label">Cr\xE9ances clients</div></div><div class="kpi-value">' + fmtEUR(sante.creances_clients) + '</div><div class="kpi-sub">' + (dsoRatio !== null ? fmtPct(dsoRatio, 0) + " du CA cumul\xE9 \xB7 \xE0 relancer si vieux" : "\xE0 relancer si vieux") + "</div>" + (receivableClients.length ? '<button type="button" class="sante-detail-link" data-customer-detail="receivables">D\xE9tail des impay\xE9s \u2192</button>' : "") + '</div><div class="kpi ' + mn_cls + '"><div class="kpi-top"><span class="kpi-ico">' + ICON.trending + '</span><div class="kpi-label">R\xE9sultat</div></div><div class="kpi-main"><div class="kpi-value">' + fmtEUR(margeNette) + "</div>" + resultatPill + '</div><div class="kpi-sub">' + resultatSub + "</div></div>" + acompteKpi;
+    var kpiEsc = { escape: esc };
+    var acompteKpi = renderKpiCard({
+      icon: KPI_ICONS.debt,
+      tone: "amber",
+      label: "Acomptes \xE0 honorer",
+      attrs: { "data-kpi": "acomptes-a-honorer" },
+      value: acompteKnown ? fmtEUR(dAccCA) : "Indisponible",
+      meta: [acompteKnown ? "Encaiss\xE9s, d\xE9j\xE0 en CA \xB7 travaux restant \xE0 r\xE9aliser" : sante.acompte_ca_accounts_present === void 0 ? "R\xE9importe la Balance pour les calculer" : "Aucun compte d\u2019acompte dans cette Balance"],
+      action: openAdv.length ? { label: "D\xE9tail des acomptes", attrs: { "data-customer-detail": "open-advances" } } : null
+    }, kpiEsc);
+    var kpis = renderKpiCard({ icon: KPI_ICONS.reserve, tone: cca < 0 ? "red" : "blue", label: "Compte courant associ\xE9", value: fmtEUR(cca), meta: ["Tes r\xE9serves dans la scop"] }, kpiEsc) + renderKpiCard({
+      icon: KPI_ICONS.receipt,
+      tone: dsoRatio !== null && dsoRatio > 0.25 ? "red" : "amber",
+      label: "Cr\xE9ances clients",
+      value: fmtEUR(sante.creances_clients),
+      meta: [dsoRatio !== null ? fmtPct(dsoRatio, 0) + " du CA cumul\xE9 \xB7 \xE0 relancer si vieux" : "\xE0 relancer si vieux"],
+      action: receivableClients.length ? { label: "D\xE9tail des impay\xE9s", attrs: { "data-customer-detail": "receivables" } } : null
+    }, kpiEsc) + renderKpiCard({
+      icon: KPI_ICONS.result,
+      tone: margeNette >= 0 ? "green" : "red",
+      label: "R\xE9sultat",
+      value: fmtEUR(margeNette),
+      pill: resultatPill,
+      meta: [resultatSub]
+    }, kpiEsc) + acompteKpi;
     var detailHTML = detailLines.map(function(l) {
       var link = l.detail ? '<button type="button" class="sante-detail-link" data-customer-detail="' + l.detail + '">' + (advanceMatchesFound.solutions.length > 1 ? "Voir les rapprochements possibles \u2192" : "Voir le rapprochement \u2192") + "</button>" : "";
       return '<div class="sd-row"><span>' + l.label + '</span><span class="sd-eur">' + fmtEUR(l.amount) + "</span></div>" + link;
@@ -6310,12 +6282,17 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     function pctDelta(now, before) {
       return before ? (now - before) / before : null;
     }
-    function kpi(label, value, delta, inverse) {
-      var good = delta === null ? "" : (inverse ? delta < 0 : delta > 0) ? "" : " bad";
+    function kpi(label, icon, value, delta, inverse) {
+      var tone = delta === null ? "none" : (inverse ? delta < 0 : delta > 0) ? "good" : "bad";
       var sign = delta === null ? "" : delta > 0 ? "\u2191 " : delta < 0 ? "\u2193 " : "\u2192 ";
-      return '<div class="performance-kpi"><div class="label">' + label + '</div><div class="value">' + fmtEUR(value) + '</div><div class="delta' + good + '">' + (delta === null ? "Comparaison indisponible" : sign + fmtPct(Math.abs(delta), 1) + " \xB7 vs N-1") + "</div></div>";
+      return renderKpiCard({
+        icon: KPI_ICONS[icon],
+        label,
+        value: fmtEUR(value),
+        delta: { tone, text: delta === null ? "Comparaison indisponible" : sign + fmtPct(Math.abs(delta), 1) + " \xB7 vs N-1" }
+      }, { escape: esc });
     }
-    wrap.innerHTML = kpi("Chiffre d'affaires", ca, pctDelta(ca, prevCA), false) + kpi("Co\xFBts totaux", costs, pctDelta(costs, prevCosts), true) + kpi("R\xE9sultat", result, pctDelta(result, prevResult), false);
+    wrap.innerHTML = kpi("Chiffre d'affaires", "revenue", ca, pctDelta(ca, prevCA), false) + kpi("Co\xFBts totaux", "costs", costs, pctDelta(costs, prevCosts), true) + kpi("R\xE9sultat", "result", result, pctDelta(result, prevResult), false);
   }
   function renderTableCmp(cy, py, cur) {
     var wrap = document.getElementById("bloc4");

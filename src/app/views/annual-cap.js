@@ -1,4 +1,6 @@
 // The overview receives computed amounts; business rules live in the domain.
+import { KPI_ICONS, renderKpiCard } from './kpi-card.js';
+
 const INTRO = 'Ce que ton activité aurait pu te verser par mois depuis janvier, en finissant à zéro de résultat.';
 
 function row(label, value, className = '') {
@@ -138,21 +140,20 @@ export function marginProjectionHelp({ projection, year, exportIso }, { money, e
 
 export function renderCapProjections(host, { year, salary, result, margin, revenue, goals, salaryHelp, resultHelp, marginHelp, revenueHelp }, { money, escape }) {
   const cards = [
-    ['Salaire net dégageable', salary, goals.salary, true, salaryHelp, 'Détail du calcul du salaire net dégageable'],
-    ['Projection résultat ' + year, result, goals.result, false, resultHelp, 'Détail du calcul de la projection du résultat'],
-    ['Projection marge brute ' + year, margin, goals.margin, false, marginHelp, 'Détail du calcul de la projection de la marge brute'],
-    ['Projection chiffre d’affaires ' + year, revenue, goals.revenue, false, revenueHelp, 'Détail du calcul de la projection du chiffre d’affaires'],
+    ['Salaire net dégageable', salary, goals.salary, true, salaryHelp, 'Détail du calcul du salaire net dégageable', 'salary'],
+    ['Projection résultat ' + year, result, goals.result, false, resultHelp, 'Détail du calcul de la projection du résultat', 'result'],
+    ['Projection marge brute ' + year, margin, goals.margin, false, marginHelp, 'Détail du calcul de la projection de la marge brute', 'margin'],
+    ['Projection chiffre d’affaires ' + year, revenue, goals.revenue, false, revenueHelp, 'Détail du calcul de la projection du chiffre d’affaires', 'revenue'],
   ];
-  host.innerHTML = cards.map(([title, value, goal, monthly, helpHtml, helpLabel]) => {
+  host.innerHTML = cards.map(([title, value, goal, monthly, helpHtml, helpLabel, icon]) => {
     const available = Number.isFinite(value);
     const delta = available ? Math.round(value - goal) : null;
-    const help = helpHtml
-      ? '<span class="sp-help" data-tip-html="' + escape(helpHtml) + '" tabindex="0" role="button" aria-label="' + escape(helpLabel) + '">?</span>' : '';
-    return '<article class="cap-projection"><h4>' + escape(title) + help + '</h4>' +
-      '<strong class="cap-projection-value">' + (available ? '≈ ' + money(value) : '—') +
-      (monthly ? ' <span class="cap-projection-unit">/ mois</span>' : '') + '</strong>' +
-      '<span class="cap-projection-delta ' + (available ? (delta >= 0 ? 'positive' : 'negative') : 'unavailable') + '">' +
-      (available ? (delta > 0 ? '+' : '') + money(delta) + ' vs objectif' : 'Projection indisponible') + '</span>' +
-      '<span class="cap-projection-goal">Objectif : <b>' + money(goal) + '</b></span>' + (monthly ? '<span class="cap-salary-context">À date · résultat à l’équilibre</span>' : '') + '</article>';
+    return renderKpiCard({
+      tag: 'article', icon: KPI_ICONS[icon], label: title, classes: 'cap-projection', valueClass: 'cap-projection-value',
+      help: helpHtml ? { html: helpHtml, label: helpLabel } : null,
+      value: available ? '≈ ' + money(value) : '—', unit: monthly ? '/ mois' : '',
+      delta: { tone: available ? (delta >= 0 ? 'good' : 'warn') : 'none', text: available ? (delta > 0 ? '+' : '') + money(delta) + ' vs objectif' : 'Projection indisponible' },
+      meta: [['Objectif :', money(goal)], monthly ? 'À date · résultat à l’équilibre' : null]
+    }, { escape });
   }).join('');
 }

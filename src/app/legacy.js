@@ -8,6 +8,7 @@ import { openAdvances, advanceReconciliation } from './domain/forecast-advances.
 import { salaryCapacityAtDate, projectedPlanResultDetail } from './domain/annual-cap.js';
 import { marginProjectionHelp, projectedResultHelp, renderCapProjections, revenueProjectionHelp, salaryCapacityHelp } from './views/annual-cap.js';
 import { createForecastView } from './views/forecast.js';
+import { KPI_ICONS, renderKpiCard } from './views/kpi-card.js';
 import { createCartesianCharts } from './charts/cartesian.js';
 import {
   computeSnapshot as computeDomainSnapshot,
@@ -46,49 +47,6 @@ var CHART_GRID = DARK ? 'rgba(255,255,255,0.05)' : 'rgba(40,30,60,0.06)';
 var CHART_TOOLTIP_BG = DARK ? '#2a2536' : '#2b2536';
 const CHART_FONT = "'Nunito', ui-rounded, -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif";
 setChartThemeDefaults({ font:CHART_FONT, text:CHART_TEXT, grid:CHART_GRID, tooltip:CHART_TOOLTIP_BG });
-
-// --- Icônes (pastilles KPI) ---
-const _ic = (inner) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + inner + '</svg>';
-const ICON = {
-  wallet: _ic('<path d="M3 7h15a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h11"/><circle cx="16.5" cy="12.5" r="1.1"/>'),
-  receipt: _ic('<path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 7h6M9 11h6"/>'),
-  percent: _ic('<line x1="19" y1="5" x2="5" y2="19"/><circle cx="7" cy="7" r="2"/><circle cx="17" cy="17" r="2"/>'),
-  target: _ic('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4"/>'),
-  trending: _ic('<polyline points="3 17 9 11 13 15 21 7"/><polyline points="15 7 21 7 21 13"/>'),
-  gauge: _ic('<path d="M4 15a8 8 0 1 1 16 0"/><line x1="12" y1="15" x2="16" y2="10"/>'),
-  cart: _ic('<circle cx="9" cy="20" r="1.3"/><circle cx="18" cy="20" r="1.3"/><path d="M2 3h3l2.4 12.1a1.6 1.6 0 0 0 1.6 1.3h8.5a1.6 1.6 0 0 0 1.6-1.3L22 7H6"/>'),
-  ratio: _ic('<circle cx="12" cy="6" r="1.4"/><circle cx="12" cy="18" r="1.4"/><line x1="5" y1="12" x2="19" y2="12"/>'),
-  pie: _ic('<path d="M21 12a9 9 0 1 1-9-9v9z"/><path d="M13 3.5a9 9 0 0 1 7.5 7.5H13z"/>'),
-  spark: _ic('<path d="M12 3l1.7 5.1L19 10l-5.3 1.9L12 17l-1.7-5.1L5 10l5.3-1.9z"/>'),
-};
-const KPI_ICON_MAP = [
-  ['Trésorerie','wallet'], ['Créances','receipt'], ['TVA','percent'],
-  ['Projection marge','target'], ['Projection CA','trending'], ['Atteinte','gauge'],
-  ['Total achats','cart'], ['Ratio achats','ratio'], ['destruction','pie'],
-];
-function decorateKpis() {
-  document.querySelectorAll('.kpi').forEach(k => {
-    if (k.querySelector('.kpi-ico')) return;
-    const labelEl = k.querySelector('.kpi-label');
-    if (!labelEl) return;
-    const label = labelEl.textContent || '';
-    let name = 'spark';
-    for (const [kw, ic] of KPI_ICON_MAP) { if (label.indexOf(kw) !== -1) { name = ic; break; } }
-    const top = document.createElement('div');
-    top.className = 'kpi-top';
-    const chip = document.createElement('span');
-    chip.className = 'kpi-ico';
-    chip.innerHTML = ICON[name] || ICON.spark;
-    labelEl.parentNode.insertBefore(top, labelEl);
-    top.appendChild(chip);
-    top.appendChild(labelEl);
-  });
-}
-// Couleur d'anneau selon l'atteinte (ratio réel/objectif)
-ICON.balance = _ic('<path d="M12 3v18"/><path d="M6 21h12"/><path d="M5 7h14"/><path d="M7 7l-2.5 5a2.5 2.5 0 0 0 5 0z"/><path d="M17 7l-2.5 5a2.5 2.5 0 0 0 5 0z"/>');
-ICON.debt = _ic('<circle cx="12" cy="12" r="9"/><line x1="8" y1="12" x2="16" y2="12"/>');
-ICON.reserve = _ic('<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/>');
-KPI_ICON_MAP.unshift(['Position', 'balance'], ['Dettes', 'debt'], ['Résultat', 'trending'], ['Compte courant', 'reserve']);
 
 // Constants mirrored from spec
 var C = {
@@ -189,7 +147,6 @@ function render(data) {
   renderAchatsCAChart(cy);
   renderTrendChart(years);
 
-  decorateKpis();
 }
 
 // Répartition optionnelle de CA. Le Résultat d'Activité Louty est agrégé par
@@ -1122,10 +1079,7 @@ function renderSante(data, cur) {
   // Résultat = Marge brute − charges de fonctionnement − contribution coop − rémunérations.
   // (Les frais km sont un sous-compte des charges de fonctionnement : déjà comptés dedans.)
   var margeNette = cur.ytd_mb - ytdK('charges_fonct') - ytdK('contribution_coop') - ytdK('remunerations');
-  var mn_cls = margeNette >= 0 ? 'accent-green' : 'accent-red';
   var dsoRatio = cur.ytd_ca > 0 ? (sante.creances_clients / cur.ytd_ca) : null;
-  var creances_cls = 'accent-orange';
-  if (dsoRatio !== null && dsoRatio > 0.25) creances_cls = 'accent-red';
   var tva = (sante.dettes_tva != null) ? sante.dettes_tva : Math.max(0, sante.tva_a_payer || 0);
   var dFourn = sante.dettes_fournisseurs || 0, dSoc = sante.dettes_sociales_fiscales || 0, dAccLiab = sante.dettes_acomptes_clients || 0;
   // Acomptes facturés : produits (7040) tant qu'aucune facture finale ne les reprend, mais travaux encore dus.
@@ -1143,7 +1097,6 @@ function renderSante(data, cur) {
   var acompteKnown = acompteKnownBalance;
   var dexpl = tva + dFourn + dSoc + dAcc;
   var cca = -(sante.comptes_courants_associes || 0);
-  var cca_cls = cca < 0 ? 'accent-red' : 'accent-blue';
   var treso = sante.tresorerie_totale;
   var position = treso - dexpl;
   var asOfDate = sante.as_of ? new Date(sante.as_of).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
@@ -1161,11 +1114,11 @@ function renderSante(data, cur) {
   var _refYr = cur.previous_year || cur.reference_year, _py = _refYr ? data.years[_refYr] : null, _n = cur.mois_renseignes, _rN1 = null;
   if (_py) _rN1 = healthResultForPeriod(_py, _n);
   var _delta = (_rN1 !== null) ? (margeNette - _rN1) : null;
-  var resultatPill = '';
+  var resultatPill = null;
   if (_delta !== null) {
     var _up = _delta >= 0;
     var _txt = (_rN1 > 0) ? fmtPct(Math.abs(_delta) / _rN1, 1) : fmtEUR(Math.abs(_delta)); // % si base N-1 positive, sinon montant
-    resultatPill = '<span class="kpi-pill ' + (_up ? 'up' : 'down') + '"><span class="tri">' + (_up ? '▲' : '▼') + '</span>' + _txt + '</span>';
+    resultatPill = { tone: _up ? 'up' : 'down', text: _txt };
   }
   // Le comparatif N-1 est à la maille mois (jan → dernier mois renseigné), pas au jour du dépôt du fichier
   var resultatSub = (_rN1 !== null && _n > 0) ? 'vs ' + fmtEUR(_rN1) + ' (jan\u2013' + MONTH_NAMES[_n - 1].toLowerCase() + ' ' + _refYr + ')' : 'Reste après charges, coop, salaire, km';
@@ -1190,30 +1143,23 @@ function renderSante(data, cur) {
     receivables: { title: 'Impayés clients', subtitle: 'Factures confirmées avec un solde « En attente » positif · montants TTC', rows: customerModalRows(receivableClients, 'receivables'), total: receivableClients.reduce(function (sum, item) { return sum + item.amount; }, 0), totalLabel: 'Total des impayés dans l’export' }
   };
 
-  var acompteKpi =
-    '<div class="kpi accent-orange" data-kpi="acomptes-a-honorer">' +
-      '<div class="kpi-top"><span class="kpi-ico">' + ICON.debt + '</span><div class="kpi-label">Acomptes à honorer</div></div>' +
-      '<div class="kpi-value">' + (acompteKnown ? fmtEUR(dAccCA) : 'Indisponible') + '</div>' +
-      '<div class="kpi-sub">' + (acompteKnown ? 'Encaissés, déjà en CA · travaux restant à réaliser' : sante.acompte_ca_accounts_present === undefined ? 'Réimporte la Balance pour les calculer' : 'Aucun compte d’acompte dans cette Balance') + '</div>' +
-      (openAdv.length ? '<button type="button" class="sante-detail-link" data-customer-detail="open-advances">Détail des acomptes →</button>' : '') +
-    '</div>';
+  var kpiEsc = { escape: esc };
+  var acompteKpi = renderKpiCard({
+    icon: KPI_ICONS.debt, tone: 'amber', label: 'Acomptes à honorer', attrs: { 'data-kpi': 'acomptes-a-honorer' },
+    value: acompteKnown ? fmtEUR(dAccCA) : 'Indisponible',
+    meta: [acompteKnown ? 'Encaissés, déjà en CA · travaux restant à réaliser' : sante.acompte_ca_accounts_present === undefined ? 'Réimporte la Balance pour les calculer' : 'Aucun compte d’acompte dans cette Balance'],
+    action: openAdv.length ? { label: 'Détail des acomptes', attrs: { 'data-customer-detail': 'open-advances' } } : null
+  }, kpiEsc);
   var kpis =
-    '<div class="kpi ' + cca_cls + '">' +
-      '<div class="kpi-top"><span class="kpi-ico">' + ICON.reserve + '</span><div class="kpi-label">Compte courant associé</div></div>' +
-      '<div class="kpi-value">' + fmtEUR(cca) + '</div>' +
-      '<div class="kpi-sub">Tes réserves dans la scop</div>' +
-    '</div>' +
-    '<div class="kpi ' + creances_cls + '">' +
-      '<div class="kpi-top"><span class="kpi-ico">' + ICON.receipt + '</span><div class="kpi-label">Créances clients</div></div>' +
-      '<div class="kpi-value">' + fmtEUR(sante.creances_clients) + '</div>' +
-      '<div class="kpi-sub">' + (dsoRatio !== null ? fmtPct(dsoRatio, 0) + ' du CA cumulé · à relancer si vieux' : 'à relancer si vieux') + '</div>' +
-      (receivableClients.length ? '<button type="button" class="sante-detail-link" data-customer-detail="receivables">Détail des impayés →</button>' : '') +
-    '</div>' +
-    '<div class="kpi ' + mn_cls + '">' +
-      '<div class="kpi-top"><span class="kpi-ico">' + ICON.trending + '</span><div class="kpi-label">Résultat</div></div>' +
-      '<div class="kpi-main"><div class="kpi-value">' + fmtEUR(margeNette) + '</div>' + resultatPill + '</div>' +
-      '<div class="kpi-sub">' + resultatSub + '</div>' +
-    '</div>' + acompteKpi;
+    renderKpiCard({ icon: KPI_ICONS.reserve, tone: cca < 0 ? 'red' : 'blue', label: 'Compte courant associé', value: fmtEUR(cca), meta: ['Tes réserves dans la scop'] }, kpiEsc) +
+    renderKpiCard({
+      icon: KPI_ICONS.receipt, tone: dsoRatio !== null && dsoRatio > 0.25 ? 'red' : 'amber', label: 'Créances clients', value: fmtEUR(sante.creances_clients),
+      meta: [dsoRatio !== null ? fmtPct(dsoRatio, 0) + ' du CA cumulé · à relancer si vieux' : 'à relancer si vieux'],
+      action: receivableClients.length ? { label: 'Détail des impayés', attrs: { 'data-customer-detail': 'receivables' } } : null
+    }, kpiEsc) +
+    renderKpiCard({
+      icon: KPI_ICONS.result, tone: margeNette >= 0 ? 'green' : 'red', label: 'Résultat', value: fmtEUR(margeNette), pill: resultatPill, meta: [resultatSub]
+    }, kpiEsc) + acompteKpi;
 
   var detailHTML = detailLines.map(function (l) {
     var link = l.detail ? '<button type="button" class="sante-detail-link" data-customer-detail="' + l.detail + '">' + (advanceMatchesFound.solutions.length > 1 ? 'Voir les rapprochements possibles →' : 'Voir le rapprochement →') + '</button>' : '';
@@ -1303,12 +1249,13 @@ function renderPerformanceKpis(cy, py, cur) {
   var prevResult = py ? same(py, 'ca') - same(py, 'achats_matieres') - same(py, 'remunerations') - same(py, 'charges_fonct') - same(py, 'contribution_coop') : null;
   var costs = ca - result, prevCosts = prevCA === null || prevResult === null ? null : prevCA - prevResult;
   function pctDelta(now, before) { return before ? (now - before) / before : null; }
-  function kpi(label, value, delta, inverse) {
-    var good = delta === null ? '' : ((inverse ? delta < 0 : delta > 0) ? '' : ' bad');
+  function kpi(label, icon, value, delta, inverse) {
+    var tone = delta === null ? 'none' : ((inverse ? delta < 0 : delta > 0) ? 'good' : 'bad');
     var sign = delta === null ? '' : (delta > 0 ? '↑ ' : (delta < 0 ? '↓ ' : '→ '));
-    return '<div class="performance-kpi"><div class="label">' + label + '</div><div class="value">' + fmtEUR(value) + '</div><div class="delta' + good + '">' + (delta === null ? 'Comparaison indisponible' : sign + fmtPct(Math.abs(delta), 1) + ' · vs N-1') + '</div></div>';
+    return renderKpiCard({ icon: KPI_ICONS[icon], label: label, value: fmtEUR(value),
+      delta: { tone: tone, text: delta === null ? 'Comparaison indisponible' : sign + fmtPct(Math.abs(delta), 1) + ' · vs N-1' } }, { escape: esc });
   }
-  wrap.innerHTML = kpi("Chiffre d'affaires", ca, pctDelta(ca, prevCA), false) + kpi('Coûts totaux', costs, pctDelta(costs, prevCosts), true) + kpi('Résultat', result, pctDelta(result, prevResult), false);
+  wrap.innerHTML = kpi("Chiffre d'affaires", 'revenue', ca, pctDelta(ca, prevCA), false) + kpi('Coûts totaux', 'costs', costs, pctDelta(costs, prevCosts), true) + kpi('Résultat', 'result', result, pctDelta(result, prevResult), false);
 }
 
 function renderTableCmp(cy, py, cur) {

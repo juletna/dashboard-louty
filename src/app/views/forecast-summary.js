@@ -1,4 +1,5 @@
 import { forecastCoverage } from '../domain/forecast.js';
+import { KPI_ICONS, renderKpiCard } from './kpi-card.js';
 
 // Presentation only: the underlying confirmed selections and annual scenario are unchanged.
 export const FORECAST_TAB_LABELS = { confirmed:'À facturer (estimation)', waiting:'En attente client', validation:'En attente de validation', review:'À examiner' };
@@ -7,14 +8,6 @@ export const FORECAST_TAB_LABELS = { confirmed:'À facturer (estimation)', waiti
 export function renderQuotesPanel({ search, tables, activeTab, counts, escape: esc }) {
   return `<div class="forecast-table-toolbar"><nav class="forecast-quick-filters" role="tablist" aria-label="Situation des devis">${Object.entries(FORECAST_TAB_LABELS).map(([kind,label]) => `<button type="button" role="tab" class="${counts[kind] ? '' : 'is-zero'}" id="forecast-tab-${kind}" data-f-filter="${kind}" aria-controls="forecast-dashboard-tables" aria-selected="${activeTab === kind}" tabindex="${activeTab === kind ? 0 : -1}">${label} <span class="forecast-count">${counts[kind]}</span></button>`).join('')}</nav><input id="forecast-dashboard-search" type="search" aria-label="Rechercher dans les devis de cet onglet" placeholder="Client, numéro ou titre…" value="${esc(search)}"></div><div id="forecast-dashboard-tables" class="forecast-dashboard-tables" role="tabpanel" aria-labelledby="forecast-tab-${activeTab}">${tables}</div><p id="forecast-quick-message" class="small" role="status"></p>`;
 }
-
-const svg = inner => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
-const POTENTIAL_ICONS = {
-  waiting: svg('<circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/>'),
-  validation: svg('<circle cx="12" cy="12" r="9"/><polyline points="8 12.5 11 15.5 16 9"/>'),
-  review: svg('<circle cx="11" cy="11" r="6.5"/><line x1="20" y1="20" x2="15.8" y2="15.8"/>')
-};
-const potentialHead = (kind, label) => `<div class="kpi-top"><span class="kpi-ico">${POTENTIAL_ICONS[kind]}</span><h3>${label}</h3></div>`;
 
 export function renderForecastSummary({ summary, goal, reviewCount, reviewAmount, reviewUnknown, warning, counts, money, escape: esc }) {
   const coverage = forecastCoverage(summary, goal);
@@ -25,10 +18,14 @@ export function renderForecastSummary({ summary, goal, reviewCount, reviewAmount
   const labels = FORECAST_TAB_LABELS;
   const potential = (kind, amount, note) => {
     const empty = amount === 0 && !counts[kind];
-    const foot = empty
-      ? '<span>Aucun devis</span>'
-      : `<span>${note}</span><button class="forecast-link" data-f-jump="${kind}">${counts[kind] === 1 ? 'Voir le devis' : `Voir les ${counts[kind]} devis`} →</button>`;
-    return `<aside class="forecast-potential forecast-potential-${kind}${empty ? ' is-empty' : ''}" aria-label="${labels[kind]}"${empty ? ' aria-disabled="true"' : ''}>${potentialHead(kind, labels[kind])}<strong>${money(amount)} <small>HT</small></strong><div class="forecast-potential-foot">${foot}</div></aside>`;
+    return renderKpiCard({
+      tag: 'aside', icon: KPI_ICONS[kind], tone: kind === 'waiting' ? 'amber' : kind === 'validation' ? 'blue' : 'violet', label: labels[kind],
+      classes: `forecast-potential forecast-potential-${kind}`, variant: empty ? 'empty' : '',
+      attrs: { 'aria-label': labels[kind], ...(empty ? { 'aria-disabled': 'true' } : {}) },
+      value: money(amount), unit: 'HT',
+      meta: [empty ? 'Aucun devis' : note],
+      action: empty ? null : { label: counts[kind] === 1 ? 'Voir le devis' : `Voir les ${counts[kind]} devis`, className: 'forecast-link', attrs: { 'data-f-jump': kind } }
+    }, { escape: esc });
   };
   const showReview = reviewAmount !== 0 || reviewUnknown > 0;
   const columns = 3;
@@ -47,11 +44,14 @@ export function renderForecastSummary({ summary, goal, reviewCount, reviewAmount
         ${potential('validation', summary.validation, 'Hors estimation')}
         ${(() => {
           const empty = !showReview;
-          const amount = reviewUnknown === reviewCount && reviewCount > 0 ? 'À déterminer' : money(reviewAmount) + ' <small>HT</small>';
-          const foot = empty
-            ? '<span>Aucun devis</span>'
-            : `<span>Montants indicatifs · hors totaux${reviewUnknown ? ` · ${reviewUnknown} non renseigné(s)` : ''}</span><button class="forecast-link" data-f-jump="review">Vérifier ${reviewCount} devis →</button>`;
-          return `<aside class="forecast-potential forecast-review-card${empty ? ' is-empty' : ''}" aria-label="À examiner"${empty ? ' aria-disabled="true"' : ''}>${potentialHead('review', 'À examiner')}<strong>${amount}</strong><div class="forecast-potential-foot">${foot}</div></aside>`;
+          const unknownOnly = reviewUnknown === reviewCount && reviewCount > 0;
+          return renderKpiCard({
+            tag: 'aside', icon: KPI_ICONS.review, label: 'À examiner', classes: 'forecast-potential forecast-review-card', variant: empty ? 'empty' : '',
+            attrs: { 'aria-label': 'À examiner', ...(empty ? { 'aria-disabled': 'true' } : {}) },
+            value: unknownOnly ? 'À déterminer' : money(reviewAmount), unit: unknownOnly ? '' : 'HT',
+            meta: [empty ? 'Aucun devis' : `Montants indicatifs · hors totaux${reviewUnknown ? ` · ${reviewUnknown} non renseigné(s)` : ''}`],
+            action: empty ? null : { label: `Vérifier ${reviewCount} devis`, className: 'forecast-link', attrs: { 'data-f-jump': 'review' } }
+          }, { escape: esc });
         })()}
       </div>`}
     </div>
