@@ -61,6 +61,9 @@
 <div id="tab-general" class="tab-panel active" style="display:none">
   <section id="annual-cap" class="card annual-cap" aria-labelledby="annual-cap-title"></section>
   <section id="revenue-forecast" class="card revenue-forecast" aria-labelledby="forecast-title"></section>
+  <div class="sante-row" style="margin-top:16px">
+    <div id="bloc-sante"></div>
+  </div>
   <input id="forecast-input" type="file" accept=".xlsx" hidden>
   <div class="pilotage-mode" aria-label="Vue de pilotage cumulée"><div class="pilotage-switch" role="group" aria-label="Indicateur affiché"><button type="button" data-pilotage-metric="mb" aria-pressed="true">Marge brute</button><button type="button" data-pilotage-metric="ca" aria-pressed="false">CA</button></div></div>
   <div class="grid grid-2 row1">
@@ -80,9 +83,6 @@
       <div id="taux-annuel-reference" class="chart-reference-note"></div>
       <div class="chart-wrap tall"><canvas id="chart-taux-annuel"></canvas></div>
     </div>
-  </div>
-  <div class="sante-row" style="margin-top:16px">
-    <div id="bloc-sante"></div>
   </div>
   <div class="grid grid-2 performance-distribution-row">
   <section class="card performance-structure" aria-labelledby="performance-structure-title">

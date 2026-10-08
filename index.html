@@ -1263,7 +1263,11 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .forecast-potential{min-width:0;padding:12px 16px;border-radius:var(--radius-sm);background:var(--bg-inset)}
 .forecast-potential-waiting{display:flex;flex-direction:column;justify-content:flex-start;padding:12px 16px}
 
-.forecast-potential h3{font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--text-dim);margin:0 0 6px}
+.forecast-potential .kpi-top{margin-bottom:10px}
+.forecast-potential-waiting .kpi-ico{background:var(--amber-bg);color:var(--amber)}
+.forecast-potential-validation .kpi-ico{background:rgba(59,130,246,.12);color:#3b82f6}
+.forecast-potential.is-empty .kpi-ico{opacity:.55}
+.forecast-potential h3{font-size:12.5px;font-weight:700;text-transform:none;letter-spacing:0;color:var(--text-dim);margin:0}
 .forecast-potential h3:before{display:none}
 .forecast-potential>strong{display:block;font-size:23px;font-weight:800;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
 .forecast-potential small{font-size:12px;font-weight:400;color:var(--text-dim);letter-spacing:0}
@@ -1382,6 +1386,9 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 <div id="tab-general" class="tab-panel active" style="display:none">
   <section id="annual-cap" class="card annual-cap" aria-labelledby="annual-cap-title"></section>
   <section id="revenue-forecast" class="card revenue-forecast" aria-labelledby="forecast-title"></section>
+  <div class="sante-row" style="margin-top:16px">
+    <div id="bloc-sante"></div>
+  </div>
   <input id="forecast-input" type="file" accept=".xlsx" hidden>
   <div class="pilotage-mode" aria-label="Vue de pilotage cumulée"><div class="pilotage-switch" role="group" aria-label="Indicateur affiché"><button type="button" data-pilotage-metric="mb" aria-pressed="true">Marge brute</button><button type="button" data-pilotage-metric="ca" aria-pressed="false">CA</button></div></div>
   <div class="grid grid-2 row1">
@@ -1401,9 +1408,6 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
       <div id="taux-annuel-reference" class="chart-reference-note"></div>
       <div class="chart-wrap tall"><canvas id="chart-taux-annuel"></canvas></div>
     </div>
-  </div>
-  <div class="sante-row" style="margin-top:16px">
-    <div id="bloc-sante"></div>
   </div>
   <div class="grid grid-2 performance-distribution-row">
   <section class="card performance-structure" aria-labelledby="performance-structure-title">
@@ -3460,6 +3464,13 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   function renderQuotesPanel({ search, tables, activeTab, counts, escape: esc2 }) {
     return `<div class="forecast-table-toolbar"><nav class="forecast-quick-filters" role="tablist" aria-label="Situation des devis">${Object.entries(FORECAST_TAB_LABELS).map(([kind, label]) => `<button type="button" role="tab" class="${counts[kind] ? "" : "is-zero"}" id="forecast-tab-${kind}" data-f-filter="${kind}" aria-controls="forecast-dashboard-tables" aria-selected="${activeTab === kind}" tabindex="${activeTab === kind ? 0 : -1}">${label} <span class="forecast-count">${counts[kind]}</span></button>`).join("")}</nav><input id="forecast-dashboard-search" type="search" aria-label="Rechercher dans les devis de cet onglet" placeholder="Client, num\xE9ro ou titre\u2026" value="${esc2(search)}"></div><div id="forecast-dashboard-tables" class="forecast-dashboard-tables" role="tabpanel" aria-labelledby="forecast-tab-${activeTab}">${tables}</div><p id="forecast-quick-message" class="small" role="status"></p>`;
   }
+  var svg = (inner) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
+  var POTENTIAL_ICONS = {
+    waiting: svg('<circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/>'),
+    validation: svg('<circle cx="12" cy="12" r="9"/><polyline points="8 12.5 11 15.5 16 9"/>'),
+    review: svg('<circle cx="11" cy="11" r="6.5"/><line x1="20" y1="20" x2="15.8" y2="15.8"/>')
+  };
+  var potentialHead = (kind, label) => `<div class="kpi-top"><span class="kpi-ico">${POTENTIAL_ICONS[kind]}</span><h3>${label}</h3></div>`;
   function renderForecastSummary({ summary, goal, reviewCount, reviewAmount, reviewUnknown, warning, counts, money: money3, escape: esc2 }) {
     const coverage = forecastCoverage(summary, goal);
     const estimated = summary.confirmed;
@@ -3470,7 +3481,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     const potential = (kind, amount, note) => {
       const empty = amount === 0 && !counts[kind];
       const foot = empty ? "<span>Aucun devis</span>" : `<span>${note}</span><button class="forecast-link" data-f-jump="${kind}">${counts[kind] === 1 ? "Voir le devis" : `Voir les ${counts[kind]} devis`} \u2192</button>`;
-      return `<aside class="forecast-potential forecast-potential-${kind}${empty ? " is-empty" : ""}" aria-label="${labels[kind]}"${empty ? ' aria-disabled="true"' : ""}><h3>${labels[kind]}</h3><strong>${money3(amount)} <small>HT</small></strong><div class="forecast-potential-foot">${foot}</div></aside>`;
+      return `<aside class="forecast-potential forecast-potential-${kind}${empty ? " is-empty" : ""}" aria-label="${labels[kind]}"${empty ? ' aria-disabled="true"' : ""}>${potentialHead(kind, labels[kind])}<strong>${money3(amount)} <small>HT</small></strong><div class="forecast-potential-foot">${foot}</div></aside>`;
     };
     const showReview = reviewAmount !== 0 || reviewUnknown > 0;
     const columns = 3;
@@ -3491,7 +3502,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       const empty = !showReview;
       const amount = reviewUnknown === reviewCount && reviewCount > 0 ? "\xC0 d\xE9terminer" : money3(reviewAmount) + " <small>HT</small>";
       const foot = empty ? "<span>Aucun devis</span>" : `<span>Montants indicatifs \xB7 hors totaux${reviewUnknown ? ` \xB7 ${reviewUnknown} non renseign\xE9(s)` : ""}</span><button class="forecast-link" data-f-jump="review">V\xE9rifier ${reviewCount} devis \u2192</button>`;
-      return `<aside class="forecast-potential forecast-review-card${empty ? " is-empty" : ""}" aria-label="\xC0 examiner"${empty ? ' aria-disabled="true"' : ""}><h3>\xC0 examiner</h3><strong>${amount}</strong><div class="forecast-potential-foot">${foot}</div></aside>`;
+      return `<aside class="forecast-potential forecast-review-card${empty ? " is-empty" : ""}" aria-label="\xC0 examiner"${empty ? ' aria-disabled="true"' : ""}>${potentialHead("review", "\xC0 examiner")}<strong>${amount}</strong><div class="forecast-potential-foot">${foot}</div></aside>`;
     })()}
       </div>`}
     </div>

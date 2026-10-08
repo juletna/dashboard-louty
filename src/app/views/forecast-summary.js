@@ -8,6 +8,14 @@ export function renderQuotesPanel({ search, tables, activeTab, counts, escape: e
   return `<div class="forecast-table-toolbar"><nav class="forecast-quick-filters" role="tablist" aria-label="Situation des devis">${Object.entries(FORECAST_TAB_LABELS).map(([kind,label]) => `<button type="button" role="tab" class="${counts[kind] ? '' : 'is-zero'}" id="forecast-tab-${kind}" data-f-filter="${kind}" aria-controls="forecast-dashboard-tables" aria-selected="${activeTab === kind}" tabindex="${activeTab === kind ? 0 : -1}">${label} <span class="forecast-count">${counts[kind]}</span></button>`).join('')}</nav><input id="forecast-dashboard-search" type="search" aria-label="Rechercher dans les devis de cet onglet" placeholder="Client, numéro ou titre…" value="${esc(search)}"></div><div id="forecast-dashboard-tables" class="forecast-dashboard-tables" role="tabpanel" aria-labelledby="forecast-tab-${activeTab}">${tables}</div><p id="forecast-quick-message" class="small" role="status"></p>`;
 }
 
+const svg = inner => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
+const POTENTIAL_ICONS = {
+  waiting: svg('<circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/>'),
+  validation: svg('<circle cx="12" cy="12" r="9"/><polyline points="8 12.5 11 15.5 16 9"/>'),
+  review: svg('<circle cx="11" cy="11" r="6.5"/><line x1="20" y1="20" x2="15.8" y2="15.8"/>')
+};
+const potentialHead = (kind, label) => `<div class="kpi-top"><span class="kpi-ico">${POTENTIAL_ICONS[kind]}</span><h3>${label}</h3></div>`;
+
 export function renderForecastSummary({ summary, goal, reviewCount, reviewAmount, reviewUnknown, warning, counts, money, escape: esc }) {
   const coverage = forecastCoverage(summary, goal);
   const estimated = summary.confirmed;
@@ -20,7 +28,7 @@ export function renderForecastSummary({ summary, goal, reviewCount, reviewAmount
     const foot = empty
       ? '<span>Aucun devis</span>'
       : `<span>${note}</span><button class="forecast-link" data-f-jump="${kind}">${counts[kind] === 1 ? 'Voir le devis' : `Voir les ${counts[kind]} devis`} →</button>`;
-    return `<aside class="forecast-potential forecast-potential-${kind}${empty ? ' is-empty' : ''}" aria-label="${labels[kind]}"${empty ? ' aria-disabled="true"' : ''}><h3>${labels[kind]}</h3><strong>${money(amount)} <small>HT</small></strong><div class="forecast-potential-foot">${foot}</div></aside>`;
+    return `<aside class="forecast-potential forecast-potential-${kind}${empty ? ' is-empty' : ''}" aria-label="${labels[kind]}"${empty ? ' aria-disabled="true"' : ''}>${potentialHead(kind, labels[kind])}<strong>${money(amount)} <small>HT</small></strong><div class="forecast-potential-foot">${foot}</div></aside>`;
   };
   const showReview = reviewAmount !== 0 || reviewUnknown > 0;
   const columns = 3;
@@ -43,7 +51,7 @@ export function renderForecastSummary({ summary, goal, reviewCount, reviewAmount
           const foot = empty
             ? '<span>Aucun devis</span>'
             : `<span>Montants indicatifs · hors totaux${reviewUnknown ? ` · ${reviewUnknown} non renseigné(s)` : ''}</span><button class="forecast-link" data-f-jump="review">Vérifier ${reviewCount} devis →</button>`;
-          return `<aside class="forecast-potential forecast-review-card${empty ? ' is-empty' : ''}" aria-label="À examiner"${empty ? ' aria-disabled="true"' : ''}><h3>À examiner</h3><strong>${amount}</strong><div class="forecast-potential-foot">${foot}</div></aside>`;
+          return `<aside class="forecast-potential forecast-review-card${empty ? ' is-empty' : ''}" aria-label="À examiner"${empty ? ' aria-disabled="true"' : ''}>${potentialHead('review', 'À examiner')}<strong>${amount}</strong><div class="forecast-potential-foot">${foot}</div></aside>`;
         })()}
       </div>`}
     </div>
