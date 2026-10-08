@@ -179,7 +179,7 @@ export function quoteSituation(row) {
 }
 
 export function forecastStatus(row) {
-  if (row.missing || row.review) return 'À vérifier';
+  if (row.missing || row.review || row.choice?.reviewRequested) return 'À vérifier';
   if (row.choice?.action === 'exclude' && row.choice.billed) return 'Entièrement facturé';
   if (row.choice?.action === 'include') {
     if (row.choice.remaining === 0) return 'Entièrement facturé';
@@ -256,7 +256,7 @@ export function reconcileForecast(documents, choices) {
 
 export function forecastSummary(rows, data, goal) {
   const included = rows.filter(r => r.choice?.action === 'include');
-  const active = included.filter(r => !r.missing && !r.review);
+  const active = included.filter(r => !r.missing && !r.review && !r.choice.reviewRequested);
   const sum = (list) => money(list.reduce((total, r) => total + r.choice.remaining, 0));
   const confirmed = active.filter(r => r.choice.situation === 'confirmed');
   const waiting = active.filter(r => r.choice.situation === 'waiting');

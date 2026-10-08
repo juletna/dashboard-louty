@@ -1,3 +1,4 @@
+import { FORECAST_STATES, quickForecastChoice } from '../domain/forecast-actions.js';
 import { renderForecastSummary } from './forecast-summary.js';
 import { reconcileForecast, forecastSummary, forecastStatus, quoteSituation, MATCH_LABELS, REASON_LABELS } from '../domain/forecast.js';
 import { normalizedName } from '../domain/clients.js';
@@ -17,13 +18,13 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
   const situationOf = r => forecastStatus(r) === 'Entièrement facturé' ? 'complete' : forecastStatus(r) === 'À vérifier' ? 'review' : r.choice?.action === 'include' ? (r.choice.remaining === 0 ? 'complete' : r.choice.situation) : r.status === 'complete' ? 'complete' : quoteSituation(r) || 'review';
   const selected = r => r.choice?.action === 'include';
   const candidate = r => !r.missing && !selected(r) && r.eligible && r.choice?.action !== 'exclude';
-  const reviewRows = () => rows.filter(r => candidate(r) || (selected(r) && (r.review || r.missing)));
+  const reviewRows = () => rows.filter(r => candidate(r) || (selected(r) && (r.review || r.missing || r.choice.reviewRequested)));
   const reviewValue = r => [r.choice?.remaining, r.proposed, r.amount].find(Number.isFinite);
   const displayStatus = r => forecastStatus(r).replace('Confirmé · À facturer', 'À facturer (estimation)').replace('Confirmé · Partiellement facturé', 'À facturer (estimation) · Partiellement facturé');
-  const dashboardRows = kind => kind === 'review' ? reviewRows() : rows.filter(r => selected(r) && !r.review && !r.missing && r.choice.situation === kind && r.choice.remaining > 0);
+  const dashboardRows = kind => kind === 'review' ? reviewRows() : rows.filter(r => selected(r) && !r.review && !r.missing && !r.choice.reviewRequested && r.choice.situation === kind && r.choice.remaining > 0);
   const matchingLabel = r => r.groupMatch ? 'Couverture complète probable du groupe de devis' : r.nameConflict ? 'Nom associé à plusieurs ID · à vérifier' : `${REASON_LABELS[r.reason] || MATCH_LABELS[r.status]}${r.matchBasis === 'name' ? ' · par nom client' : ''}`;
   const describe = r => r.missing ? 'Absent de cet export · à vérifier' : r.review && selected(r) ? 'Rapprochement modifié · à vérifier' :
-    r.choice?.action === 'exclude' ? 'Écarté manuellement' : matchingLabel(r);
+    r.choice?.reviewRequested ? 'Mis à examiner manuellement · hors totaux' : r.choice?.action === 'exclude' ? 'Écarté manuellement' : matchingLabel(r);
   function recalculate() {
     rows = reconcileForecast(data.revenue_distribution?.documents || [], storage.choices);
     summary = forecastSummary(rows, data, goal);
@@ -53,7 +54,7 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
     const total = list.reduce((n,r) => n + (review ? reviewValue(r) ?? 0 : r.choice.remaining),0);
     return `<section aria-label="Devis ${esc(label.toLocaleLowerCase('fr'))}"><div class="forecast-table-head"><span class="small">${list.length} devis · ${review ? 'À vérifier · hors totaux' : situation === 'confirmed' ? 'Reste à facturer estimé' : 'Hors estimation'}</span><strong>${review ? 'Montants à vérifier' : money(total)}</strong></div><div class="forecast-table-scroll"><table><thead><tr><th scope="col">Client / devis</th><th scope="col" class="forecast-table-amount">${review ? 'Montant indicatif HT' : 'Reste HT'}</th><th scope="col"><span class="sr-only">Action</span></th></tr></thead><tbody>${list.map(r => {
       const value = review ? reviewValue(r) : r.choice.remaining;
-      return `<tr><td><strong>${esc(r.client || 'Client non renseigné')}</strong><small>${esc(r.number || 'Sans numéro')} · ${esc(r.title || '')}</small>${review ? `<small>${esc(describe(r))}${!Number.isFinite(r.choice?.remaining) && !Number.isFinite(r.proposed) && Number.isFinite(r.amount) ? ' · Montant total du devis, reste à déterminer' : ''}</small>` : ''}</td><td class="forecast-table-amount">${Number.isFinite(value) ? formatMoney(value) : 'À déterminer'}</td><td><div class="forecast-table-actions">${situation === 'waiting' ? `<button type="button" class="forecast-quick-confirm" data-f-confirm="${rows.indexOf(r)}" aria-label="Passer à facturer ${esc(r.client)} · ${esc(r.number)}">Passer à facturer</button>` : ''}<button class="forecast-link" ${r.missing ? 'data-f-action="selected"' : `data-f-edit="${rows.indexOf(r)}"`} aria-label="${review ? 'Vérifier' : 'Voir le détail de'} ${esc(r.client)} · ${esc(r.number)}">${review ? 'Vérifier le devis' : 'Voir le détail'} →</button></div></td></tr>`;
+      return `<tr><td><strong>${esc(r.client || 'Client non renseigné')}</strong><small>${esc(r.number || 'Sans numéro')} · ${esc(r.title || '')}</small>${review ? `<small>${esc(describe(r))}${!Number.isFinite(r.choice?.remaining) && !Number.isFinite(r.proposed) && Number.isFinite(r.amount) ? ' · Montant total du devis, reste à déterminer' : ''}</small>` : ''}</td><td class="forecast-table-amount">${Number.isFinite(value) ? formatMoney(value) : 'À déterminer'}</td><td><div class="forecast-table-actions"><details class="forecast-row-menu"><summary aria-label="Actions pour ${esc(r.client)} · ${esc(r.number)}">Actions</summary><div class="forecast-row-menu-items">${Object.entries({...FORECAST_STATES, exclude:'Exclure'}).filter(([target]) => target !== situation).map(([target,text]) => `<button type="button" data-f-transition="${rows.indexOf(r)}" data-f-target="${target}" ${r.missing && target !== 'exclude' ? 'disabled title="Devis absent : réimporte les Pièces avant de le reclasser"' : ''}>${text}</button>`).join('')}</div></details><button class="forecast-link" ${r.missing ? 'data-f-action="selected"' : `data-f-edit="${rows.indexOf(r)}"`} aria-label="${review ? 'Vérifier' : 'Voir le détail de'} ${esc(r.client)} · ${esc(r.number)}">${review ? 'Vérifier le devis' : 'Voir le détail'} →</button></div></td></tr>`;
     }).join('') || '<tr><td colspan="3" class="small">Aucun devis</td></tr>'}</tbody></table></div></section>`;
   }
   function renderList() {
@@ -117,9 +118,9 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
     editingKey = row.key;
     el('forecast-editor-title').textContent = selected(row) ? 'Modifier la prévision' : 'Ajouter au prévisionnel';
     el('forecast-editor-subtitle').textContent = `${row.client} · ${row.number || 'Sans numéro'} · ${money(row.amount)}`;
-    el('forecast-situation').value = row.choice?.situation || quoteSituation(row) || 'confirmed';
+    el('forecast-situation').value = row.choice?.reviewRequested ? 'review' : row.choice?.situation || quoteSituation(row) || 'confirmed';
     el('forecast-amount').value = selected(row) ? row.choice.remaining : row.candidateRemaining ?? row.proposed ?? '';
-    el('forecast-note').textContent = row.review ? 'Le rapprochement a changé. Ton montant saisi a été conservé. Vérifie-le avant de réactiver cette prévision.' : row.status === 'complete' ? 'Une correspondance complète est probable. Saisis le montant restant si tu souhaites ajouter ce devis manuellement.' : 'Vérifie le montant restant et la situation réelle du chantier avant de confirmer.';
+    el('forecast-note').textContent = row.choice?.reviewRequested && !row.review ? 'Ce devis a été mis à examiner manuellement et reste hors totaux jusqu’à son reclassement.' : row.review ? 'Le rapprochement a changé. Ton montant saisi a été conservé. Vérifie-le avant de réactiver cette prévision.' : row.status === 'complete' ? 'Une correspondance complète est probable. Saisis le montant restant si tu souhaites ajouter ce devis manuellement.' : 'Vérifie le montant restant et la situation réelle du chantier avant de confirmer.';
     el('forecast-evidence').innerHTML = `<p>${esc(matchingLabel(row))}. ${row.status === 'no-id' ? 'ID et nom client exploitables absents.' : 'Les montants rapprochés ne prouvent pas le rattachement au devis.'}</p>${row.groupMatch ? '<p>Les factures couvrent collectivement les devis de même montant. La pièce affichée est une attribution indicative, pas un lien établi.</p>' : ''}${row.duplicate ? '<p>Plusieurs pièces portent cette même identité. Elles sont regroupées ici et demandent une vérification.</p>' : ''}<ul>${(row.evidence?.length ? row.evidence : row.matched || []).map(b => `<li>${esc(b.type)} ${esc(b.number)} · ${esc(b.date || 'date absente')} : ${exactMoney(b.amount)} HT · ${exactMoney(b.amount_ttc)} TTC · client ${esc(b.client_id || 'ID absent')}</li>`).join('')}</ul>${row.candidateRemaining !== null && Number.isFinite(row.candidateRemaining) ? `<p>Reste candidat : ${exactMoney(row.candidateRemaining)} HT · hors totaux, décision nécessaire.</p>` : ''}${Number.isFinite(row.remainingTTC) ? `<p>Reste TTC : ${exactMoney(row.remainingTTC)}.</p>` : ''}${Number.isFinite(row.differenceHT) ? `<p>Facturation − devis : ${exactMoney(row.differenceHT)} HT${Number.isFinite(row.differenceTTC) ? ' · ' + exactMoney(row.differenceTTC) + ' TTC' : ''}.</p>` : ''}${row.warning ? `<p>${esc(row.warning)}.</p>` : ''}<p>Entièrement facturé ne signifie pas payé.</p>`;
     el('forecast-evidence').closest('details').open = false;
     el('forecast-probable-invoices').innerHTML = row.probableInvoices?.length ? `<div class="forecast-warning"><strong>Facturation complète à confirmer</strong><p>Devis : ${exactMoney(row.amount)} HT · ${exactMoney(row.amount_ttc)} TTC · client ${esc(row.client_id)}.</p><ul>${row.probableInvoices.map(b => `<li>Facture ${esc(b.number)} · ${esc(b.date)} · ${esc(b.client)} · client ${esc(b.client_id)} : ${exactMoney(b.amount)} HT · ${exactMoney(b.amount_ttc)} TTC.</li>`).join('')}</ul><p>Les ID clients diffèrent. Le même TTC peut masquer un changement de TVA. Vérifie que ce chantier est entièrement facturé. La confirmation retire ce devis du prévisionnel et reste mémorisée aux prochains imports.</p><button type="button" class="btn" data-f-action="confirm-billed">Confirmer : chantier entièrement facturé</button></div>` : '';
@@ -148,13 +149,21 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
       el('forecast-tab-' + dashboardTab).focus();
       return;
     }
-    if (b.dataset.fConfirm !== undefined) {
-      const row = rows[Number(b.dataset.fConfirm)];
-      // Only active waiting selections can be promoted without reopening reconciliation.
-      if (!row || !selected(row) || row.review || row.missing || row.choice.situation !== 'waiting' || !(row.choice.remaining > 0)) return;
-      commit(row, { ...row.choice, situation:'confirmed', quote:quoteSnapshot(row) }, 'Devis passé à facturer (estimation).');
-      el('forecast-quick-message').textContent = `${row.client || 'Devis'} · ${row.number || 'Sans numéro'} : passé à facturer (estimation), ${money(row.choice.remaining)}.${storage.warning ? ' Modification appliquée pour cette session uniquement.' : ''}`;
-      (host.querySelector('[data-f-confirm]') || el('forecast-tab-waiting')).focus();
+    if (b.dataset.fTransition !== undefined) {
+      const row = rows[Number(b.dataset.fTransition)], target = b.dataset.fTarget;
+      if (!row || ![...Object.keys(FORECAST_STATES), 'exclude'].includes(target)) return;
+      const choice = quickForecastChoice(row, target);
+      if (!choice) {
+        if (!row.missing) {
+          returnFocus = b;
+          openEditor(Number(b.dataset.fTransition));
+          el('forecast-situation').value = target;
+        }
+        return;
+      }
+      commit(row, choice, 'Situation du devis mise à jour.');
+      el('forecast-quick-message').textContent = `${row.client || 'Devis'} · ${row.number || 'Sans numéro'} : ${target === 'exclude' ? 'exclu du prévisionnel' : FORECAST_STATES[target]}.${storage.warning ? ' Modification appliquée pour cette session uniquement.' : ''}`;
+      el('forecast-tab-' + dashboardTab).focus();
       return;
     }
     if (b.dataset.fEdit !== undefined) { returnFocus = b; openEditor(Number(b.dataset.fEdit)); return; }
@@ -220,7 +229,9 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
     const advanceState = forecastAdvances(row, rows, advanceKeys);
     if (advanceState.error) { el('forecast-form-error').textContent = advanceState.error; return; }
     commit(row, { action: 'include', advanceKeys, fingerprint: row.fingerprint, quote: quoteSnapshot(row),
-      remaining: Math.round(remaining * 100) / 100, situation: el('forecast-situation').value }, 'Prévision enregistrée.');
+      remaining: Math.round(remaining * 100) / 100,
+      reviewRequested: el('forecast-situation').value === 'review',
+      situation: el('forecast-situation').value === 'review' ? row.choice?.situation || quoteSituation(row) || 'confirmed' : el('forecast-situation').value }, 'Prévision enregistrée.');
     editor.close();
   });
   manager.addEventListener('close', () => {

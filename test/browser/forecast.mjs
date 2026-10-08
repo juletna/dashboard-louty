@@ -114,7 +114,7 @@ try {
       for(const [selector,name] of [['#revenue-forecast','forecast'],['#chart-ca-mb','monthly'],['#chart-annual-progress','annual'],['#chart-cumul','cumulative']]) {
         await page.locator(selector).scrollIntoViewIfNeeded();await shot(`${name}-${width}-${theme}`);
       }
-      await page.locator('#forecast-followed').evaluate(e=>e.open=true);await filter('confirmed').click();await page.locator('#forecast-dashboard-tables tr').filter({hasText:'DEV-MANUAL'}).locator('button').click();
+      await page.locator('#forecast-followed').evaluate(e=>e.open=true);await filter('confirmed').click();await page.locator('#forecast-dashboard-tables tr').filter({hasText:'DEV-MANUAL'}).locator('[data-f-edit]').click();
       await shot(`editor-${width}-${theme}`);await page.keyboard.press('Escape');await page.keyboard.press('Escape');
       assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     }
@@ -133,7 +133,7 @@ try {
   assert.match(await page.locator('#revenue-forecast').innerText(),/choix sont conservés/);
   await page.locator('#forecast-input').setInputFiles(fixtures.changed);await page.locator('[data-f-action=manage]').waitFor();
   assert.equal(await filter('waiting').textContent(),'En attente client · 2');
-  await page.locator('#forecast-followed').evaluate(e=>e.open=true);await filter('confirmed').click();await page.locator('#forecast-dashboard-tables tr').filter({hasText:'DEV-MANUAL'}).locator('button').click();
+  await page.locator('#forecast-followed').evaluate(e=>e.open=true);await filter('confirmed').click();await page.locator('#forecast-dashboard-tables tr').filter({hasText:'DEV-MANUAL'}).locator('[data-f-edit]').click();
   await page.getByRole('button',{name:'Retirer du prévisionnel',exact:true}).click();await page.keyboard.press('Escape');
   assert.equal(await projectedSeries(),undefined,'removing confirmed work clears its cumulative scenario');
   assert.equal(await page.locator('.forecast-outlook').count(),0);

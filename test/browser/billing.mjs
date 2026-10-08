@@ -39,6 +39,13 @@ try {
   assert.match(await page.locator('#forecast-dashboard-tables').innerText(),/Q-SCOPE/);
   assert.match(await page.locator('#forecast-dashboard-tables').innerText(),/reste à déterminer/);
   assert.match(await page.locator('.forecast-estimated').innerText(),/250 €/);
+  await page.locator('.forecast-row-menu > summary').click();
+  await page.locator('[data-f-target=confirmed]').click();
+  assert.equal(await page.locator('#forecast-editor').evaluate(e=>e.open),true,'ambiguous amounts require examination');
+  assert.equal(await page.locator('#forecast-situation').inputValue(),'confirmed');
+  assert.equal(await page.locator('#forecast-amount').inputValue(),'30','candidate remainder, not the whole quote');
+  await page.keyboard.press('Escape');
+  assert.match(await page.locator('.forecast-estimated').innerText(),/250 €/,'opening the editor does not reactivate the quote');
   await page.locator('[data-f-filter=review]').press('Home');
   assert.equal(await page.locator('[data-f-filter=confirmed]').getAttribute('aria-selected'),'true');
   await page.locator('#forecast-dashboard-search').fill('Q-DEPOSIT');
@@ -53,7 +60,7 @@ try {
       assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     }
   }
-  await page.locator('#forecast-dashboard-tables tr').filter({hasText:'Q-DEPOSIT'}).locator('button').click();
+  await page.locator('#forecast-dashboard-tables tr').filter({hasText:'Q-DEPOSIT'}).locator('[data-f-edit]').click();
   const originalAmount=await page.locator('#forecast-amount').inputValue();
   await page.locator('#forecast-amount').fill('100000');
   await page.locator('#forecast-form button[type=submit]').click();
@@ -69,7 +76,7 @@ try {
       assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     }
   }
-  await page.locator('#forecast-dashboard-tables tr').filter({hasText:'Q-DEPOSIT'}).locator('button').click();
+  await page.locator('#forecast-dashboard-tables tr').filter({hasText:'Q-DEPOSIT'}).locator('[data-f-edit]').click();
   await page.locator('#forecast-amount').fill(originalAmount);
   await page.locator('#forecast-form button[type=submit]').click();
   assert.equal(await page.locator('.forecast-excess').count(),0);
@@ -108,7 +115,7 @@ try {
   assert.equal(await page.locator('[data-f-filter=confirmed]').textContent(),'À facturer (estimation) · 3');
   // Promote a waiting quote in one click, with no editor and a durable manual decision.
   await page.locator('[data-f-jump=waiting]').click();
-  assert.equal(await page.locator('[data-f-confirm]').count(),1);
+  assert.equal(await page.locator('[data-f-target=confirmed]').count(),1);
   for(const width of [1440,390]) {
     await page.setViewportSize({width,height:1100});
     for(const theme of ['light','dark']) {
@@ -117,10 +124,12 @@ try {
       assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     }
   }
-  await page.locator('[data-f-confirm]').click();
+  await page.locator('.forecast-row-menu > summary').click();
+  assert.equal(await page.locator('[data-f-transition]').count(),4);
+  await page.locator('[data-f-target=confirmed]').click();
   assert.equal(await page.locator('#forecast-editor').evaluate(e=>e.open),false);
-  assert.equal(await page.locator('[data-f-confirm]').count(),0);
-  assert.match(await page.locator('#forecast-quick-message').innerText(),/Q-WAIT.*70 €/);
+  assert.equal(await page.locator('[data-f-target=confirmed]').count(),0);
+  assert.match(await page.locator('#forecast-quick-message').innerText(),/Q-WAIT.*À facturer/);
   assert.match(await page.locator('.forecast-estimated').innerText(),/350 €/);
   assert.match(await page.locator('aside[aria-label="En attente client"]').innerText(),/0 €/);
   await page.reload();await page.locator('[data-f-action=manage]').waitFor();
@@ -130,6 +139,45 @@ try {
   assert.match(await page.locator('.forecast-estimated').innerText(),/350 €/);
   await page.locator('#forecast-followed').evaluate(e=>e.open=true);
   assert.match(await page.locator('#forecast-dashboard-tables').innerText(),/Q-WAIT/);
+  // Every bucket exposes Exclude and the three other states. Manual review is durable.
+  const tableRow=()=>page.locator('#forecast-dashboard-tables tr').filter({hasText:'Q-WAIT'});
+  const transition=async (from,to)=>{
+    await page.locator('#forecast-followed').evaluate(e=>e.open=true);
+    await page.locator(`[data-f-filter=${from}]`).click();
+    await tableRow().locator('.forecast-row-menu > summary').click();
+    assert.equal(await tableRow().locator('[data-f-transition]').count(),4);
+    assert.equal(await tableRow().locator(`[data-f-target=${from}]`).count(),0);
+    await tableRow().locator(`[data-f-target=${to}]`).click();
+  };
+  await transition('confirmed','review');
+  assert.match(await page.locator('.forecast-estimated').innerText(),/280 €/);
+  await page.reload();await page.locator('[data-f-action=manage]').waitFor();
+  await page.locator('#forecast-input').setInputFiles(fixtures.billing);
+  await page.locator('[data-f-jump=review]').click();
+  assert.match(await tableRow().innerText(),/Mis à examiner manuellement/);
+  if(process.env.SMOKE_SCREENSHOT_DIR){
+    await tableRow().locator('.forecast-row-menu > summary').click();
+    for(const width of [1440,390]){
+      await page.setViewportSize({width,height:1100});
+      for(const theme of ['light','dark']){
+        await page.evaluate(value=>{for(let i=0;i<2&&document.documentElement.getAttribute('data-theme')!==value;i++)document.querySelector('#toggle-theme').click();},theme);
+        await page.locator('[data-f-jump=review]').click();
+        await tableRow().locator('.forecast-row-menu > summary').click();
+        await page.locator('#revenue-forecast').screenshot({path:resolve(process.env.SMOKE_SCREENSHOT_DIR,`actions-${width}-${theme}.png`)});
+        assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+      }
+    }
+  }
+  await transition('review','validation');
+  assert.equal(await page.locator('#forecast-editor').evaluate(e=>e.open),false);
+  assert.match(await page.locator('aside[aria-label="En attente de validation"]').innerText(),/180 €/);
+  await transition('validation','waiting');
+  assert.match(await page.locator('aside[aria-label="En attente client"]').innerText(),/70 €/);
+  await transition('waiting','exclude');
+  await page.locator('#forecast-input').setInputFiles(fixtures.billing);
+  await page.locator('[data-f-jump=waiting]').click();
+  assert.equal(await tableRow().count(),0);
+  assert.match(await page.locator('aside[aria-label="En attente client"]').innerText(),/0 €/);
   assert.deepEqual(errors,[]);
   console.log('Facturation : statuts, reste candidat, totaux, acompte séparé, situations impayées, attentes séparées et décision mémorisée validés.');
 } finally {await browser?.close();await new Promise(done=>server.close(done));rmSync(directory,{recursive:true,force:true});}

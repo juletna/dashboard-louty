@@ -4,6 +4,7 @@ export const FORECAST_KEY = 'cabestan_forecast_v1';
 
 export function validateChoice(choice) {
   return choice && ['include', 'exclude'].includes(choice.action) &&
+    (choice.reviewRequested === undefined || typeof choice.reviewRequested === 'boolean') &&
     (choice.advanceKeys === undefined || (Array.isArray(choice.advanceKeys) && choice.advanceKeys.every(key => typeof key === 'string') && new Set(choice.advanceKeys).size === choice.advanceKeys.length)) &&
     (choice.billed === undefined || typeof choice.billed === 'boolean') &&
     (choice.billingKeys === undefined || (Array.isArray(choice.billingKeys) && choice.billingKeys.every(key => typeof key === 'string') && new Set(choice.billingKeys).size === choice.billingKeys.length)) &&
