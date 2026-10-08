@@ -332,7 +332,8 @@
 
   /* Concentration de marge : deux lectures volontairement différentes du graphe annuel empilé */
   .margin-distribution { margin-top:16px; }
-  .distribution-title-line { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+  .distribution-title-line { display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:8px 12px; }
+  .client-distribution-period { max-width:100%; }
   .distribution-title-line h3 { margin-right:auto; }
   .client-distribution-period label { display:flex; align-items:center; gap:7px; color:var(--text-dim); font-size:11.5px; font-weight:700; white-space:nowrap; }
   .client-distribution-period select { appearance:auto; border:1px solid var(--border-strong); background:var(--bg-card); color:var(--text); border-radius:8px; padding:4px 7px; font:inherit; font-weight:800; cursor:pointer; }
@@ -3120,6 +3121,11 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       position_nette: r2(positionNette)
     };
   }
+  function decodeEntities(value) {
+    return String(value ?? "").replace(/&(amp|quot|apos|#39);/g, function(m, name) {
+      return name === "amp" ? "&" : name === "quot" ? '"' : "'";
+    });
+  }
   function parsePieces(XLSX2, workbook) {
     var ws = null;
     for (var si = 0; si < workbook.SheetNames.length; si++) {
@@ -3158,10 +3164,10 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     for (var r = 1; r < rows.length; r++) {
       var row2 = rows[r], type = String(row2[col.Type] == null ? "" : row2[col.Type]).trim();
       var state = String(row2[col.Etat] == null ? "" : row2[col.Etat]).toLocaleLowerCase("fr-FR");
-      var client = String(row2[col.Client] == null ? "" : row2[col.Client]).trim();
+      var client = decodeEntities(String(row2[col.Client] == null ? "" : row2[col.Client]).trim());
       var amount = toFloat(row2[col["Montant H.T."]]), date = dateOf(row2[col.Date]);
       if (["Devis", "Facture", "Facture de situation", "Facture d'acompte", "Avoir"].includes(type) && state.indexOf("brouillon") === -1) {
-        const text = (key) => String(row2[col[key]] ?? "").trim();
+        const text = (key) => decodeEntities(String(row2[col[key]] ?? "").trim());
         documents.push({
           type,
           state,
@@ -6811,7 +6817,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var spb = document.querySelector(".sp-body");
     if (spb) spb.addEventListener("scroll", hide);
   })();
-  var APP_VERSION = "20261008-235056";
+  var APP_VERSION = "20261009-000023";
   function showUpdateBanner(base, v) {
     if (document.getElementById("update-banner")) return;
     var d = document.createElement("div");

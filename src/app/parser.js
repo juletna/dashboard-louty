@@ -276,6 +276,12 @@ export function parseBAL(XLSX, workbook) {
 
   // Export « Gestion com. > Devis (liste) ». Les règles évitent les brouillons,
   // les devis non aboutis et le double comptage potentiel des factures d'acompte.
+// Les exports Louty contiennent des entités HTML (« M. &amp; Mme ») ; le rendu échappe déjà le texte.
+// On ne décode que &amp; et les apostrophes/guillemets, jamais les chevrons.
+export function decodeEntities(value) {
+  return String(value ?? '').replace(/&(amp|quot|apos|#39);/g, function (m, name) { return name === 'amp' ? '&' : name === 'quot' ? '"' : "'"; });
+}
+
 export function parsePieces(XLSX, workbook) {
     var ws = null;
     for (var si = 0; si < workbook.SheetNames.length; si++) {
@@ -305,10 +311,10 @@ export function parsePieces(XLSX, workbook) {
     for (var r = 1; r < rows.length; r++) {
       var row = rows[r], type = String(row[col.Type] == null ? '' : row[col.Type]).trim();
       var state = String(row[col.Etat] == null ? '' : row[col.Etat]).toLocaleLowerCase('fr-FR');
-      var client = String(row[col.Client] == null ? '' : row[col.Client]).trim();
+      var client = decodeEntities(String(row[col.Client] == null ? '' : row[col.Client]).trim());
       var amount = toFloat(row[col['Montant H.T.']]), date = dateOf(row[col.Date]);
       if (['Devis', 'Facture', 'Facture de situation', "Facture d'acompte", 'Avoir'].includes(type) && state.indexOf('brouillon') === -1) {
-        const text = (key) => String(row[col[key]] ?? '').trim();
+        const text = (key) => decodeEntities(String(row[col[key]] ?? '').trim());
         documents.push({ type, state, client, amount, amount_ttc: toFloat(row[col['Montant T.T.C.']]),
           paid: toFloat(row[col['Déjà réglé']]), pending: toFloat(row[col['En attente']]),
           due_date: piecesDateISO(dateOf(row[col['Date échéance']])),

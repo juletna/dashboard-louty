@@ -125,3 +125,17 @@ test('Balance reads deposits booked as revenue (7040) and counts them as work st
   const none = parseBAL(xlsx2,book2);
   assert.equal(none.acompte_ca_accounts_present,false); assert.equal(none.acomptes_en_ca,0);
 });
+
+test('Pièces decode HTML entities in client and title without ever producing angle brackets', async () => {
+  const {decodeEntities} = await import('../src/app/parser.js');
+  assert.equal(decodeEntities('DV_ABEL Jules (M. &amp; Mme)'),'DV_ABEL Jules (M. & Mme)');
+  assert.equal(decodeEntities('L&#39;atelier &quot;Nord&quot; &apos;X&apos;'),'L\'atelier "Nord" \'X\'');
+  assert.equal(decodeEntities('&lt;script&gt; &amp;lt;'),'&lt;script&gt; &lt;');
+  assert.equal(decodeEntities(null),'');
+  const [xlsx, book] = workbook([
+    ['Type','Date','Client','Montant H.T.','Etat','Titre','Numéro chrono'],
+    ['Devis','2026-01-01','DUPONT &amp; FILS',100,'Validé + Imprimé','DV &amp; test','Q1'],
+  ]);
+  const doc = parsePieces(xlsx,book).documents[0];
+  assert.equal(doc.client,'DUPONT & FILS'); assert.equal(doc.title,'DV & test');
+});
