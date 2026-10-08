@@ -1150,7 +1150,7 @@ function renderSante(data, cur) {
   var detailLines = [
     { label: 'TVA à reverser', amount: tva }, { label: 'Fournisseurs', amount: dFourn },
     { label: 'Dettes sociales / fiscales', amount: dSoc }, { label: 'Acomptes clients reçus', amount: dAccLiab, detail: advanceMatchesFound.solutions.length ? 'advances' : null },
-    { label: 'Acomptes à honorer (déjà en CA)', amount: dAccCA, detail: openAdv.length ? 'open-advances' : null }
+    { label: 'Acomptes à honorer (déjà en CA)', amount: dAccCA }
   ].filter(function (l) { return Math.abs(l.amount) > 0.5; });
 
   var chartDescription = 'Trésorerie ' + fmtEUR(treso) + ' = Position nette ' + fmtEUR(position) + ' + Dettes exigibles ' + fmtEUR(dexpl);
