@@ -43,11 +43,11 @@ export function renderForecastSummary({ summary, goal, reviewCount, reviewAmount
         </div>
       </div>`}
     </div>
-    ${summary.reviewCount ? `<p class="forecast-warning">${summary.reviewCount} devis sélectionné(s) à vérifier après actualisation du rapprochement. Leurs montants saisis sont conservés, mais suspendus des totaux. <button class="forecast-link" data-f-action="selected">Vérifier</button></p>` : ''}
+    ${summary.reviewCount ? `<p class="forecast-warning">${summary.reviewCount} devis sélectionné(s) à vérifier après actualisation du rapprochement. Leurs montants saisis sont conservés, mais suspendus des totaux. <button class="forecast-link" data-f-jump="review">Vérifier</button></p>` : ''}
     <div class="forecast-details-row"><details id="forecast-followed" class="forecast-followed" ${expanded ? 'open' : ''}><summary><span class="forecast-show-label">Afficher les devis →</span><span class="forecast-hide-label">Masquer les devis ↑</span></summary>
       <div class="forecast-table-toolbar"><nav class="forecast-quick-filters" role="tablist" aria-label="Situation des devis">${Object.entries(labels).map(([kind,label]) => `<button type="button" role="tab" id="forecast-tab-${kind}" data-f-filter="${kind}" aria-controls="forecast-dashboard-tables" aria-selected="${activeTab === kind}" tabindex="${activeTab === kind ? 0 : -1}">${label} · ${counts[kind]}</button>`).join('')}</nav><input id="forecast-dashboard-search" type="search" aria-label="Rechercher dans les devis de cet onglet" placeholder="Client, numéro ou titre…" value="${esc(search)}"></div><div id="forecast-dashboard-tables" class="forecast-dashboard-tables" role="tabpanel" aria-labelledby="forecast-tab-${activeTab}">${tables}</div></details>
       <button type="button" class="forecast-link sp-help forecast-help" data-tip="${esc(help)}" aria-label="Comprendre le prévisionnel">Comprendre le calcul ⓘ</button>
     </div>
-    <p id="forecast-quick-message" class="small" role="status"></p><div class="forecast-all"><button class="forecast-link" data-f-action="manage">Tous les devis / gérer les sélections</button></div>
+    <p id="forecast-quick-message" class="small" role="status"></p><div class="forecast-all"><button class="forecast-link" data-f-action="manage">Ajouter ou retrouver un devis</button></div>
     ${summary.unintegrated.length ? `<details class="forecast-method"><summary>${summary.unintegrated.length} facture(s) / avoir(s) après la période RES · à rapprocher</summary><p>Ces pièces ne sont pas ajoutées automatiquement : elles pourraient recouper les devis sélectionnés.</p><ul>${summary.unintegrated.map(d => `<li>${esc(d.date)} · ${esc(d.number || d.type)} · ${esc(d.client)} : ${money(d.amount)} HT</li>`).join('')}</ul></details>` : ''}`;
 }

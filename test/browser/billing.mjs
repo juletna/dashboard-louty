@@ -86,7 +86,6 @@ try {
   assert.equal(await page.locator('.forecast-threshold').evaluate(e=>getComputedStyle(e,'::after').display),'none');
   await page.setViewportSize({width:1440,height:1100});
   await page.locator('[data-f-action=manage]').click();
-  await page.locator('[data-f-tab=all]').click();
   const row=n=>page.locator('#forecast-list .forecast-row').filter({hasText:n});
   for(const [n,status] of [['Q-DEPOSIT','À facturer (estimation)'],['Q-PROGRESS','À facturer (estimation) · Partiellement facturé'],['Q-SCOPE','À vérifier'],['Q-COVERED','Entièrement facturé'],['Q-WAIT','En attente client']]) assert.ok((await row(n).innerText()).includes(status));
   assert.match(await row('Q-SCOPE').innerText(),/À déterminer/);
@@ -134,7 +133,7 @@ try {
   assert.equal(await page.locator('[data-f-target=confirmed]').count(),0);
   assert.match(await page.locator('#forecast-quick-message').innerText(),/Q-WAIT.*À facturer/);
   assert.match(await page.locator('.forecast-estimated').innerText(),/350 €/);
-  assert.equal(await page.locator('aside[aria-label="En attente client"]').count(),0);
+  assert.equal(await page.locator('aside[aria-label="En attente client"].is-empty[aria-disabled="true"]').count(),1);
   await page.reload();await page.locator('[data-f-action=manage]').waitFor();
   assert.match(await page.locator('.forecast-estimated').innerText(),/350 €/);
   await page.locator('#forecast-input').setInputFiles(fixtures.billing);
@@ -182,7 +181,7 @@ try {
   await page.locator('#forecast-followed').evaluate(e=>e.open=true);
   await page.locator('[data-f-filter=waiting]').click();
   assert.equal(await tableRow().count(),0);
-  assert.equal(await page.locator('aside[aria-label="En attente client"]').count(),0);
+  assert.equal(await page.locator('aside[aria-label="En attente client"].is-empty[aria-disabled="true"]').count(),1);
   await page.setViewportSize({width:1440,height:1100});
   for(const kind of ['validation','review']) {
     await page.locator(`[data-f-filter=${kind}]`).click();

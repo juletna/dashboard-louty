@@ -49,7 +49,6 @@ try {
   assert.equal(await page.locator('.forecast-schedule').count(),0);
   await page.locator('[data-f-action="manage"]').click();
   assert.equal(await page.locator('#forecast-list .forecast-row').count(),4);
-  await page.locator('[data-f-tab=all]').click();
   assert.equal(await page.locator('#forecast-list .forecast-row').count(),4);
   assert.equal(await page.locator('#forecast-list img').count(),0,'imported text is escaped');
   assert.match(await partial().innerText(),/par nom client/);
@@ -127,11 +126,10 @@ try {
   assert.equal(await page.locator('#forecast-followed').getAttribute('open'),null);
   await page.locator('#forecast-input').setInputFiles(fixtures.changed);
   await page.waitForFunction(()=>document.querySelector('#revenue-forecast').textContent.includes('1 devis sélectionné(s) à vérifier'));
-  await page.locator('[data-f-action=selected]').click();
-  await partial().getByRole('button',{name:'Vérifier',exact:true}).click();
+  await page.locator('.forecast-warning [data-f-jump=review]').click();
+  await page.locator('#forecast-dashboard-tables tr').filter({hasText:'DEV-PARTIAL'}).locator('[data-f-edit]').click();
   assert.equal(await page.locator('#forecast-amount').inputValue(),'4100','reimport preserves manual amount');
   await page.locator('#forecast-amount').fill('3700');await page.locator('#forecast-form button[type=submit]').click();
-  await page.locator('[data-f-action=close-manager]').click();
   await page.locator('#file-input').setInputFiles(fixtures.res);await page.locator('[data-f-action=import]').waitFor();
   assert.match(await page.locator('#revenue-forecast').innerText(),/choix sont conservés/);
   assert.equal(await page.locator('.cap-projection').filter({hasText:'Projection chiffre'}).locator('.cap-projection-value').innerText(),'—');

@@ -13,7 +13,7 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
   const manager = document.getElementById('forecast-manager');
   const editor = document.getElementById('forecast-editor');
   const el = id => document.getElementById(id);
-  let data, goal, rows = [], summary, tab = 'review', editingKey = null, returnFocus;
+  let data, goal, rows = [], summary, editingKey = null, returnFocus;
   let situationFilter = '', dashboardSearch = '', dashboardTab = 'confirmed';
   const situationOf = r => forecastStatus(r) === 'Entièrement facturé' ? 'complete' : forecastStatus(r) === 'À vérifier' ? 'review' : r.choice?.action === 'include' ? (r.choice.remaining === 0 ? 'complete' : r.choice.situation) : r.status === 'complete' ? 'complete' : quoteSituation(r) || 'review';
   const selected = r => r.choice?.action === 'include';
@@ -54,7 +54,7 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
     const total = list.reduce((n,r) => n + (review ? reviewValue(r) ?? 0 : r.choice.remaining),0);
     return `<section aria-label="Devis ${esc(label.toLocaleLowerCase('fr'))}"><div class="forecast-table-head"><span class="small">${list.length} devis · ${review ? 'À vérifier · hors totaux' : situation === 'confirmed' ? 'Reste à facturer estimé' : 'Hors estimation'}</span><strong>${review ? 'Montants à vérifier' : money(total)}</strong></div><div class="forecast-table-scroll"><table><thead><tr><th scope="col">Client / devis</th><th scope="col" class="forecast-table-amount">${review ? 'Montant indicatif HT' : 'Reste HT'}</th><th scope="col"><span class="sr-only">Action</span></th></tr></thead><tbody>${list.map(r => {
       const value = review ? reviewValue(r) : r.choice.remaining;
-      return `<tr><td><strong>${esc(r.client || 'Client non renseigné')}</strong><small>${esc(r.number || 'Sans numéro')} · ${esc(r.title || '')}</small>${review ? `<small>${esc(describe(r))}${!Number.isFinite(r.choice?.remaining) && !Number.isFinite(r.proposed) && Number.isFinite(r.amount) ? ' · Montant total du devis, reste à déterminer' : ''}</small>` : ''}</td><td class="forecast-table-amount">${Number.isFinite(value) ? formatMoney(value) : 'À déterminer'}</td><td><div class="forecast-table-actions"><div class="forecast-row-menu"><button type="button" class="forecast-link forecast-actions-toggle" data-f-menu aria-expanded="false" aria-controls="forecast-actions-${rows.indexOf(r)}" aria-label="Actions pour ${esc(r.client)} · ${esc(r.number)}">Actions</button><div class="forecast-row-menu-items" id="forecast-actions-${rows.indexOf(r)}">${Object.entries({...FORECAST_STATES, exclude:'Exclure'}).filter(([target]) => target !== situation).map(([target,text]) => `<button type="button" data-f-transition="${rows.indexOf(r)}" data-f-target="${target}" ${r.missing && target !== 'exclude' ? 'disabled title="Devis absent : réimporte les Pièces avant de le reclasser"' : ''}>${text}</button>`).join('')}</div></div><button class="forecast-link" ${r.missing ? 'data-f-action="selected"' : `data-f-edit="${rows.indexOf(r)}"`} aria-label="${review ? 'Vérifier' : 'Voir le détail de'} ${esc(r.client)} · ${esc(r.number)}">${review ? 'Vérifier le devis' : 'Voir le détail'} →</button></div></td></tr>`;
+      return `<tr><td><strong>${esc(r.client || 'Client non renseigné')}</strong><small>${esc(r.number || 'Sans numéro')} · ${esc(r.title || '')}</small>${review ? `<small>${esc(describe(r))}${!Number.isFinite(r.choice?.remaining) && !Number.isFinite(r.proposed) && Number.isFinite(r.amount) ? ' · Montant total du devis, reste à déterminer' : ''}</small>` : ''}</td><td class="forecast-table-amount">${Number.isFinite(value) ? formatMoney(value) : 'À déterminer'}</td><td><div class="forecast-table-actions"><div class="forecast-row-menu"><button type="button" class="forecast-link forecast-actions-toggle" data-f-menu aria-expanded="false" aria-controls="forecast-actions-${rows.indexOf(r)}" aria-label="Actions pour ${esc(r.client)} · ${esc(r.number)}">Actions</button><div class="forecast-row-menu-items" id="forecast-actions-${rows.indexOf(r)}">${Object.entries({...FORECAST_STATES, exclude:'Exclure'}).filter(([target]) => target !== situation).map(([target,text]) => `<button type="button" data-f-transition="${rows.indexOf(r)}" data-f-target="${target}" ${r.missing && target !== 'exclude' ? 'disabled title="Devis absent : réimporte les Pièces avant de le reclasser"' : ''}>${text}</button>`).join('')}</div></div>${r.missing ? '' : `<button class="forecast-link" data-f-edit="${rows.indexOf(r)}" aria-label="${review ? 'Vérifier' : 'Voir le détail de'} ${esc(r.client)} · ${esc(r.number)}">${review ? 'Vérifier le devis' : 'Voir le détail'} →</button>`}</div></td></tr>`;
     }).join('') || '<tr><td colspan="3" class="small">Aucun devis</td></tr>'}</tbody></table></div></section>`;
   }
   function renderList() {
@@ -62,12 +62,7 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
     yearSelect.innerHTML = '<option value="">Toutes les années</option>' + [...new Set(rows.map(r => r.date?.slice(0,4)).filter(Boolean))].sort().reverse().map(y => `<option value="${esc(y)}">${esc(y)}</option>`).join('');
     yearSelect.value = previousYear;
     const text = el('forecast-search').value.toLocaleLowerCase('fr');
-    const counts = { review: rows.filter(candidate).length, selected: rows.filter(selected).length, all: rows.filter(r => !r.missing).length };
-    manager.querySelectorAll('[data-f-tab]').forEach(b => {
-      b.setAttribute('aria-pressed', String(b.dataset.fTab === tab));
-      b.textContent = ({ review: 'À examiner', selected: 'Dans le prévisionnel', all: 'Tous les devis' })[b.dataset.fTab] + ' · ' + counts[b.dataset.fTab];
-    });
-    const contextual = rows.filter(r => tab === 'review' ? candidate(r) : tab === 'selected' ? selected(r) : !r.missing)
+    const contextual = rows.filter(r => !r.missing)
       .filter(r => !yearSelect.value || r.date?.startsWith(yearSelect.value))
       .filter(r => `${r.client} ${r.number} ${r.title}`.toLocaleLowerCase('fr').includes(text));
     manager.querySelectorAll('[data-f-situation]').forEach(button => {
@@ -77,18 +72,18 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
       button.setAttribute('aria-pressed', String(value === situationFilter));
     });
     const filtered = contextual.filter(r => !situationFilter || situationOf(r) === situationFilter);
-    el('forecast-filter').textContent = tab === 'all' ? 'Ajout manuel possible, même si une facturation complète semble correspondre.' : 'Brouillons exclus · rapprochements indicatifs';
+    el('forecast-filter').textContent = 'Ajout manuel possible, même si une facturation complète semble correspondre.';
     el('forecast-list').innerHTML = filtered.length ? filtered.map(r => {
       const index = rows.indexOf(r);
-      return `<article class="forecast-row"><div><strong>${esc(r.client || 'Client non renseigné')}</strong><p class="small">${esc(r.number || 'Sans numéro')} · ${esc(r.date || 'Date absente')}</p><p class="small">${esc(r.title)}</p></div><div class="forecast-row-amount">${r.choice?.billed && !r.review ? money(0) : selected(r) ? money(r.choice.remaining) : Number.isFinite(r.proposed) ? money(r.proposed) : 'À déterminer'}<small>restant à facturer</small></div><div><span class="forecast-situation ${situationOf(r)}">${esc(displayStatus(r))}</span><span class="forecast-badge ${r.review || ['ambiguous', 'no-id'].includes(r.status) ? 'warn' : ''}">${esc(describe(r))}</span>${r.accepted ? `<p class="small">Accord du ${esc(r.agreement_date)}${r.auto ? ' · ajout automatique' : ''}</p>` : ''}</div><div class="forecast-row-actions">${!r.missing ? `<button class="btn" data-f-edit="${index}">${selected(r) ? r.review ? 'Vérifier' : 'Modifier' : 'Ajouter'}</button>` : ''}${selected(r) ? `<button class="forecast-link" data-f-remove="${index}">Retirer</button>` : tab === 'review' ? `<button class="forecast-link" data-f-exclude="${index}">Écarter</button>` : ''}</div></article>`;
+      return `<article class="forecast-row"><div><strong>${esc(r.client || 'Client non renseigné')}</strong><p class="small">${esc(r.number || 'Sans numéro')} · ${esc(r.date || 'Date absente')}</p><p class="small">${esc(r.title)}</p></div><div class="forecast-row-amount">${r.choice?.billed && !r.review ? money(0) : selected(r) ? money(r.choice.remaining) : Number.isFinite(r.proposed) ? money(r.proposed) : 'À déterminer'}<small>restant à facturer</small></div><div><span class="forecast-situation ${situationOf(r)}">${esc(displayStatus(r))}</span><span class="forecast-badge ${r.review || ['ambiguous', 'no-id'].includes(r.status) ? 'warn' : ''}">${esc(describe(r))}</span>${r.accepted ? `<p class="small">Accord du ${esc(r.agreement_date)}${r.auto ? ' · ajout automatique' : ''}</p>` : ''}</div><div class="forecast-row-actions">${!r.missing ? `<button class="btn" data-f-edit="${index}">${selected(r) ? r.review ? 'Vérifier' : 'Modifier' : 'Ajouter'}</button>` : ''}${selected(r) ? `<button class="forecast-link" data-f-remove="${index}">Retirer</button>` : ''}</div></article>`;
     }).join('') : '<p class="forecast-empty">Aucun devis dans cette vue.</p>';
     el('forecast-storage-message').textContent = storage.warning;
   }
-  function openManager(nextTab = 'review', situation = null) {
+  function openManager(situation = null) {
     if (situation !== null) situationFilter = situation;
     else if (!manager.open) situationFilter = '';
     el('forecast-year').value = '';
-    tab = nextTab; el('forecast-search').value = ''; el('forecast-message').textContent = '';
+    el('forecast-search').value = ''; el('forecast-message').textContent = '';
     renderList();
     if (!manager.open) { returnFocus = document.activeElement; manager.showModal(); }
   }
@@ -172,7 +167,7 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
     }
     if (b.dataset.fEdit !== undefined) { returnFocus = b; openEditor(Number(b.dataset.fEdit)); return; }
     if (b.dataset.fAction === 'import') el('forecast-input').click();
-    else openManager(b.dataset.fAction === 'selected' ? 'selected' : b.dataset.fAction === 'manage' ? 'all' : 'review');
+    else if (b.dataset.fAction === 'manage') openManager();
   });
   host.addEventListener('keydown', e => {
     if (!e.target.matches('[role=tab]') || !['ArrowLeft','ArrowRight','Home','End'].includes(e.key)) return;
@@ -185,12 +180,7 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
   manager.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.fSituation !== undefined) { situationFilter = b.dataset.fSituation; renderList(); }
-    if (b.dataset.fTab) openManager(b.dataset.fTab);
     if (b.dataset.fEdit !== undefined) openEditor(Number(b.dataset.fEdit));
-    if (b.dataset.fExclude !== undefined) {
-      const row = rows[Number(b.dataset.fExclude)];
-      commit(row, { action: 'exclude', fingerprint: row.fingerprint, quote: quoteSnapshot(row) }, 'Devis écarté. Il reste accessible dans « Tous les devis ».');
-    }
     if (b.dataset.fRemove !== undefined) {
       const row = rows[Number(b.dataset.fRemove)];
       commit(row, { action: 'exclude', fingerprint: row.fingerprint, quote: quoteSnapshot(row) }, 'Devis retiré. Ce choix reste prioritaire sur l’ajout automatique.');
