@@ -1,3 +1,6 @@
+import { matchQuotes } from '../domain/forecast.js';
+import { openAdvances } from '../domain/forecast-advances.js';
+
 export function customerModalRows(items, kind) {
   return items.map(item => {
     const docs = item.documents || [];
@@ -6,9 +9,23 @@ export function customerModalRows(items, kind) {
   });
 }
 
-export function renderCustomerAdvances(sante, details, { money, escape: esc }) {
+export function renderCustomerAdvances(sante, details, { money, escape: esc, documents }) {
   const clients = details?.advances || [];
-  const known = sante && sante.acompte_accounts_present === true && Number.isFinite(sante.dettes_acomptes_clients);
-  const total = clients.reduce((sum, c) => sum + c.amount, 0);
-  return `<section class="customer-advances" aria-label="Acomptes clients"><h4>Acomptes clients à vérifier</h4><div class="forecast-cap-values"><div><span>Solde d’acomptes dans la Balance</span><strong>${known ? money(sante.dettes_acomptes_clients) : 'Indisponible'}</strong></div><div><span>Acomptes encaissés dans les Pièces · historique</span><strong>${details ? money(total) + ' TTC' : 'Pièces non importées'}</strong></div></div><p class="small">${!sante ? 'Importe la Balance pour connaître le solde comptable.' : !known ? sante.acompte_accounts_present === undefined ? 'Réimporte la Balance pour vérifier la présence des comptes d’acomptes dans cet ancien cache.' : 'Les comptes d’acomptes ne sont pas renseignés dans cette Balance.' : sante.dettes_acomptes_clients <= .5 ? 'Le solde comptable est nul. Cela ne permet pas de conclure que tous les travaux sont terminés.' : 'Le solde comptable indique les acomptes restant à régulariser.'} Les encaissements historiques peuvent concerner des travaux déjà facturés : ils ne sont pas ajoutés à la dette ni au CA. Le solde comptable et les paiements TTC peuvent avoir des bases différentes.</p><details><summary>Voir les acomptes détectés (${clients.reduce((n,c) => n + (c.documents || []).length, 0)})</summary>${clients.length ? '<ul>' + clients.flatMap(c => (c.documents || []).map(d => `<li><strong>${esc(c.client)}</strong>${c.client_id ? ' · client ' + esc(c.client_id) : ''}${c.activity ? ' · ' + esc(c.activity) : ''} · ${esc(d.number || 'Sans numéro')} · ${esc(d.date?.slice(0,10) || 'Date absente')} : ${money(d.amount)} TTC${d.duplicate ? ' · doublon à vérifier' : ''}${c.identity_ambiguous ? ' · identité à vérifier' : ''}</li>`)).join('') + '</ul>' : '<p class="small">Aucun acompte encaissé identifiable dans les Pièces chargées.</p>'}<p class="small">Dans « Vérifier les devis », ouvre le chantier concerné pour rattacher un acompte. Le début et la fin des travaux restent à vérifier avec ton suivi chantier.</p></details></section>`;
+  const history = clients.reduce((sum, c) => sum + c.amount, 0);
+  const historyCount = clients.reduce((n, c) => n + (c.documents || []).length, 0);
+  const known = sante && sante.acompte_ca_accounts_present === true && Number.isFinite(sante.acomptes_en_ca);
+  const hasPieces = Array.isArray(documents) && documents.length > 0;
+  const open = hasPieces ? openAdvances(matchQuotes(documents)) : [];
+  const openHT = Math.round(open.reduce((n, a) => n + a.advanceHT, 0) * 100) / 100;
+  const gap = known && hasPieces ? Math.round((sante.acomptes_en_ca - openHT) * 100) / 100 : null;
+  const note = !sante ? 'Importe la Balance pour comparer avec les comptes d’acomptes.'
+    : sante.acompte_ca_accounts_present === undefined ? 'Réimporte la Balance pour lire les comptes d’acomptes de cet ancien cache.'
+    : !known ? 'Aucun compte d’acompte (7040) dans cette Balance.'
+    : !hasPieces ? 'Importe les Pièces pour retrouver les devis concernés.'
+    : Math.abs(gap) <= 1 ? 'La Balance et les Pièces concordent.'
+    : `Écart de ${money(Math.abs(gap))} HT entre la Balance et les devis rapprochés : ${gap > 0 ? 'un acompte n’est rattaché à aucun devis' : 'un acompte rapproché est déjà repris en Balance'}.`;
+  const rows = open.length ? '<ul>' + open.map(a => `<li><strong>${esc(a.client)}</strong>${a.client_id ? ' · client ' + esc(a.client_id) : ''} · devis ${esc(a.quote || 'sans numéro')} · acompte ${esc(a.numbers.join(', '))} : ${money(a.advanceHT)} HT (${money(a.advanceTTC)} TTC) · reste à facturer net d’acompte ${money(a.remainingHT)} HT</li>`).join('') + '</ul>'
+    : `<p class="small">${hasPieces ? 'Aucun acompte encaissé en attente de reprise dans les Pièces.' : 'Pièces non importées.'}</p>`;
+  const past = historyCount - open.reduce((n, a) => n + a.numbers.length, 0);
+  return `<section class="customer-advances" aria-label="Acomptes clients"><h4>Acomptes à reprendre sur facture finale</h4><div class="forecast-cap-values"><div><span>Acomptes en CA réalisé · Balance (HT)</span><strong>${known ? money(sante.acomptes_en_ca) : 'Indisponible'}</strong></div><div><span>Acomptes ouverts retrouvés dans les Pièces (HT)</span><strong>${hasPieces ? money(openHT) : 'Pièces non importées'}</strong></div></div><p class="small">Un acompte facturé est déjà compté dans le CA réalisé. Il reste à reprendre sur la facture finale, qui sera donc du montant du devis moins l’acompte. ${esc(note)}</p>${rows}${hasPieces && historyCount ? `<details><summary>Historique des acomptes encaissés (${historyCount})</summary><p class="small">${past > 0 ? past + ' déjà repris ou non rattaché(s) à un devis ouvert. ' : ''}Total encaissé dans les Pièces : ${money(history)} TTC.</p><ul>${clients.flatMap(c => (c.documents || []).map(d => `<li><strong>${esc(c.client)}</strong>${c.client_id ? ' · client ' + esc(c.client_id) : ''} · ${esc(d.number || 'Sans numéro')} · ${esc(d.date?.slice(0,10) || 'Date absente')} : ${money(d.amount)} TTC${d.duplicate ? ' · doublon à vérifier' : ''}${c.identity_ambiguous ? ' · identité à vérifier' : ''}</li>`)).join('')}</ul></details>` : ''}</section>`;
 }

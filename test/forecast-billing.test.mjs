@@ -15,12 +15,13 @@ const run = (ds, choices = new Map()) => reconcileForecast(prepareDocuments(ds),
 const choice = (r, extra = {}) => ({ action: 'include', situation: 'confirmed', remaining: r.proposed ?? 30, month: null, fingerprint: r.fingerprint, quote: r, ...extra });
 const data = { snapshot: { current: { year: '2026' } }, years: { 2026: { months_present: [1,2], monthly: { ca: [10,20,...Array(10).fill(null)] } } } };
 
-test('paid advance alone keeps the whole accepted HT without planning or payment confusion', () => {
+test('paid advance alone is deducted from the HT remainder because RES already holds it', () => {
   const [r] = run([q,a]);
-  assert.equal(r.proposed,100); assert.equal(r.auto,true); assert.equal(r.choice.month,null);
+  assert.equal(r.advanceDeductedHT,25); assert.equal(run([q])[0].advanceDeductedHT,0);
+  assert.equal(r.proposed,75); assert.equal(r.remainingTTC,90); assert.equal(r.auto,true); assert.equal(r.choice.month,null);
   assert.equal(forecastStatus(r),'Confirmé · À facturer');
   const s = forecastSummary([r],data,1000);
-  assert.equal(s.confirmed,100); assert.equal(s.annualConfirmed,100);
+  assert.equal(s.confirmed,75); assert.equal(s.annualConfirmed,75);
   for (const patch of [{paid:29.99},{state:'Attente valid.'},{date:'2025-01-01'},{amount_ttc:null}]) {
     const [next] = run([q,{...a,...patch}]);
     if (patch.date) assert.equal(next.proposed,100); else assert.equal(next.auto,false);
@@ -28,11 +29,14 @@ test('paid advance alone keeps the whole accepted HT without planning or payment
   assert.ok(run([q,{...q,number:'Q2',amount:200,amount_ttc:240},a]).every(r=>!r.auto));
 });
 
-test('confirmed unpaid situations reduce HT/TTC and deposits stay separate', () => {
+test('situations are net of the deposit they take back, so the paid deposit counts as billed', () => {
   const [r] = run([q,a,progress(20,24),{...progress(30,36),number:'S2'}]);
-  assert.equal(r.proposed,50); assert.equal(r.remainingTTC,60); assert.equal(r.choice.remaining,50);
+  assert.equal(r.proposed,25); assert.equal(r.advanceDeductedHT,25); assert.equal(r.remainingTTC,30); assert.equal(r.choice.remaining,25); assert.equal(r.billedHT,75);
   assert.equal(forecastStatus(r),'Confirmé · Partiellement facturé');
-  assert.ok(r.matched.every(d=>d.type==='Facture de situation')); assert.equal(r.advanceCandidates.length,1);
+  assert.equal(r.matched.filter(d=>d.type==="Facture d'acompte").length,1);
+  // A deposit issued after the situations has not been taken back yet.
+  const [later] = run([q,{...a,date:'2026-03-01'},progress(20,24),{...progress(30,36),number:'S2'}]);
+  assert.equal(later.proposed,50); assert.ok(later.matched.every(d=>d.type==='Facture de situation'));
   assert.equal(run([q,progress(40,48,{state:'Non confirmé'})])[0].auto,false);
 });
 

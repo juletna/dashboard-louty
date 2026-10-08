@@ -229,6 +229,8 @@ export function parseBAL(XLSX, workbook) {
 
     var dTva = Math.max(0, tvaAPayer);
     var dAcomptes = owed(sumPref(['4191', '4712']));
+    // Les acomptes facturés sont comptabilisés en produits (7040) jusqu'à leur reprise par une facture finale.
+    var acomptesEnCA = owed(sumPref(['7040']));
     var dFourn = owed(sumPref(['40']));
     var dSocial = owed(sumPref(['42', '43']) + g('44551000'));
     var dCca = owed(ccass);
@@ -262,6 +264,8 @@ export function parseBAL(XLSX, workbook) {
       dettes_tva: r2(dTva),
       dettes_acomptes_clients: r2(dAcomptes),
       acompte_accounts_present: Object.keys(data).some(k => /^(4191|4712)/.test(k)),
+      acomptes_en_ca: r2(acomptesEnCA),
+      acompte_ca_accounts_present: Object.keys(data).some(k => /^7040/.test(k)),
       dettes_fournisseurs: r2(dFourn),
       dettes_sociales_fiscales: r2(dSocial),
       dettes_cca: r2(dCca),

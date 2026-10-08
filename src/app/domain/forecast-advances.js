@@ -1,4 +1,5 @@
-// Deposit links are manual evidence only. They never reduce forecast revenue.
+// Manual deposit links only compute the TTC cash remainder; the HT revenue
+// remainder is reduced automatically for an unambiguous deposit-only quote.
 export function forecastAdvances(row, rows, keys = row.choice?.advanceKeys || []) {
   const candidates = row.advanceCandidates || [];
   const reserved = new Set(rows.filter(r => r.key !== row.key && r.choice?.action === 'include')
@@ -14,4 +15,16 @@ export function forecastAdvances(row, rows, keys = row.choice?.advanceKeys || []
     !row.billingRisk && !(row.invoiceCandidates || []).length
     ? Math.round((row.amount_ttc - paid) * 100) / 100 : null;
   return { candidates, reserved, linked: linked.filter(Boolean), paid, cash, error };
+}
+
+// Paid deposits whose HT sits in RES revenue but is not yet taken back by any invoice
+// (a deposit already taken back by a situation is billed, not open).
+export function openAdvances(rows) {
+  return rows.filter(r => r.reason === 'deposit-only' && r.advanceDeductedHT > 0).map(r => {
+    const advances = [...new Map([...(r.matched || []), ...(r.evidence || [])]
+      .filter(d => d.type === "Facture d'acompte").map(d => [d.key, d])).values()];
+    return { client: r.client, client_id: r.client_id, activity: r.activity, quote: r.number, quoteHT: r.amount,
+      advanceHT: r.advanceDeductedHT, advanceTTC: advances.reduce((n, d) => n + d.amount_ttc, 0),
+      remainingHT: r.proposed, numbers: advances.map(d => d.number) };
+  }).sort((a, b) => b.advanceHT - a.advanceHT);
 }

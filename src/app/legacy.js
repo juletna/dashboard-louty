@@ -1202,7 +1202,7 @@ function renderSante(data, cur) {
   var detailBlock = detailLines.length
     ? '<div class="sante-detail"><button type="button" class="sante-detail-toggle">Détail des dettes exigibles →</button><div class="sante-detail-body" style="display:none">' + detailHTML + '</div></div>'
     : '';
-  var acomptesAlert = renderCustomerAdvances(sante, paymentDetails, { money: fmtEUR, escape: esc });
+  var acomptesAlert = renderCustomerAdvances(sante, paymentDetails, { money: fmtEUR, escape: esc, documents: paymentSource.documents });
 
   wrap.innerHTML =
     '<div class="card sante-card">' +
@@ -1543,7 +1543,7 @@ function injectSanteUpload(errMsg) {
         '<input type="file" id="bal-input" accept=".xlsx" style="display:none">' +
         (errMsg ? '<div class="welcome-err" style="display:block;margin-top:14px">⚠ ' + esc(errMsg) + '</div>' : '') +
       '</div></div>' +
-      renderCustomerAdvances(null, DATA?.revenue_distribution?.payment_details, { money: fmtEUR, escape: esc }) +
+      renderCustomerAdvances(null, DATA?.revenue_distribution?.payment_details, { money: fmtEUR, escape: esc, documents: DATA?.revenue_distribution?.documents }) +
     '</div>';
   var drop = document.getElementById('bal-drop');
   var inp = document.getElementById('bal-input');
@@ -1704,7 +1704,7 @@ document.getElementById('welcome-back').addEventListener('click', function () {
 })();
 
 // Mise à jour automatique : si le fichier hébergé est plus récent, on recharge la dernière version
-var APP_VERSION = "20261008-223820";
+var APP_VERSION = "20261008-231848";
 function showUpdateBanner(base, v) {
   if (document.getElementById('update-banner')) return;
   var d = document.createElement('div');

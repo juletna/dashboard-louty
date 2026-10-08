@@ -195,7 +195,7 @@ export function forecastStatus(row) {
 
 export const REASON_LABELS = {
   'scope-adjustment': 'Facture ordinaire inférieure au devis : reste candidat à examiner',
-  'deposit-only': 'Acompte encaissé séparé du CA restant à facturer',
+  'deposit-only': 'Acompte déjà en CA réalisé : déduit du reste à facturer',
   'progress-remainder': 'Devis moins situations confirmées, indépendamment du règlement',
   'ttc-covered': 'Prix TTC entièrement facturé malgré la différence HT',
   'billed-at-least-quote': 'Facturation couvrant le devis, supplément éventuel conservé',

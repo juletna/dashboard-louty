@@ -205,11 +205,11 @@ test('manual inclusions and exclusions outrank agreement, including after change
   }
 });
 
-test('deposit candidates never reduce CA and changed payment evidence suspends saved choices', () => {
+test('deposit-only quotes deduct the HT already in RES and changed payment evidence suspends saved choices', () => {
   const input=[doc('q',100,'Devis',{amount_ttc:120,agreement_date:'2026-01-15'}),
     doc('a',25,"Facture d'acompte",{amount_ttc:30,paid:30}),doc('old',20,"Facture d'acompte",{date:'2025-01-01'})];
   const [row]=match(input);
-  assert.equal(row.proposed,100); assert.equal(row.reason,'deposit-only'); assert.equal(row.advanceCandidates.length,1);
+  assert.equal(row.proposed,75); assert.equal(row.reason,'deposit-only'); assert.equal(row.advanceCandidates.length,1);
   assert.equal(row.invoiceCandidates.length,0); assert.equal(row.billingRisk,false);
   const choices=new Map([[row.key,choice(row,{advanceKeys:[row.advanceCandidates[0].key]})]]);
   for (const patch of [{paid:20},{amount_ttc:31}]) {
@@ -265,7 +265,7 @@ test('confirmed final invoices and paid advances can jointly cover HT and TTC wi
     assert.notEqual(candidate.status,'complete',JSON.stringify([index,patch]));
   }
   const [depositOnly] = match(input.slice(0,2));
-  assert.equal(depositOnly.status,'unmatched'); assert.equal(depositOnly.proposed,1234.57);
+  assert.equal(depositOnly.status,'unmatched'); assert.equal(depositOnly.proposed,864.2);
   const [withCredit] = match([...input,doc('credit',-10,'Avoir')]);
   assert.equal(withCredit.status,'ambiguous');
   const [fullInvoice] = match(input.map(d => d.number==='f' ? {...d,amount:1234.57,amount_ttc:1481.48} : d));

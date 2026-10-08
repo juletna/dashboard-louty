@@ -48,6 +48,17 @@ export function classifyBilling(source, candidates) {
   function complete(r, matched, reason, evidence = []) {
     Object.assign(r, { status: 'complete', proposed: 0, remainingTTC: 0, matched, reason, evidence, eligible: false });
   }
+  // The export shows each situation net of the deposit it takes back ("reprise"),
+  // so the quote's gross progress is the net situations plus the earlier paid
+  // deposit. Only a sole outstanding quote can claim a deposit, and never beyond the quote.
+  function reprisAdvances(r, bills, peers) {
+    if (peers.length !== 1 || !bills.length || !bills.every(d => d.type === 'Facture de situation' && dateValid(d.date))) return [];
+    const first = bills.map(d => d.date).sort()[0];
+    const found = (r.advanceCandidates || []).filter(d => paidAdvance(d) && !used.has(d.key) && dateValid(d.date) && d.date <= first);
+    const all = [...bills, ...found];
+    if (!found.length || total(all, 'amount') > cents(r.amount) || (knownTTC(r) && all.every(knownTTC) && total(all, 'amount_ttc') > cents(r.amount_ttc))) return [];
+    return found;
+  }
   for (const r of rows) {
     const related = source.filter(d => same(r, d));
     const peers = rows.filter(q => same(r, q) && q.status !== 'complete');
@@ -55,6 +66,11 @@ export function classifyBilling(source, candidates) {
     if (['complete', 'partial'].includes(r.status) && !clean) {
       r.status = 'ambiguous'; r.reason = 'unconfirmed-billing';
     } else if (r.status === 'partial' && !r.billingRisk) {
+      const repris = reprisAdvances(r, r.matched, peers);
+      if (repris.length) {
+        r.matched = [...r.matched, ...repris]; repris.forEach(d => used.add(d.key));
+        r.proposed = (cents(r.amount) - total(r.matched, 'amount')) / 100;
+      }
       if (knownTTC(r) && r.matched.every(knownTTC) && total(r.matched, 'amount_ttc') === cents(r.amount_ttc)) {
         complete(r, r.matched, 'ttc-covered');
       } else if (knownTTC(r) && r.matched.every(knownTTC) && total(r.matched, 'amount_ttc') > cents(r.amount_ttc)) {
@@ -75,20 +91,26 @@ export function classifyBilling(source, candidates) {
       const noBilling = !related.some(d => (invoices.has(d.type) || d.type === 'Avoir') && (!dateValid(d.date) || d.date >= r.date));
       const uniqueAdvances = advances.every(a => candidates.filter(q => same(r, q) && q.status !== 'complete' && dateValid(q.date) && a.date >= q.date).length === 1);
       if (noBilling && soleOutstanding && uniqueAdvances && advances.length && advances.every(paidAdvance) && knownTTC(r) &&
-          total(advances, 'amount_ttc') < cents(r.amount_ttc) && unallocated(advances)) {
-        Object.assign(r, { status: 'unmatched', proposed: r.amount, matched: [], evidence: advances, reason: 'deposit-only' });
+          advances.every(d => Number.isFinite(d.amount) && d.amount > 0) &&
+          total(advances, 'amount_ttc') < cents(r.amount_ttc) && total(advances, 'amount') < cents(r.amount) && unallocated(advances)) {
+        // Deposits are booked as revenue (704x) when invoiced, so the RES already
+        // holds their HT: only the rest of the quote is still to be realized.
+        Object.assign(r, { status: 'unmatched', proposed: (cents(r.amount) - total(advances, 'amount')) / 100,
+          remainingTTC: (cents(r.amount_ttc) - total(advances, 'amount_ttc')) / 100,
+          matched: [], evidence: advances, reason: 'deposit-only' });
         advances.forEach(d => used.add(d.key));
       } else if (soleOutstanding && cleanBills) {
-        // Situations are deducted alone: adding deposits here would bill twice.
+        // Net situations plus the deposit they took back make the gross progress.
         if (knownTTC(r) && bills.every(knownTTC) && total(bills, 'amount_ttc') === cents(r.amount_ttc)) {
           complete(r, bills, 'ttc-covered'); bills.forEach(d => used.add(d.key));
         } else if (bills.every(d => d.type === 'Facture de situation')) {
-          const ht = cents(r.amount) - total(bills, 'amount');
-          const ttc = knownTTC(r) && bills.every(knownTTC) ? cents(r.amount_ttc) - total(bills, 'amount_ttc') : null;
-          if (ht <= 0 || ttc === 0) complete(r, bills, ttc === 0 && ht > 0 ? 'ttc-covered' : 'billed-at-least-quote');
-          else if (ttc === null || ttc > 0) Object.assign(r, { status: 'partial', proposed: ht / 100, matched: bills, reason: 'progress-remainder' });
+          const covered = [...bills, ...reprisAdvances(r, bills, peers)];
+          const ht = cents(r.amount) - total(covered, 'amount');
+          const ttc = knownTTC(r) && covered.every(knownTTC) ? cents(r.amount_ttc) - total(covered, 'amount_ttc') : null;
+          if (ht <= 0 || ttc === 0) complete(r, covered, ttc === 0 && ht > 0 ? 'ttc-covered' : 'billed-at-least-quote');
+          else if (ttc === null || ttc > 0) Object.assign(r, { status: 'partial', proposed: ht / 100, matched: covered, reason: 'progress-remainder' });
           else { r.reason = 'ttc-excess'; }
-          bills.forEach(d => used.add(d.key));
+          covered.forEach(d => used.add(d.key));
         } else {
           const safeAdvances = !advances.length || (rows.filter(q => same(r, q)).length === 1 && finals.length && knownTTC(r) && bills.every(knownTTC) &&
             advances.every(d => paidAdvance(d) && d.date <= finals.map(f => f.date).sort().at(-1)) && unallocated(advances));
@@ -170,6 +192,8 @@ export function classifyBilling(source, candidates) {
       r.matched = r.matched.filter(d => d.type !== "Facture d'acompte");
     }
     const billed = r.matched.filter(d => invoices.has(d.type) || d.type === "Facture d'acompte");
+    const taken = [...r.matched, ...(r.reason === 'deposit-only' ? r.evidence : [])].filter(d => d.type === "Facture d'acompte");
+    r.advanceDeductedHT = ['partial', 'unmatched'].includes(r.status) && taken.length && taken.every(d => Number.isFinite(d.amount)) ? total(taken, 'amount') / 100 : 0;
     r.billedHT = billed.length && billed.every(d => Number.isFinite(d.amount)) ? total(billed, 'amount') / 100 : null;
     r.differenceHT = r.billedHT === null ? null : (total(billed, 'amount') - cents(r.amount)) / 100;
     r.differenceTTC = knownTTC(r) && billed.length && billed.every(knownTTC) ? (total(billed, 'amount_ttc') - cents(r.amount_ttc)) / 100 : null;

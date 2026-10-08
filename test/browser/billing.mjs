@@ -31,7 +31,7 @@ try {
   assert.match(await page.locator('aside[aria-label="En attente de validation"]').innerText(),/110 €/);
   assert.equal(await page.locator('#forecast-month').count(),0);
   assert.equal(await page.locator('.forecast-schedule').count(),0);
-  assert.match(await page.locator('.forecast-estimated').innerText(),/250 €/);
+  assert.match(await page.locator('.forecast-estimated').innerText(),/205 €/);
   assert.equal(await page.locator('.forecast-column').count(),0);
   assert.ok(await page.locator('.forecast-coverage-track > span').evaluate(e=>parseFloat(e.style.width)>0));
   // Cards navigate locally; review amounts never join the annual estimate.
@@ -40,14 +40,14 @@ try {
   assert.equal(await page.locator('#forecast-dashboard-tables tbody tr').count(),1);
   assert.match(await page.locator('#forecast-dashboard-tables').innerText(),/Q-SCOPE/);
   assert.match(await page.locator('#forecast-dashboard-tables').innerText(),/reste à déterminer/);
-  assert.match(await page.locator('.forecast-estimated').innerText(),/250 €/);
+  assert.match(await page.locator('.forecast-estimated').innerText(),/205 €/);
   await openActions(page);
   await page.locator('[data-f-target=confirmed]').click();
   assert.equal(await page.locator('#forecast-editor').evaluate(e=>e.open),true,'ambiguous amounts require examination');
   assert.equal(await page.locator('#forecast-situation').inputValue(),'confirmed');
   assert.equal(await page.locator('#forecast-amount').inputValue(),'30','candidate remainder, not the whole quote');
   await page.keyboard.press('Escape');
-  assert.match(await page.locator('.forecast-estimated').innerText(),/250 €/,'opening the editor does not reactivate the quote');
+  assert.match(await page.locator('.forecast-estimated').innerText(),/205 €/,'opening the editor does not reactivate the quote');
   await page.waitForFunction(()=>!document.querySelector('#forecast-editor').open);
   await page.locator('[data-f-filter=review]').press('Home');
   assert.equal(await page.locator('[data-f-filter=confirmed]').getAttribute('aria-selected'),'true');
@@ -111,7 +111,7 @@ try {
   await page.locator('#forecast-form button[type=submit]').click();
   assert.equal(await page.locator('#forecast-list .forecast-row').count(),0);
   await page.locator('[data-f-action=close-manager]').click();
-  assert.match(await page.locator('.forecast-estimated').innerText(),/280 €/);
+  assert.match(await page.locator('.forecast-estimated').innerText(),/235 €/);
   assert.equal(await page.locator('.forecast-column').count(),0);
   await page.reload();await page.locator('[data-f-action=manage]').waitFor();
   assert.equal(await page.locator('[data-f-filter=confirmed]').textContent(),'À facturer (estimation) · 3');
@@ -132,13 +132,13 @@ try {
   assert.equal(await page.locator('#forecast-editor').evaluate(e=>e.open),false);
   assert.equal(await page.locator('[data-f-target=confirmed]').count(),0);
   assert.match(await page.locator('#forecast-quick-message').innerText(),/Q-WAIT.*À facturer/);
-  assert.match(await page.locator('.forecast-estimated').innerText(),/350 €/);
+  assert.match(await page.locator('.forecast-estimated').innerText(),/305 €/);
   assert.equal(await page.locator('aside[aria-label="En attente client"].is-empty[aria-disabled="true"]').count(),1);
   await page.reload();await page.locator('[data-f-action=manage]').waitFor();
-  assert.match(await page.locator('.forecast-estimated').innerText(),/350 €/);
+  assert.match(await page.locator('.forecast-estimated').innerText(),/305 €/);
   await page.locator('#forecast-input').setInputFiles(fixtures.billing);
   await page.locator('[data-f-action=manage]').waitFor();
-  assert.match(await page.locator('.forecast-estimated').innerText(),/350 €/);
+  assert.match(await page.locator('.forecast-estimated').innerText(),/305 €/);
   await page.locator('#forecast-followed').evaluate(e=>e.open=true);
   assert.match(await page.locator('#forecast-dashboard-tables').innerText(),/Q-WAIT/);
   // Every bucket exposes Exclude and the three other states. Manual review is durable.
@@ -152,7 +152,7 @@ try {
     await tableRow().locator(`[data-f-target=${to}]`).click();
   };
   await transition('confirmed','review');
-  assert.match(await page.locator('.forecast-estimated').innerText(),/280 €/);
+  assert.match(await page.locator('.forecast-estimated').innerText(),/235 €/);
   await page.reload();await page.locator('[data-f-action=manage]').waitFor();
   await page.locator('#forecast-input').setInputFiles(fixtures.billing);
   await page.locator('[data-f-jump=review]').click();
@@ -209,5 +209,5 @@ try {
   assert.ok(Math.abs((await page.locator('#cap-forecast').boundingBox()).width-originalGaugeWidth)<1);
   await snapshotLayout('all-empty');
   assert.deepEqual(errors,[]);
-  console.log('Facturation : statuts, reste candidat, totaux, acompte séparé, situations impayées, attentes séparées et décision mémorisée validés.');
+  console.log('Facturation : statuts, reste candidat, totaux, acompte déduit du reste, situations impayées, attentes séparées et décision mémorisée validés.');
 } finally {await browser?.close();await new Promise(done=>server.close(done));rmSync(directory,{recursive:true,force:true});}
