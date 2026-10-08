@@ -15,7 +15,6 @@ export function renderForecastSummary({ summary, goal, reviewCount, reviewAmount
   const covered = coverage ? Math.min(coverage.need, estimated) : 0;
   const surplus = coverage ? -coverage.balance : 0;
   const labels = FORECAST_TAB_LABELS;
-  const help = 'Montants HT. Le besoin restant correspond à l’objectif annuel moins le CA réalisé. Les devis acceptés et vérifiés alimentent le montant à facturer estimé, qui reste susceptible d’ajustements. Les attentes et les devis à examiner restent hors estimation. Pour les devis à examiner, le montant saisi ou le reste candidat est affiché lorsqu’il est connu ; sinon, le montant total du devis sert de repère, sans constituer un reste à facturer validé. Les montants inconnus sont signalés. Le scénario annuel répartit l’estimation uniformément après la période RES jusqu’à décembre ; il ne constitue pas un calendrier de facturation et alimente les projections du cap annuel.';
   const potential = (kind, amount, note) => {
     const empty = amount === 0 && !counts[kind];
     const foot = empty
@@ -29,8 +28,8 @@ export function renderForecastSummary({ summary, goal, reviewCount, reviewAmount
     <div class="forecast-future-layout" data-potential-columns="${columns}">
       <section id="cap-forecast" class="forecast-coverage" aria-label="Couverture du CA restant à produire">
         <div class="forecast-estimated"><strong>${money(estimated)}</strong> <span>HT · À facturer (estimation)</span></div>
-        ${coverage ? `<p class="forecast-difference ${surplus < 0 ? 'shortfall' : ''}"><strong>${surplus > 0 ? '+' : surplus < 0 ? '−' : ''}${money(Math.abs(surplus))}</strong> HT par rapport à l’objectif, <em>selon cette estimation</em>.</p>
-        <div class="forecast-scale"><div class="forecast-threshold ${surplus <= 0 ? 'at-end' : coverage.need === 0 ? 'at-start' : ''}" style="--threshold:${scale ? coverage.need / scale * 100 : 100}%"><span>Objectif</span></div>
+        ${coverage ? `
+        <div class="forecast-scale"><div class="forecast-threshold ${surplus <= 0 ? 'at-end' : coverage.need === 0 ? 'at-start' : ''}" style="--threshold:${scale ? coverage.need / scale * 100 : 100}%"><span>Objectif ${money(coverage.need)} HT</span></div>
           <div class="forecast-coverage-track ${surplus < 0 ? 'shortfall' : ''}" role="img" aria-label="${esc(money(estimated))} HT estimés pour un besoin de ${esc(money(coverage.need))} HT ; ${esc(money(Math.abs(surplus)))} HT ${surplus < 0 ? 'à trouver' : 'de dépassement estimé'}"><span style="width:${scale ? covered / scale * 100 : 0}%"></span>${surplus > 0 ? `<span class="forecast-excess" style="width:${surplus / scale * 100}%"></span>` : ''}</div>
           <div class="forecast-coverage-legend"><span><span><i></i>${surplus < 0 ? 'Besoin couvert par l’estimé' : 'Besoin couvert'}</span><strong>${money(covered)} HT</strong></span><span><span><i class="${surplus < 0 ? 'forecast-gap-dot' : 'forecast-excess-dot'}"></i>${surplus < 0 ? 'Reste à trouver' : 'Dépassement estimé'}</span><strong>${surplus > 0 ? '+' : ''}${money(Math.abs(surplus))} HT</strong></span></div>
         </div>` : '<p class="small">Besoin indisponible : un objectif et une période RES couverte sont nécessaires.</p>'}
@@ -50,8 +49,7 @@ export function renderForecastSummary({ summary, goal, reviewCount, reviewAmount
     </div>
     ${summary.reviewCount ? `<p class="forecast-warning">${summary.reviewCount} devis sélectionné(s) à vérifier après actualisation du rapprochement. Leurs montants saisis sont conservés, mais suspendus des totaux. <button class="forecast-link" data-f-jump="review">Vérifier</button></p>` : ''}
     <div class="forecast-details-row"><button type="button" class="forecast-link forecast-open-quotes" data-f-action="quotes" aria-haspopup="dialog">Afficher les devis →</button>
-      <button type="button" class="forecast-link sp-help forecast-help" data-tip="${esc(help)}" aria-label="Comprendre le prévisionnel">Comprendre le calcul ⓘ</button>
+      <button class="forecast-link" data-f-action="manage">Ajouter ou retrouver un devis</button>
     </div>
-    <div class="forecast-all"><button class="forecast-link" data-f-action="manage">Ajouter ou retrouver un devis</button></div>
     ${summary.unintegrated.length ? `<details class="forecast-method"><summary>${summary.unintegrated.length} facture(s) / avoir(s) après la période RES · à rapprocher</summary><p>Ces pièces ne sont pas ajoutées automatiquement : elles pourraient recouper les devis sélectionnés.</p><ul>${summary.unintegrated.map(d => `<li>${esc(d.date)} · ${esc(d.number || d.type)} · ${esc(d.client)} : ${money(d.amount)} HT</li>`).join('')}</ul></details>` : ''}`;
 }

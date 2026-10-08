@@ -78,7 +78,6 @@ try {
   await page.locator('#forecast-quotes-title').hover();const color=await link.evaluate(e=>getComputedStyle(e).color);
   await link.hover();assert.notEqual(await link.evaluate(e=>getComputedStyle(e).color),color);
   await closeQuotes();
-  await page.locator('.forecast-help').focus();assert.equal(await page.locator('#help-tip').isVisible(),true);
   const chartForecast=await page.evaluate(()=>{
     const ds=Chart.getChart(document.querySelector('#chart-ca-mb')).data.datasets;
     const margin=ds.find(d=>d.label==='Marge estimée sur le CA à facturer (estimation) HT').data;

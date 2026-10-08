@@ -1238,13 +1238,11 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .forecast-outlook{font-size:12px;color:var(--text-dim);line-height:1.6;margin-top:10px}
 .forecast-outlook p{margin:6px 0}.forecast-outlook strong{font-size:16px;color:var(--text)}.forecast-outlook summary{cursor:pointer;color:var(--violet)}
 .revenue-forecast{width:100%;max-width:none;margin:18px auto;box-sizing:border-box}
-.forecast-future-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.9fr);gap:36px;align-items:center;margin:26px 0}
+.forecast-future-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.9fr);gap:36px;align-items:start;margin:18px 0}
 .forecast-coverage{min-width:0}
 .forecast-estimated{font-size:14px;color:var(--text-dim)}
 .forecast-estimated strong{font-size:38px;font-weight:800;letter-spacing:-1px;color:var(--text);font-variant-numeric:tabular-nums}
-.forecast-difference{display:table;padding:7px 10px;border-radius:7px;background:var(--green-bg);color:var(--text);font-size:13px;margin:14px 0 0}
-.forecast-difference.shortfall{background:var(--amber-bg)}
-.forecast-scale{margin-top:24px}
+.forecast-scale{margin-top:14px}
 .forecast-threshold{height:30px;position:relative;font-size:12px;color:var(--text-dim)}
 .forecast-threshold span{position:absolute;left:var(--threshold);transform:translateX(-50%);white-space:nowrap}
 .forecast-threshold:after{content:"";position:absolute;left:var(--threshold);top:24px;height:32px;border-left:3px solid var(--text);transform:translateX(-1.5px);z-index:1}
@@ -1263,12 +1261,11 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .forecast-potentials{display:grid;grid-template-columns:repeat(var(--potential-columns),minmax(0,1fr));gap:16px;align-self:stretch}
 .forecast-potential-stack{display:grid;grid-auto-rows:1fr;gap:10px;min-width:0}
 .forecast-potential{min-width:0;padding:12px 16px;border-radius:var(--radius-sm);background:var(--bg-inset)}
-.forecast-potential-waiting{display:flex;flex-direction:column;justify-content:center;padding:20px}
+.forecast-potential-waiting{display:flex;flex-direction:column;justify-content:flex-start;padding:12px 16px}
 
 .forecast-potential h3{font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--text-dim);margin:0 0 6px}
 .forecast-potential h3:before{display:none}
 .forecast-potential>strong{display:block;font-size:23px;font-weight:800;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
-.forecast-potential-waiting>strong{font-size:28px;margin:8px 0}
 .forecast-potential small{font-size:12px;font-weight:400;color:var(--text-dim);letter-spacing:0}
 .forecast-potential-foot{display:flex;align-items:center;justify-content:space-between;gap:0 10px;flex-wrap:wrap;font-size:11px;color:var(--text-dim)}
 .forecast-potential-waiting .forecast-potential-foot{display:block;font-size:12px}
@@ -1278,8 +1275,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .forecast-potential.is-empty>strong{font-weight:800}
 .revenue-forecast .forecast-link{color:var(--violet);text-decoration:none}
 .revenue-forecast .forecast-link:hover{color:var(--text);text-decoration:underline}
-.forecast-details-row{position:relative;border-top:1px solid var(--border);padding-top:12px}
-.forecast-help{position:absolute;right:0;top:15px;width:auto!important;height:auto!important;max-width:48%;font:inherit;font-size:12px!important;border:0!important;background:none!important;border-radius:0!important}
+.forecast-details-row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;border-top:1px solid var(--border);padding-top:12px}
 .forecast-table-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:16px 0 12px}
 .forecast-quick-filters{display:flex;align-items:flex-end;gap:22px;max-width:100%;overflow-x:auto;scrollbar-width:none}
 .forecast-quick-filters button{appearance:none;flex:none;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;font:inherit;font-size:13px;font-weight:600;padding:10px 2px 11px;border:0;border-bottom:2px solid transparent;border-radius:0;background:none;color:var(--text-dim);cursor:pointer}
@@ -1299,11 +1295,9 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .forecast-dashboard-tables td small{display:block;color:var(--text-dim);font-size:12px;margin-top:3px}
 .forecast-dashboard-tables .forecast-table-amount{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
 .forecast-dashboard-tables td:last-child{text-align:right}.forecast-dashboard-tables td:last-child button{font-size:12px}
-.forecast-all{text-align:right;margin-top:10px}
 @media(max-width:1100px){.forecast-future-layout,.forecast-future-layout[data-potential-columns]{grid-template-columns:1fr;gap:24px}.forecast-potentials{max-width:none}}
-@media(max-width:650px){.forecast-estimated strong{font-size:32px}.forecast-future-layout{gap:20px}.forecast-potentials{gap:10px}.forecast-potential,.forecast-potential-waiting{padding:12px}.forecast-potential>strong,.forecast-potential-waiting>strong{font-size:21px}.forecast-potential-foot{font-size:11px}.forecast-followed>summary{font-size:12px}.forecast-help{font-size:11px!important}.forecast-quick-filters{gap:16px}.forecast-quick-filters button{font-size:12px}#forecast-dashboard-search{width:100%;font-size:16px}.forecast-dashboard-tables th,.forecast-dashboard-tables td{padding:11px 3px}.forecast-dashboard-tables td:first-child{width:auto}.forecast-dashboard-tables .forecast-table-amount{font-size:12px}.forecast-dashboard-tables td:last-child{width:65px}.forecast-dashboard-tables td:last-child button{font-size:11px}.forecast-coverage-legend{font-size:11px}}
+@media(max-width:650px){.forecast-estimated strong{font-size:32px}.forecast-future-layout{gap:20px}.forecast-potentials{gap:10px}.forecast-potential,.forecast-potential-waiting{padding:12px}.forecast-potential>strong,.forecast-potential-waiting>strong{font-size:21px}.forecast-potential-foot{font-size:11px}.forecast-followed>summary{font-size:12px}.forecast-quick-filters{gap:16px}.forecast-quick-filters button{font-size:12px}#forecast-dashboard-search{width:100%;font-size:16px}.forecast-dashboard-tables th,.forecast-dashboard-tables td{padding:11px 3px}.forecast-dashboard-tables td:first-child{width:auto}.forecast-dashboard-tables .forecast-table-amount{font-size:12px}.forecast-dashboard-tables td:last-child{width:65px}.forecast-dashboard-tables td:last-child button{font-size:11px}.forecast-coverage-legend{font-size:11px}}
 
-.revenue-forecast .forecast-help:before{content:none}
 .forecast-threshold.at-start span{transform:none}
 @media(pointer:coarse){.revenue-forecast .forecast-link{min-height:44px}}
 
@@ -3473,7 +3467,6 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     const covered = coverage ? Math.min(coverage.need, estimated) : 0;
     const surplus = coverage ? -coverage.balance : 0;
     const labels = FORECAST_TAB_LABELS;
-    const help = "Montants HT. Le besoin restant correspond \xE0 l\u2019objectif annuel moins le CA r\xE9alis\xE9. Les devis accept\xE9s et v\xE9rifi\xE9s alimentent le montant \xE0 facturer estim\xE9, qui reste susceptible d\u2019ajustements. Les attentes et les devis \xE0 examiner restent hors estimation. Pour les devis \xE0 examiner, le montant saisi ou le reste candidat est affich\xE9 lorsqu\u2019il est connu ; sinon, le montant total du devis sert de rep\xE8re, sans constituer un reste \xE0 facturer valid\xE9. Les montants inconnus sont signal\xE9s. Le sc\xE9nario annuel r\xE9partit l\u2019estimation uniform\xE9ment apr\xE8s la p\xE9riode RES jusqu\u2019\xE0 d\xE9cembre ; il ne constitue pas un calendrier de facturation et alimente les projections du cap annuel.";
     const potential = (kind, amount, note) => {
       const empty = amount === 0 && !counts[kind];
       const foot = empty ? "<span>Aucun devis</span>" : `<span>${note}</span><button class="forecast-link" data-f-jump="${kind}">${counts[kind] === 1 ? "Voir le devis" : `Voir les ${counts[kind]} devis`} \u2192</button>`;
@@ -3485,8 +3478,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     <div class="forecast-future-layout" data-potential-columns="${columns}">
       <section id="cap-forecast" class="forecast-coverage" aria-label="Couverture du CA restant \xE0 produire">
         <div class="forecast-estimated"><strong>${money3(estimated)}</strong> <span>HT \xB7 \xC0 facturer (estimation)</span></div>
-        ${coverage ? `<p class="forecast-difference ${surplus < 0 ? "shortfall" : ""}"><strong>${surplus > 0 ? "+" : surplus < 0 ? "\u2212" : ""}${money3(Math.abs(surplus))}</strong> HT par rapport \xE0 l\u2019objectif, <em>selon cette estimation</em>.</p>
-        <div class="forecast-scale"><div class="forecast-threshold ${surplus <= 0 ? "at-end" : coverage.need === 0 ? "at-start" : ""}" style="--threshold:${scale ? coverage.need / scale * 100 : 100}%"><span>Objectif</span></div>
+        ${coverage ? `
+        <div class="forecast-scale"><div class="forecast-threshold ${surplus <= 0 ? "at-end" : coverage.need === 0 ? "at-start" : ""}" style="--threshold:${scale ? coverage.need / scale * 100 : 100}%"><span>Objectif ${money3(coverage.need)} HT</span></div>
           <div class="forecast-coverage-track ${surplus < 0 ? "shortfall" : ""}" role="img" aria-label="${esc2(money3(estimated))} HT estim\xE9s pour un besoin de ${esc2(money3(coverage.need))} HT ; ${esc2(money3(Math.abs(surplus)))} HT ${surplus < 0 ? "\xE0 trouver" : "de d\xE9passement estim\xE9"}"><span style="width:${scale ? covered / scale * 100 : 0}%"></span>${surplus > 0 ? `<span class="forecast-excess" style="width:${surplus / scale * 100}%"></span>` : ""}</div>
           <div class="forecast-coverage-legend"><span><span><i></i>${surplus < 0 ? "Besoin couvert par l\u2019estim\xE9" : "Besoin couvert"}</span><strong>${money3(covered)} HT</strong></span><span><span><i class="${surplus < 0 ? "forecast-gap-dot" : "forecast-excess-dot"}"></i>${surplus < 0 ? "Reste \xE0 trouver" : "D\xE9passement estim\xE9"}</span><strong>${surplus > 0 ? "+" : ""}${money3(Math.abs(surplus))} HT</strong></span></div>
         </div>` : '<p class="small">Besoin indisponible : un objectif et une p\xE9riode RES couverte sont n\xE9cessaires.</p>'}
@@ -3504,9 +3497,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     </div>
     ${summary.reviewCount ? `<p class="forecast-warning">${summary.reviewCount} devis s\xE9lectionn\xE9(s) \xE0 v\xE9rifier apr\xE8s actualisation du rapprochement. Leurs montants saisis sont conserv\xE9s, mais suspendus des totaux. <button class="forecast-link" data-f-jump="review">V\xE9rifier</button></p>` : ""}
     <div class="forecast-details-row"><button type="button" class="forecast-link forecast-open-quotes" data-f-action="quotes" aria-haspopup="dialog">Afficher les devis \u2192</button>
-      <button type="button" class="forecast-link sp-help forecast-help" data-tip="${esc2(help)}" aria-label="Comprendre le pr\xE9visionnel">Comprendre le calcul \u24D8</button>
+      <button class="forecast-link" data-f-action="manage">Ajouter ou retrouver un devis</button>
     </div>
-    <div class="forecast-all"><button class="forecast-link" data-f-action="manage">Ajouter ou retrouver un devis</button></div>
     ${summary.unintegrated.length ? `<details class="forecast-method"><summary>${summary.unintegrated.length} facture(s) / avoir(s) apr\xE8s la p\xE9riode RES \xB7 \xE0 rapprocher</summary><p>Ces pi\xE8ces ne sont pas ajout\xE9es automatiquement : elles pourraient recouper les devis s\xE9lectionn\xE9s.</p><ul>${summary.unintegrated.map((d) => `<li>${esc2(d.date)} \xB7 ${esc2(d.number || d.type)} \xB7 ${esc2(d.client)} : ${money3(d.amount)} HT</li>`).join("")}</ul></details>` : ""}`;
   }
 
