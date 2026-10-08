@@ -187,9 +187,9 @@ try {
     await page.locator(`[data-f-filter=${kind}]`).click();
     while(await page.locator('[data-f-target=waiting]').count())await page.locator('[data-f-target=waiting]').first().click();
   }
-  assert.equal(await page.locator('.forecast-potential').count(),1);
-  assert.equal(await page.locator('.forecast-potential-stack').count(),0);
-  assert.ok((await page.locator('#cap-forecast').boundingBox()).width>originalGaugeWidth);
+  assert.equal(await page.locator('.forecast-potential').count(),3,'empty cards stay visible');
+  assert.equal(await page.locator('.forecast-potential-stack').count(),1);
+  assert.ok(Math.abs((await page.locator('#cap-forecast').boundingBox()).width-originalGaugeWidth)<1,'gauge width does not depend on empty cards');
   const snapshotLayout=async name=>{
     for(const width of [1440,390]){
       await page.setViewportSize({width,height:1100});
@@ -204,10 +204,10 @@ try {
   await page.setViewportSize({width:1440,height:1100});
   await page.locator('[data-f-filter=waiting]').click();
   while(await page.locator('[data-f-target=exclude]').count())await page.locator('[data-f-target=exclude]').first().click();
-  assert.equal(await page.locator('.forecast-potential').count(),0);
-  assert.equal(await page.locator('.forecast-potentials').count(),0);
-  assert.ok(Math.abs((await page.locator('#cap-forecast').boundingBox()).width-(await page.locator('.forecast-future-layout').boundingBox()).width)<1);
-  await snapshotLayout('gauge-full');
+  assert.equal(await page.locator('.forecast-potential').count(),3);
+  assert.equal(await page.locator('.forecast-potential.is-empty[aria-disabled="true"]').count(),3,'all cards disabled when empty');
+  assert.ok(Math.abs((await page.locator('#cap-forecast').boundingBox()).width-originalGaugeWidth)<1);
+  await snapshotLayout('all-empty');
   assert.deepEqual(errors,[]);
   console.log('Facturation : statuts, reste candidat, totaux, acompte séparé, situations impayées, attentes séparées et décision mémorisée validés.');
 } finally {await browser?.close();await new Promise(done=>server.close(done));rmSync(directory,{recursive:true,force:true});}
