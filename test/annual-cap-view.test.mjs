@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { projectedResultHelp, renderCapProjections, revenueProjectionHelp, salaryCapacityHelp } from '../src/app/views/annual-cap.js';
+import { marginProjectionHelp, projectedResultHelp, renderCapProjections, revenueProjectionHelp, salaryCapacityHelp } from '../src/app/views/annual-cap.js';
 import { projectedPlanResultDetail, salaryCapacityAtDate } from '../src/app/domain/annual-cap.js';
 
 const tools = { money:(v) => Math.round(v) + ' €', escape:(v) => String(v).replace(/</g, '&lt;') };
@@ -93,4 +93,45 @@ test('the result card carries its help button', () => {
   const host = { innerHTML:'' };
   renderCapProjections(host, { year:'2026', salary:2000, result:1, margin:2, revenue:3, goals:{ salary:1, result:1, margin:1, revenue:1 }, resultHelp:'<b>x</b>' }, tools);
   assert.match(host.innerHTML, /Détail du calcul de la projection du résultat/);
+});
+
+const marginProjection = { end:9, actualCA:70000, actualMB:35000, futureCA:20000, totalMB:47000, rate:0.6, reference:'2024 et 2025' };
+const marginArgs = { projection:marginProjection, year:'2026', exportIso:'2026-10-07T11:11:52' };
+
+test('margin help shows the period, the rate source and the build-up of the projection', () => {
+  const html = marginProjectionHelp(marginArgs, tools);
+  assert.match(html, /Réalisé janv\. → sept\. 2026 \(export du 07\/10\) · estimé oct\. → déc\./);
+  assert.match(html, /Marge réalisée.*35000 €/);
+  assert.match(html, /Devis restants 20000 € × 60 %.*12000 €/);
+  assert.match(html, /= Projection.*47000 €/);
+  assert.match(html, /marges brutes ÷ CA de 2024 et 2025/);
+  assert.match(html, /≈ 47000 € de marge brute sur 2026/);
+});
+test('margin help warns when the realized rate is below the historical rate', () => {
+  assert.match(marginProjectionHelp(marginArgs, tools), /taux réel 2026 à date est de 50 %/);
+  const close = marginProjectionHelp({ ...marginArgs, projection:{ ...marginProjection, actualMB:41800 } }, tools);
+  assert.doesNotMatch(close, /optimiste/);
+});
+test('margin help omits remaining quotes for a closed exercise or when nothing is left to invoice', () => {
+  const closed = marginProjectionHelp({ ...marginArgs, projection:{ ...marginProjection, end:12, futureCA:0, totalMB:35000 } }, tools);
+  assert.match(closed, /Exercice terminé/);
+  assert.doesNotMatch(closed, /Devis restants|estimé/);
+  const none = marginProjectionHelp({ ...marginArgs, projection:{ ...marginProjection, futureCA:0, totalMB:35000 } }, tools);
+  assert.match(none, /Aucun devis confirmé à facturer/);
+  assert.doesNotMatch(none, /Devis restants|optimiste/);
+});
+test('margin help reports why the projection is unavailable and escapes imported text', () => {
+  const missing = marginProjectionHelp({ ...marginArgs, projection:{ ...marginProjection, totalMB:null, unavailable:'Taux de marge historique indisponible.' } }, tools);
+  assert.match(missing, /Taux de marge historique indisponible/);
+  assert.match(marginProjectionHelp({ ...marginArgs, projection:null }, tools), /Calcul indisponible/);
+  assert.doesNotMatch(marginProjectionHelp({ ...marginArgs, projection:{ ...marginProjection, reference:'<img>' } }, tools), /<img>/);
+});
+test('the margin card carries its help button', () => {
+  const host = { innerHTML:'' };
+  renderCapProjections(host, { year:'2026', salary:2000, result:1, margin:2, revenue:3, goals:{ salary:1, result:1, margin:1, revenue:1 }, marginHelp:'<b>m</b>' }, tools);
+  assert.match(host.innerHTML, /Détail du calcul de la projection de la marge brute/);
+});
+test('margin help only announces an estimated period when quotes remain', () => {
+  const none = marginProjectionHelp({ ...marginArgs, projection:{ ...marginProjection, futureCA:0, totalMB:35000 } }, tools);
+  assert.doesNotMatch(none, /estimé/);
 });

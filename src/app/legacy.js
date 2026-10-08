@@ -4,7 +4,7 @@ import './parser.js';
 import { advanceMatches, paymentDetails as derivePaymentDetails } from './domain/payments.js';
 import { customerModalRows, renderCustomerAdvances } from './views/customer-payments.js';
 import { salaryCapacityAtDate, projectedPlanResultDetail } from './domain/annual-cap.js';
-import { projectedResultHelp, renderCapProjections, revenueProjectionHelp, salaryCapacityHelp } from './views/annual-cap.js';
+import { marginProjectionHelp, projectedResultHelp, renderCapProjections, revenueProjectionHelp, salaryCapacityHelp } from './views/annual-cap.js';
 import { createForecastView } from './views/forecast.js';
 import { createCartesianCharts } from './charts/cartesian.js';
 import {
@@ -538,6 +538,7 @@ function updateCapProjections(data) {
     goals:{ salary:PLAN.salary / 12 * NET_FROM_GROSS, result:PLAN.surplus,
       margin:C.MB_AN_OBJ, revenue:C.CA_OBJ },
     resultHelp:projectedResultHelp({ detail:resultDetail, projection, year:cur.year }, { money:fmtEUR, escape:esc }),
+    marginHelp:marginProjectionHelp({ projection, year:cur.year, exportIso:data.res_export_iso || data.file_mtime_iso }, { money:fmtEUR, escape:esc }),
     salaryHelp:salaryCapacityHelp(capacity, { money:fmtEUR, escape:esc }),
     revenueHelp:revenueProjectionHelp({ projection, year:cur.year, exportIso:data.res_export_iso || data.file_mtime_iso,
       quotes:{ confirmed:data.forecast?.active?.filter(r => r.choice.situation === 'confirmed').length,

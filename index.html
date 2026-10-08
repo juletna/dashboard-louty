@@ -3345,11 +3345,27 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     const surplus = detail.result >= 0;
     return head + '<p class="tip-period">' + escape(period) + '</p><div class="tip-calc">' + row("Marge brute projet\xE9e", e(detail.margin)) + row("\u2212 Salaire brut pr\xE9vu (12 mois)", e(detail.salary)) + row("\u2212 Charges pr\xE9vues (12 mois)", e(detail.charges)) + (adjusted ? row(detail.adjustment > 0 ? "\u2212 Ajustement contribution" : "+ Ajustement contribution", e(Math.abs(detail.adjustment))) : "") + row("= R\xE9sultat projet\xE9", e(detail.result), "tip-total") + '</div><p class="tip-formula">' + margin + (adjusted ? " Ajustement = " + percent(detail.contributionRate) + " \xD7 l\u2019\xE9cart de marge avec le plan (" + e(detail.margin - detail.planMargin) + ")." : "") + ' Salaire et charges sont ceux du plan, pas le r\xE9alis\xE9.</p><p class="tip-result">\u2248 ' + e(Math.abs(detail.result)) + (surplus ? " d\u2019exc\xE9dent" : " de d\xE9ficit") + "</p>";
   }
-  function renderCapProjections(host, { year, salary, result, margin, revenue, goals, salaryHelp, resultHelp, revenueHelp }, { money: money3, escape }) {
+  var MARGIN_INTRO = "Ce que tu as d\xE9j\xE0 gagn\xE9 en marge, plus ce que tes devis restants devraient rapporter au taux habituel.";
+  function marginProjectionHelp({ projection, year, exportIso }, { money: money3, escape }) {
+    const head = '<strong class="tip-title">Projection marge brute ' + escape(year) + "</strong><p>" + MARGIN_INTRO + "</p>";
+    if (!projection || !Number.isFinite(projection.totalMB)) {
+      return head + "<p>" + escape(projection?.unavailable || "Calcul indisponible : importe les Pi\xE8ces et une p\xE9riode RES compl\xE8te \xE0 date.") + "</p>";
+    }
+    const e = (value) => escape(money3(value));
+    const { end, actualCA, actualMB, futureCA, totalMB, rate, reference } = projection;
+    const closed = end === 12;
+    const remaining = !closed && futureCA > 0;
+    const exported = exportLabel(exportIso);
+    const period = "R\xE9alis\xE9 janv. \u2192 " + monthName(year, end, "short") + " " + year + (exported ? " (export du " + exported + ")" : "") + (remaining ? " \xB7 estim\xE9 " + monthName(year, end + 1, "short") + (end + 1 === 12 ? "" : " \u2192 d\xE9c.") : "");
+    const realized = actualCA > 0 ? actualMB / actualCA : null;
+    const lower = remaining && rate !== null && realized !== null && realized < rate - 0.01;
+    return head + '<p class="tip-period">' + escape(period) + '</p><div class="tip-calc">' + row("Marge r\xE9alis\xE9e", e(actualMB)) + (remaining ? row("+ Devis restants " + e(futureCA) + " \xD7 " + percent(rate), e(totalMB - actualMB)) : "") + row("= Projection", e(totalMB), "tip-total") + '</div><p class="tip-formula">' + (remaining ? "Taux " + percent(rate) + " = marges brutes \xF7 CA de " + escape(reference) + " (exercices complets). Le m\xEAme taux est appliqu\xE9 \xE0 tous les devis restants." : closed ? "Exercice termin\xE9 : marge r\xE9alis\xE9e uniquement." : "Aucun devis confirm\xE9 \xE0 facturer : marge r\xE9alis\xE9e uniquement.") + "</p>" + (lower ? '<p class="tip-warning">\u26A0 Ton taux r\xE9el ' + escape(year) + " \xE0 date est de " + percent(realized) + " : la projection est peut-\xEAtre un peu optimiste.</p>" : "") + '<p class="tip-result">\u2248 ' + e(totalMB) + " de marge brute sur " + escape(year) + "</p>";
+  }
+  function renderCapProjections(host, { year, salary, result, margin, revenue, goals, salaryHelp, resultHelp, marginHelp, revenueHelp }, { money: money3, escape }) {
     const cards = [
       ["Salaire net d\xE9gageable", salary, goals.salary, true, salaryHelp, "D\xE9tail du calcul du salaire net d\xE9gageable"],
       ["Projection r\xE9sultat " + year, result, goals.result, false, resultHelp, "D\xE9tail du calcul de la projection du r\xE9sultat"],
-      ["Projection marge brute " + year, margin, goals.margin],
+      ["Projection marge brute " + year, margin, goals.margin, false, marginHelp, "D\xE9tail du calcul de la projection de la marge brute"],
       ["Projection chiffre d\u2019affaires " + year, revenue, goals.revenue, false, revenueHelp, "D\xE9tail du calcul de la projection du chiffre d\u2019affaires"]
     ];
     host.innerHTML = cards.map(([title, value, goal, monthly, helpHtml, helpLabel]) => {
@@ -5383,6 +5399,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         revenue: C.CA_OBJ
       },
       resultHelp: projectedResultHelp({ detail: resultDetail, projection, year: cur.year }, { money: fmtEUR, escape: esc }),
+      marginHelp: marginProjectionHelp({ projection, year: cur.year, exportIso: data.res_export_iso || data.file_mtime_iso }, { money: fmtEUR, escape: esc }),
       salaryHelp: salaryCapacityHelp(capacity, { money: fmtEUR, escape: esc }),
       revenueHelp: revenueProjectionHelp(
         {

@@ -106,11 +106,41 @@ export function projectedResultHelp({ detail, projection, year }, { money, escap
     '<p class="tip-result">≈ ' + e(Math.abs(detail.result)) + (surplus ? ' d’excédent' : ' de déficit') + '</p>';
 }
 
-export function renderCapProjections(host, { year, salary, result, margin, revenue, goals, salaryHelp, resultHelp, revenueHelp }, { money, escape }) {
+const MARGIN_INTRO = 'Ce que tu as déjà gagné en marge, plus ce que tes devis restants devraient rapporter au taux habituel.';
+
+// projection: forecastProjection(). The estimate applies one historical rate to the remaining confirmed quotes.
+export function marginProjectionHelp({ projection, year, exportIso }, { money, escape }) {
+  const head = '<strong class="tip-title">Projection marge brute ' + escape(year) + '</strong><p>' + MARGIN_INTRO + '</p>';
+  if (!projection || !Number.isFinite(projection.totalMB)) {
+    return head + '<p>' + escape(projection?.unavailable || 'Calcul indisponible : importe les Pièces et une période RES complète à date.') + '</p>';
+  }
+  const e = (value) => escape(money(value));
+  const { end, actualCA, actualMB, futureCA, totalMB, rate, reference } = projection;
+  const closed = end === 12;
+  const remaining = !closed && futureCA > 0;
+  const exported = exportLabel(exportIso);
+  const period = 'Réalisé janv. → ' + monthName(year, end, 'short') + ' ' + year + (exported ? ' (export du ' + exported + ')' : '') +
+    (remaining ?  ' · estimé ' + monthName(year, end + 1, 'short') + (end + 1 === 12 ? '' : ' → déc.') : '');
+  const realized = actualCA > 0 ? actualMB / actualCA : null;
+  const lower = remaining && rate !== null && realized !== null && realized < rate - 0.01;
+  return head + '<p class="tip-period">' + escape(period) + '</p>' +
+    '<div class="tip-calc">' +
+      row('Marge réalisée', e(actualMB)) +
+      (remaining ? row('+ Devis restants ' + e(futureCA) + ' × ' + percent(rate), e(totalMB - actualMB)) : '') +
+      row('= Projection', e(totalMB), 'tip-total') +
+    '</div>' +
+    '<p class="tip-formula">' + (remaining
+      ? 'Taux ' + percent(rate) + ' = marges brutes ÷ CA de ' + escape(reference) + ' (exercices complets). Le même taux est appliqué à tous les devis restants.'
+      : closed ? 'Exercice terminé : marge réalisée uniquement.' : 'Aucun devis confirmé à facturer : marge réalisée uniquement.') + '</p>' +
+    (lower ? '<p class="tip-warning">⚠ Ton taux réel ' + escape(year) + ' à date est de ' + percent(realized) + ' : la projection est peut-être un peu optimiste.</p>' : '') +
+    '<p class="tip-result">≈ ' + e(totalMB) + ' de marge brute sur ' + escape(year) + '</p>';
+}
+
+export function renderCapProjections(host, { year, salary, result, margin, revenue, goals, salaryHelp, resultHelp, marginHelp, revenueHelp }, { money, escape }) {
   const cards = [
     ['Salaire net dégageable', salary, goals.salary, true, salaryHelp, 'Détail du calcul du salaire net dégageable'],
     ['Projection résultat ' + year, result, goals.result, false, resultHelp, 'Détail du calcul de la projection du résultat'],
-    ['Projection marge brute ' + year, margin, goals.margin],
+    ['Projection marge brute ' + year, margin, goals.margin, false, marginHelp, 'Détail du calcul de la projection de la marge brute'],
     ['Projection chiffre d’affaires ' + year, revenue, goals.revenue, false, revenueHelp, 'Détail du calcul de la projection du chiffre d’affaires'],
   ];
   host.innerHTML = cards.map(([title, value, goal, monthly, helpHtml, helpLabel]) => {
