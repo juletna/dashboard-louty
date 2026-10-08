@@ -13,10 +13,14 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
   const editor = document.getElementById('forecast-editor');
   const el = id => document.getElementById(id);
   let data, goal, rows = [], summary, tab = 'review', editingKey = null, returnFocus;
-  let situationFilter = '', dashboardSearch = '';
+  let situationFilter = '', dashboardSearch = '', dashboardTab = 'confirmed';
   const situationOf = r => forecastStatus(r) === 'Entièrement facturé' ? 'complete' : forecastStatus(r) === 'À vérifier' ? 'review' : r.choice?.action === 'include' ? (r.choice.remaining === 0 ? 'complete' : r.choice.situation) : r.status === 'complete' ? 'complete' : quoteSituation(r) || 'review';
   const selected = r => r.choice?.action === 'include';
   const candidate = r => !r.missing && !selected(r) && r.eligible && r.choice?.action !== 'exclude';
+  const reviewRows = () => rows.filter(r => candidate(r) || (selected(r) && (r.review || r.missing)));
+  const reviewValue = r => [r.choice?.remaining, r.proposed, r.amount].find(Number.isFinite);
+  const displayStatus = r => forecastStatus(r).replace('Confirmé · À facturer', 'À facturer (estimation)').replace('Confirmé · Partiellement facturé', 'À facturer (estimation) · Partiellement facturé');
+  const dashboardRows = kind => kind === 'review' ? reviewRows() : rows.filter(r => selected(r) && !r.review && !r.missing && r.choice.situation === kind && r.choice.remaining > 0);
   const matchingLabel = r => r.groupMatch ? 'Couverture complète probable du groupe de devis' : r.nameConflict ? 'Nom associé à plusieurs ID · à vérifier' : `${REASON_LABELS[r.reason] || MATCH_LABELS[r.status]}${r.matchBasis === 'name' ? ' · par nom client' : ''}`;
   const describe = r => r.missing ? 'Absent de cet export · à vérifier' : r.review && selected(r) ? 'Rapprochement modifié · à vérifier' :
     r.choice?.action === 'exclude' ? 'Écarté manuellement' : matchingLabel(r);
@@ -34,17 +38,23 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
       host.innerHTML = `<div class="forecast-head"><div><h2 id="forecast-title">Chiffre d’affaires prévisionnel</h2></div><button class="btn" data-f-action="import">Importer les Pièces</button></div><p class="small">Ajoute un export Pièces incluant tous les devis, même non facturés. Les brouillons sont exclus automatiquement.</p>${warning}${summary.included.length ? '<p class="forecast-warning">Tes choix sont conservés. Réimporte les Pièces pour les rapprocher et réactiver le prévisionnel.</p>' : ''}`;
       return;
     }
-    host.innerHTML = renderForecastSummary({ summary, goal, reviewCount: rows.filter(candidate).length,
-      warning, expanded, search: dashboardSearch, tables: dashboardTable('confirmed') + dashboardTable('waiting') + dashboardTable('validation'),
-      money: formatMoney, escape: esc });
+    const review = reviewRows();
+    host.innerHTML = renderForecastSummary({ summary, goal, reviewCount: review.length,
+      reviewAmount: review.reduce((n,r) => n + (reviewValue(r) ?? 0), 0), reviewUnknown: review.filter(r => !Number.isFinite(reviewValue(r))).length,
+      counts: Object.fromEntries(['confirmed','waiting','validation','review'].map(k => [k,dashboardRows(k).length])), activeTab: dashboardTab,
+      warning, expanded, search: dashboardSearch, tables: dashboardTable(dashboardTab), money: formatMoney, escape: esc });
   }
   function dashboardTable(situation) {
-    const label = { confirmed: 'Confirmés', waiting: 'En attente client', validation: 'En attente de validation' }[situation];
-    const list = rows.filter(r => selected(r) && r.choice.situation === situation)
+    const label = { confirmed:'À facturer (estimation)', waiting:'En attente client', validation:'En attente de validation', review:'À examiner' }[situation];
+    const list = dashboardRows(situation)
       .filter(r => `${r.client} ${r.number} ${r.title}`.toLocaleLowerCase('fr').includes(dashboardSearch.toLocaleLowerCase('fr')))
       .sort((a,b) => a.client.localeCompare(b.client) || String(a.number).localeCompare(String(b.number)));
-    const total = list.filter(r => !r.review && !r.missing).reduce((n,r) => n + r.choice.remaining,0);
-    return `<section aria-label="Devis ${esc(label.toLocaleLowerCase('fr'))}"><div class="forecast-table-head"><h3>${esc(label)} <span class="small">· ${list.length}</span></h3><strong>${money(total)}</strong></div><div class="forecast-table-note small">${situation === 'confirmed' ? 'Reste à facturer' : 'Hors prévisionnel confirmé'}</div><div class="forecast-table-scroll"><table><thead><tr><th>Client / devis</th><th>HT</th><th><span class="sr-only">Action</span></th></tr></thead><tbody>${list.map(r => `<tr><td>${esc(r.client || 'Client non renseigné')}<small>${esc(r.number || 'Sans numéro')}${r.review || r.missing ? ' · À vérifier · hors totaux' : ''}</small></td><td class="forecast-table-amount">${formatMoney(r.choice.remaining)}</td><td><button class="forecast-link" ${r.missing ? 'data-f-action="selected"' : `data-f-edit="${rows.indexOf(r)}"`} aria-label="${r.review || r.missing ? 'Vérifier' : 'Modifier'} ${esc(r.client)} · ${esc(r.number)}">${r.review || r.missing ? 'Vérifier' : 'Modifier'}</button></td></tr>`).join('') || '<tr><td colspan="3" class="small">Aucun devis</td></tr>'}</tbody></table></div></section>`;
+    const review = situation === 'review';
+    const total = list.reduce((n,r) => n + (review ? reviewValue(r) ?? 0 : r.choice.remaining),0);
+    return `<section aria-label="Devis ${esc(label.toLocaleLowerCase('fr'))}"><div class="forecast-table-head"><span class="small">${list.length} devis · ${review ? 'À vérifier · hors totaux' : situation === 'confirmed' ? 'Reste à facturer estimé' : 'Hors estimation'}</span><strong>${review ? 'Montants à vérifier' : money(total)}</strong></div><div class="forecast-table-scroll"><table><thead><tr><th scope="col">Client / devis</th><th scope="col" class="forecast-table-amount">${review ? 'Montant indicatif HT' : 'Reste HT'}</th><th scope="col"><span class="sr-only">Action</span></th></tr></thead><tbody>${list.map(r => {
+      const value = review ? reviewValue(r) : r.choice.remaining;
+      return `<tr><td><strong>${esc(r.client || 'Client non renseigné')}</strong><small>${esc(r.number || 'Sans numéro')} · ${esc(r.title || '')}</small>${review ? `<small>${esc(describe(r))}${!Number.isFinite(r.choice?.remaining) && !Number.isFinite(r.proposed) && Number.isFinite(r.amount) ? ' · Montant total du devis, reste à déterminer' : ''}</small>` : ''}</td><td class="forecast-table-amount">${Number.isFinite(value) ? formatMoney(value) : 'À déterminer'}</td><td><button class="forecast-link" ${r.missing ? 'data-f-action="selected"' : `data-f-edit="${rows.indexOf(r)}"`} aria-label="${review ? 'Vérifier' : 'Voir le détail de'} ${esc(r.client)} · ${esc(r.number)}">${review ? 'Vérifier le devis' : 'Voir le détail'} →</button></td></tr>`;
+    }).join('') || '<tr><td colspan="3" class="small">Aucun devis</td></tr>'}</tbody></table></div></section>`;
   }
   function renderList() {
     const yearSelect = el('forecast-year'), previousYear = yearSelect.value;
@@ -62,14 +72,14 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
     manager.querySelectorAll('[data-f-situation]').forEach(button => {
       const value = button.dataset.fSituation;
       const count = contextual.filter(r => !value || situationOf(r) === value).length;
-      button.textContent = (value ? ({waiting:'En attente client',validation:'En attente de validation',confirmed:'Chantiers confirmés',complete:'Entièrement facturés',review:'À vérifier'})[value] : 'Toutes les situations') + ' · ' + count;
+      button.textContent = (value ? ({waiting:'En attente client',validation:'En attente de validation',confirmed:'À facturer (estimation)',complete:'Entièrement facturés',review:'À vérifier'})[value] : 'Toutes les situations') + ' · ' + count;
       button.setAttribute('aria-pressed', String(value === situationFilter));
     });
     const filtered = contextual.filter(r => !situationFilter || situationOf(r) === situationFilter);
     el('forecast-filter').textContent = tab === 'all' ? 'Ajout manuel possible, même si une facturation complète semble correspondre.' : 'Brouillons exclus · rapprochements indicatifs';
     el('forecast-list').innerHTML = filtered.length ? filtered.map(r => {
       const index = rows.indexOf(r);
-      return `<article class="forecast-row"><div><strong>${esc(r.client || 'Client non renseigné')}</strong><p class="small">${esc(r.number || 'Sans numéro')} · ${esc(r.date || 'Date absente')}</p><p class="small">${esc(r.title)}</p></div><div class="forecast-row-amount">${r.choice?.billed && !r.review ? money(0) : selected(r) ? money(r.choice.remaining) : Number.isFinite(r.proposed) ? money(r.proposed) : 'À déterminer'}<small>restant à facturer</small></div><div><span class="forecast-situation ${situationOf(r)}">${esc(forecastStatus(r))}</span><span class="forecast-badge ${r.review || ['ambiguous', 'no-id'].includes(r.status) ? 'warn' : ''}">${esc(describe(r))}</span>${r.accepted ? `<p class="small">Accord du ${esc(r.agreement_date)}${r.auto ? ' · ajout automatique' : ''}</p>` : ''}</div><div class="forecast-row-actions">${!r.missing ? `<button class="btn" data-f-edit="${index}">${selected(r) ? r.review ? 'Vérifier' : 'Modifier' : 'Ajouter'}</button>` : ''}${selected(r) ? `<button class="forecast-link" data-f-remove="${index}">Retirer</button>` : tab === 'review' ? `<button class="forecast-link" data-f-exclude="${index}">Écarter</button>` : ''}</div></article>`;
+      return `<article class="forecast-row"><div><strong>${esc(r.client || 'Client non renseigné')}</strong><p class="small">${esc(r.number || 'Sans numéro')} · ${esc(r.date || 'Date absente')}</p><p class="small">${esc(r.title)}</p></div><div class="forecast-row-amount">${r.choice?.billed && !r.review ? money(0) : selected(r) ? money(r.choice.remaining) : Number.isFinite(r.proposed) ? money(r.proposed) : 'À déterminer'}<small>restant à facturer</small></div><div><span class="forecast-situation ${situationOf(r)}">${esc(displayStatus(r))}</span><span class="forecast-badge ${r.review || ['ambiguous', 'no-id'].includes(r.status) ? 'warn' : ''}">${esc(describe(r))}</span>${r.accepted ? `<p class="small">Accord du ${esc(r.agreement_date)}${r.auto ? ' · ajout automatique' : ''}</p>` : ''}</div><div class="forecast-row-actions">${!r.missing ? `<button class="btn" data-f-edit="${index}">${selected(r) ? r.review ? 'Vérifier' : 'Modifier' : 'Ajouter'}</button>` : ''}${selected(r) ? `<button class="forecast-link" data-f-remove="${index}">Retirer</button>` : tab === 'review' ? `<button class="forecast-link" data-f-exclude="${index}">Écarter</button>` : ''}</div></article>`;
     }).join('') : '<p class="forecast-empty">Aucun devis dans cette vue.</p>';
     el('forecast-storage-message').textContent = storage.warning;
   }
@@ -126,19 +136,29 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
   host.addEventListener('input', e => {
     if (e.target.id !== 'forecast-dashboard-search') return;
     dashboardSearch = e.target.value;
-    el('forecast-dashboard-tables').innerHTML = dashboardTable('confirmed') + dashboardTable('waiting') + dashboardTable('validation');
+    el('forecast-dashboard-tables').innerHTML = dashboardTable(dashboardTab);
   });
   host.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     if (b.classList.contains('sp-help')) return;
-    if (b.dataset.fFilter) {
-      const kind = b.dataset.fFilter;
-      openManager('selected', kind);
+    if (b.dataset.fFilter || b.dataset.fJump) {
+      dashboardTab = b.dataset.fFilter || b.dataset.fJump;
+      dashboardSearch = '';
+      renderSummary(true);
+      el('forecast-tab-' + dashboardTab).focus();
       return;
     }
     if (b.dataset.fEdit !== undefined) { returnFocus = b; openEditor(Number(b.dataset.fEdit)); return; }
     if (b.dataset.fAction === 'import') el('forecast-input').click();
-    else openManager(b.dataset.fAction === 'selected' ? 'selected' : 'review');
+    else openManager(b.dataset.fAction === 'selected' ? 'selected' : b.dataset.fAction === 'manage' ? 'all' : 'review');
+  });
+  host.addEventListener('keydown', e => {
+    if (!e.target.matches('[role=tab]') || !['ArrowLeft','ArrowRight','Home','End'].includes(e.key)) return;
+    e.preventDefault();
+    const tabs = ['confirmed','waiting','validation','review'];
+    const index = tabs.indexOf(dashboardTab);
+    dashboardTab = tabs[e.key === 'Home' ? 0 : e.key === 'End' ? 3 : (index + (e.key === 'ArrowRight' ? 1 : 3)) % 4];
+    dashboardSearch = ''; renderSummary(true); el('forecast-tab-' + dashboardTab).focus();
   });
   manager.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
@@ -198,7 +218,7 @@ export function createForecastView({ money: formatMoney, escape: esc, onChange }
     const target = returnFocus?.isConnected ? returnFocus : host.querySelector('[data-f-action="manage"]');
     target?.focus();
   });
-  editor.addEventListener('close', () => { if (manager.open) el('forecast-search').focus(); else host.querySelector('[data-f-action="manage"]')?.focus(); });
+  editor.addEventListener('close', () => { if (manager.open) el('forecast-search').focus(); else (returnFocus?.isConnected ? returnFocus : el('forecast-tab-' + dashboardTab) || host.querySelector('[data-f-action="manage"]'))?.focus(); });
   return {
     render(nextData, nextGoal) {
       if (data && data !== nextData && editor.open) editor.close();

@@ -22,16 +22,28 @@ try {
   await page.goto(process.env.FORECAST_BASE_URL || `http://127.0.0.1:${server.address().port}/`);
   await page.locator('#file-input').setInputFiles([fixtures.res,fixtures.billing]);
   await page.locator('[data-f-action=manage]').waitFor();
-  assert.equal(await page.locator('[data-f-filter=confirmed]').innerText(),'Confirmés · 2');
-  assert.equal(await page.locator('.forecast-quick-filters [data-f-filter=waiting]').innerText(),'En attente client · 1');
-  assert.equal(await page.locator('.forecast-quick-filters [data-f-filter=validation]').innerText(),'À valider · 2');
+  assert.equal(await page.locator('[data-f-filter=confirmed]').textContent(),'À facturer (estimation) · 2');
+  assert.equal(await page.locator('.forecast-quick-filters [data-f-filter=waiting]').textContent(),'En attente client · 1');
+  assert.equal(await page.locator('.forecast-quick-filters [data-f-filter=validation]').textContent(),'En attente de validation · 2');
   assert.match(await page.locator('aside[aria-label="En attente client"]').innerText(),/70 €/);
   assert.match(await page.locator('aside[aria-label="En attente de validation"]').innerText(),/110 €/);
   assert.equal(await page.locator('#forecast-month').count(),0);
   assert.equal(await page.locator('.forecast-schedule').count(),0);
-  assert.match(await page.locator('.forecast-coverage-legend').innerText(),/Confirmé\s+250 €/);
+  assert.match(await page.locator('.forecast-estimated').innerText(),/250 €/);
   assert.equal(await page.locator('.forecast-column').count(),0);
   assert.ok(await page.locator('.forecast-coverage-track > span').evaluate(e=>parseFloat(e.style.width)>0));
+  // Cards navigate locally; review amounts never join the annual estimate.
+  await page.locator('[data-f-jump=review]').click();
+  assert.equal(await page.locator('[data-f-filter=review]').getAttribute('aria-selected'),'true');
+  assert.equal(await page.locator('#forecast-dashboard-tables tbody tr').count(),1);
+  assert.match(await page.locator('#forecast-dashboard-tables').innerText(),/Q-SCOPE/);
+  assert.match(await page.locator('#forecast-dashboard-tables').innerText(),/reste à déterminer/);
+  assert.match(await page.locator('.forecast-estimated').innerText(),/250 €/);
+  await page.locator('[data-f-filter=review]').press('Home');
+  assert.equal(await page.locator('[data-f-filter=confirmed]').getAttribute('aria-selected'),'true');
+  await page.locator('#forecast-dashboard-search').fill('Q-DEPOSIT');
+  assert.equal(await page.locator('#forecast-dashboard-tables tbody tr').count(),1);
+  await page.locator('#forecast-dashboard-search').fill('');
   for(const width of [1440,390]) {
     await page.setViewportSize({width,height:width===390?844:1100});
     for(const theme of ['light','dark']) {
@@ -41,11 +53,32 @@ try {
       assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     }
   }
+  await page.locator('#forecast-dashboard-tables tr').filter({hasText:'Q-DEPOSIT'}).locator('button').click();
+  const originalAmount=await page.locator('#forecast-amount').inputValue();
+  await page.locator('#forecast-amount').fill('100000');
+  await page.locator('#forecast-form button[type=submit]').click();
+  assert.equal(await page.locator('.forecast-excess').count(),1);
+  const parts=await page.locator('.forecast-coverage-track > span').evaluateAll(es=>es.map(e=>parseFloat(e.style.width)));
+  assert.ok(Math.abs(parts.reduce((a,b)=>a+b,0)-100)<0.001,'covered plus surplus fills the entire bar');
+  assert.equal(await page.locator('.forecast-threshold').evaluate(e=>getComputedStyle(e,'::after').display),'block');
+  for(const width of [1440,390]) {
+    await page.setViewportSize({width,height:1100});
+    for(const theme of ['light','dark']) {
+      await page.evaluate(value=>{for(let i=0;i<2&&document.documentElement.getAttribute('data-theme')!==value;i++)document.querySelector('#toggle-theme').click();},theme);
+      if(process.env.SMOKE_SCREENSHOT_DIR)await page.locator('#revenue-forecast').screenshot({path:resolve(process.env.SMOKE_SCREENSHOT_DIR,`excess-${width}-${theme}.png`)});
+      assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    }
+  }
+  await page.locator('#forecast-dashboard-tables tr').filter({hasText:'Q-DEPOSIT'}).locator('button').click();
+  await page.locator('#forecast-amount').fill(originalAmount);
+  await page.locator('#forecast-form button[type=submit]').click();
+  assert.equal(await page.locator('.forecast-excess').count(),0);
+  assert.equal(await page.locator('.forecast-threshold').evaluate(e=>getComputedStyle(e,'::after').display),'none');
   await page.setViewportSize({width:1440,height:1100});
   await page.locator('[data-f-action=manage]').click();
   await page.locator('[data-f-tab=all]').click();
   const row=n=>page.locator('#forecast-list .forecast-row').filter({hasText:n});
-  for(const [n,status] of [['Q-DEPOSIT','Confirmé · À facturer'],['Q-PROGRESS','Confirmé · Partiellement facturé'],['Q-SCOPE','À vérifier'],['Q-COVERED','Entièrement facturé'],['Q-WAIT','En attente client']]) assert.ok((await row(n).innerText()).includes(status));
+  for(const [n,status] of [['Q-DEPOSIT','À facturer (estimation)'],['Q-PROGRESS','À facturer (estimation) · Partiellement facturé'],['Q-SCOPE','À vérifier'],['Q-COVERED','Entièrement facturé'],['Q-WAIT','En attente client']]) assert.ok((await row(n).innerText()).includes(status));
   assert.match(await row('Q-SCOPE').innerText(),/À déterminer/);
   for(const width of [1440,390]) {
     await page.setViewportSize({width,height:width===390?844:1100});
@@ -69,10 +102,10 @@ try {
   await page.locator('#forecast-form button[type=submit]').click();
   assert.equal(await page.locator('#forecast-list .forecast-row').count(),0);
   await page.locator('[data-f-action=close-manager]').click();
-  assert.match(await page.locator('.forecast-coverage-legend').innerText(),/Confirmé\s+280 €/);
+  assert.match(await page.locator('.forecast-estimated').innerText(),/280 €/);
   assert.equal(await page.locator('.forecast-column').count(),0);
   await page.reload();await page.locator('[data-f-action=manage]').waitFor();
-  assert.equal(await page.locator('[data-f-filter=confirmed]').innerText(),'Confirmés · 3');
+  assert.equal(await page.locator('[data-f-filter=confirmed]').textContent(),'À facturer (estimation) · 3');
   assert.deepEqual(errors,[]);
   console.log('Facturation : statuts, reste candidat, totaux, acompte séparé, situations impayées, attentes séparées et décision mémorisée validés.');
 } finally {await browser?.close();await new Promise(done=>server.close(done));rmSync(directory,{recursive:true,force:true});}

@@ -60,14 +60,14 @@ function renderCAMB(cy, curYear, years) {
   const outlook = forecastOutlook(DATA);
   if (DATA?.forecast?.monthly.some(value => value !== null)) {
     if (outlook?.totalMB !== null && outlook?.totalMB !== undefined) {
-      datasets.push({ type:'bar', label:'Marge estimée sur le confirmé HT', data:outlook.monthlyMargin,
+      datasets.push({ type:'bar', label:'Marge estimée sur le CA à facturer (estimation) HT', data:outlook.monthlyMargin,
         backgroundColor:'rgba(79, 188, 188, 0.42)', borderColor:COLORS.green, borderWidth:1,
         stack:'forecast', order:3, borderRadius:{topLeft:0,topRight:0,bottomLeft:R,bottomRight:R}, borderSkipped:false });
-      datasets.push({ type:'bar', label:'Achats & coûts estimés sur le confirmé HT', data:outlook.monthlyCosts,
+      datasets.push({ type:'bar', label:'Achats & coûts estimés sur le CA à facturer (estimation) HT', data:outlook.monthlyCosts,
         backgroundColor:'rgba(255, 95, 133, 0.38)', borderColor:COLORS.red, borderWidth:1,
         stack:'forecast', order:3, borderRadius:{topLeft:R,topRight:R,bottomLeft:0,bottomRight:0}, borderSkipped:false });
     } else {
-      datasets.push({ type:'bar', label:'CA confirmé à facturer HT (sélection)', data:DATA.forecast.monthly,
+      datasets.push({ type:'bar', label:'CA à facturer (estimation) HT (sélection)', data:DATA.forecast.monthly,
         backgroundColor:COLORS.blue, stack:'forecast', order:3, borderRadius:R, borderSkipped:false });
     }
   }
@@ -141,10 +141,10 @@ function renderCAMB(cy, curYear, years) {
               const cv = caArr[i];
               const lines = cv != null ? ['CA total : ' + fmtEUR(cv)] : [];
               if (DATA?.forecast?.monthly[i] != null) {
-                lines.push('CA confirmé à facturer : ' + fmtEUR(DATA.forecast.monthly[i]) + ' HT');
+                lines.push('CA à facturer (estimation) : ' + fmtEUR(DATA.forecast.monthly[i]) + ' HT');
                 if (outlook?.monthlyCosts[i] != null) {
                   lines.push('Coûts estimés après déduction des dépenses déjà engagées.');
-                  lines.push('Répartition mensuelle au prorata du CA confirmé.');
+                  lines.push('Répartition mensuelle au prorata du CA à facturer (estimation).');
                 } else lines.push('Répartition marge / coûts indisponible.');
               }
               if (currentMonthProjection && i === currentMonthProjection.monthIndex) {
@@ -289,7 +289,7 @@ function renderCumulChart(years, currentYear, metric) {
   ];
   const outlook = forecastOutlook(DATA);
   if (outlook && (isCA || outlook.totalMB !== null)) {
-    datasets.push({ label:isCA ? 'Réalisé + CA confirmé HT' : 'Réalisé + marge estimée HT', data:isCA ? outlook.ca : outlook.mb,
+    datasets.push({ label:isCA ? 'Réalisé + CA à facturer (estimation) HT' : 'Réalisé + marge estimée HT', data:isCA ? outlook.ca : outlook.mb,
       borderColor:currentColor, backgroundColor:'transparent', borderDash:[6, 5], borderWidth:3,
       pointRadius:2, pointHoverRadius:6, tension:0, spanGaps:false });
   }

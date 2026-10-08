@@ -30,7 +30,11 @@ Le simulateur de trajectoire (taux de marge et charges) est initialisé à parti
 
 ## Chiffre d’affaires prévisionnel
 
-La carte, sous « Mon cap annuel », présente les **montants HT restant à facturer**. La jauge inclut tous les chantiers confirmés et vérifiés. Deux cartes séparent **En attente client** (devis avec numéro, au statut « Validé & imp. », sans accord client) et **En attente de validation** (statut « Attente valid. », même sans numéro). Ces deux catégories sont hors prévisionnel confirmé. Les devis entièrement facturés ou dont le rapprochement est ambigu ne gonflent pas ces totaux. Le lien de détail déplie trois tableaux ; leurs liens ouvrent la fiche ou la modale filtrée. « Vérifier les devis » ouvre les propositions à examiner. Le bouton d’information précise le périmètre.
+La carte, sous « Mon cap annuel », présente le **CA HT à facturer (estimation)** issu des devis acceptés et vérifiés. La jauge distingue le besoin couvert en bleu, le reste à trouver en orange et le dépassement estimé en vert. Un repère « Objectif » traverse la barre seulement en cas de dépassement. Le montant estimé et l’écart au besoin sont affichés au-dessus ; les calculs et la répartition annuelle restent inchangés.
+
+Une carte **En attente client** occupe la même hauteur que les deux cartes compactes **En attente de validation** et **À examiner** à sa droite. Les attentes restent hors estimation. « À examiner » réunit les propositions non retenues et les sélections suspendues après réimport, sans doublons. Son montant indicatif utilise la saisie ou le reste candidat si disponible, sinon le montant total du devis comme repère ; les valeurs inconnues sont signalées. Il ne constitue pas un reste à facturer validé et reste hors totaux prévisionnels.
+
+Les liens des cartes déplient un tableau unique avec quatre onglets, une recherche par client/numéro/titre et l’accès aux fiches. Les onglets se parcourent également au clavier. Le lien « Tous les devis / gérer les sélections » conserve l’accès au gestionnaire, aux exclusions et aux ajouts manuels. « Comprendre le calcul » précise le périmètre.
 
 Le préfiltre rapproche les montants par activité et ID client prioritaire, puis par nom complet identique sans distinguer casse/espaces si l’ID manque. Les homonymes associés à plusieurs ID restent à vérifier. Les motifs affichent la cause précise : devis de même montant, factures concurrentes, avoir, acomptes à rattacher ou document incomplet.
 

@@ -1228,134 +1228,74 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
   .forecast-history-table td { overflow-wrap:anywhere; }
   .forecast-history-current { background:var(--violet-bg); }
 
-  /* Compact forecast: confirmed calendar and separate quote tables. */
-  .forecast-chart-scroll { overflow-x:auto; padding-top:25px; margin:8px 0; }
-  .forecast-chart { display:flex; gap:12px; height:205px; }
-  .forecast-axis { flex:0 0 65px; display:flex; flex-direction:column; justify-content:space-between; height:160px; font-size:10px; text-align:right; color:var(--text-dim); transform:translateY(-7px); }
-  .forecast-columns { display:grid; flex:1; height:160px; background:repeating-linear-gradient(to top,transparent 0,transparent 39px,var(--border) 39px,var(--border) 40px); }
-  .forecast-column { display:flex; justify-content:center; align-items:flex-end; height:160px; position:relative; border:0; background:transparent; color:var(--text); font:inherit; cursor:pointer; padding:0; }
-  .forecast-column[aria-pressed="true"], .forecast-column:hover { background:var(--violet-bg); }
-  .forecast-column-bar { display:block; width:32px; max-width:55%; background:var(--ca-blue); border-radius:4px 4px 0 0; position:relative; }
-  .forecast-column-bar b { position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%); white-space:nowrap; font-size:11px; color:var(--text-dim); }
-  .forecast-column-label { position:absolute; top:171px; font-size:10px; color:var(--text-dim); }
-  .forecast-dashboard-tables { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; margin-top:16px; }
-  .forecast-dashboard-tables section { min-width:0; }
-  .forecast-table-head { display:flex; justify-content:space-between; gap:10px; align-items:center; }
-  .forecast-table-head h3 { font-size:13px; margin:0; }
-  .forecast-table-head strong { color:var(--violet); white-space:nowrap; font-size:13px; }
-  .forecast-dashboard-tables section:last-child .forecast-table-head strong { color:var(--amber); }
-  .forecast-table-note { min-height:30px; display:flex; align-items:center; justify-content:space-between; }
-  .forecast-table-scroll { overflow:auto; max-height:245px; }
-  .forecast-dashboard-tables table { width:100%; border-collapse:collapse; font-size:12px; }
-  .forecast-dashboard-tables th, .forecast-dashboard-tables td { text-align:left; padding:7px 5px; border-bottom:1px solid var(--border); }
-  .forecast-dashboard-tables th { color:var(--text-dim); font-size:10px; font-weight:500; background:var(--bg-card); position:sticky; top:0; }
-  .forecast-dashboard-tables td:first-child { overflow-wrap:anywhere; }
-  .forecast-dashboard-tables td small { display:block; color:var(--text-dim); font-size:10px; }
-  .forecast-dashboard-tables .forecast-table-amount { white-space:nowrap; text-align:right; font-variant-numeric:tabular-nums; }
-  .forecast-dashboard-tables .forecast-link { font-size:11px; padding:2px; }
-  .forecast-kpis { margin:14px 0; }
-  .forecast-kpis > div { background:transparent; padding:8px 0; }
-  .forecast-kpis strong { font-size:24px; }
-  .forecast-kpis > div:first-child { background:transparent; }
-  .sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
-  #forecast-remove-editor[hidden] { display:none; }
-  @media(max-width:850px) { .forecast-dashboard-tables { grid-template-columns:1fr; gap:20px; } }
-
-  .forecast-axis { position:relative; transform:none; }
-  .forecast-axis span { position:absolute; right:0; transform:translateY(-50%); }
-  @media(max-width:650px) {
-    .forecast-kpis { display:flex; flex-wrap:wrap; gap:10px; }
-    .forecast-kpis > div { flex:1; min-width:130px; }
-  }
-
-  .forecast-table-toolbar { display:flex; gap:15px; justify-content:space-between; align-items:center; margin-top:16px; }
-  .forecast-table-toolbar h3 { font-size:13px; }
-  #forecast-dashboard-search { width:190px; max-width:55%; border:1px solid var(--border); border-radius:6px; padding:7px 10px; font:inherit; font-size:12px; background:var(--bg-card); color:var(--text); }
-
+/* Revenue forecast: estimated billing, coverage and quote drill-down. */
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+#forecast-remove-editor[hidden]{display:none}
 .forecast-outlook{font-size:12px;color:var(--text-dim);line-height:1.6;margin-top:10px}
-.forecast-outlook p{margin:6px 0}
-.forecast-outlook strong{font-size:16px;color:var(--text)}
-.forecast-outlook summary{cursor:pointer;color:var(--violet)}
-
-/* Wide forecast: a narrow summary beside the calendar, with concise lists below. */
-.revenue-forecast{max-width:1440px;margin:18px auto;width:100%;box-sizing:border-box}
-.forecast-overview{display:grid;grid-template-columns:240px minmax(0,1fr);gap:36px;margin:24px 0 18px;padding-bottom:20px;border-bottom:1px solid var(--border);align-items:start}
-.forecast-summary{border-right:1px solid var(--border);padding-right:28px}
-.forecast-schedule{min-width:0}
-.forecast-overview .forecast-kpis{display:flex;flex-direction:column;gap:18px;margin:0}
-.forecast-overview .forecast-kpis>div{padding:0;min-width:0}
-.forecast-overview .forecast-kpis strong{font-size:26px;margin:2px 0;line-height:1.35}
-.forecast-overview .forecast-kpis>div:nth-child(2) strong{font-size:22px}
-.forecast-overview .forecast-kpis .forecast-to-plan strong{font-size:17px}
-.forecast-to-plan .forecast-link{font-size:11px;padding:4px 0;text-align:left}
-.forecast-schedule .forecast-head h3{font-size:13px;margin:0}
-.forecast-schedule .forecast-head .small{font-size:11px}
-.forecast-schedule .forecast-column-bar{width:48px}
-.forecast-schedule .forecast-chart-scroll{margin:0;padding-top:28px}
-.forecast-dashboard-tables{gap:32px}
-.forecast-dashboard-tables th{font-size:11px}
-.forecast-dashboard-tables td,.forecast-dashboard-tables th{padding:8px 5px}
-.forecast-table-scroll{max-height:none}
-@media(max-width:1050px){.forecast-overview{grid-template-columns:210px minmax(0,1fr);gap:22px}.forecast-summary{padding-right:20px}}
-@media(max-width:750px){.forecast-overview{grid-template-columns:1fr;gap:20px}.forecast-summary{border:0;padding:0}.forecast-overview .forecast-kpis{flex-direction:row;flex-wrap:wrap;gap:16px 24px}.forecast-overview .forecast-kpis>div{flex:1;min-width:130px}.forecast-schedule .forecast-column-bar{width:32px}.forecast-dashboard-tables{gap:20px}}
-
-.forecast-followed>summary{cursor:pointer;padding:10px 0;font-size:13px;color:var(--text)}
-.forecast-followed>summary strong{margin-right:14px}
-.forecast-followed>summary .small{display:inline-block}
-.forecast-followed .forecast-table-toolbar{justify-content:flex-end;margin-top:4px}
-.forecast-followed:not([open])+.forecast-footer{margin-top:10px}
-
-.revenue-forecast .forecast-cap{margin:0 0 18px;padding:0 0 16px;border-top:0;border-bottom:1px solid var(--border)}
-.revenue-forecast .forecast-cap h3{font-size:13px;margin:0 0 12px}
-.revenue-forecast .forecast-cap-values strong{font-size:20px}
-.revenue-forecast .forecast-cap>.small{margin:12px 0 0}
-@media(max-width:650px){.revenue-forecast .forecast-cap-values{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.revenue-forecast .forecast-cap-values>div{min-width:0}.revenue-forecast .forecast-cap-values>span[aria-hidden]{display:none}.revenue-forecast .forecast-cap-values strong{font-size:18px}}
-
-/* Prévisionnel : besoin futur, confirmé et attentes distinctes. */
-.revenue-forecast{max-width:none}
-.forecast-head .forecast-help{border:0;background:none;padding:0;font-family:inherit}
-.forecast-future-layout{display:grid;grid-template-columns:minmax(0,1.5fr) repeat(2,minmax(180px,.65fr));gap:26px;align-items:center;margin:24px 0}
+.forecast-outlook p{margin:6px 0}.forecast-outlook strong{font-size:16px;color:var(--text)}.forecast-outlook summary{cursor:pointer;color:var(--violet)}
+.revenue-forecast{width:100%;max-width:none;margin:18px auto;box-sizing:border-box}
+.forecast-future-layout{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:36px;align-items:center;margin:26px 0}
 .forecast-coverage{min-width:0}
-.forecast-coverage h3{font-size:14px;font-weight:600;color:var(--text-dim);margin:0 0 5px}
-.forecast-need{display:block;font-size:34px;line-height:1.25;letter-spacing:-.7px;font-weight:800;font-variant-numeric:tabular-nums}
-.forecast-coverage-track{height:20px;border-radius:7px;overflow:hidden;background:var(--amber);margin:20px 0 12px}
-.forecast-coverage-track>span{display:block;height:100%;background:var(--ca-blue)}
-.forecast-coverage-legend{display:flex;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;color:var(--text-dim);font-size:12px}
-.forecast-coverage-legend>span{display:inline-flex;gap:6px;align-items:baseline;flex-wrap:wrap}
-.forecast-coverage-legend strong{color:var(--text);font-size:14px;font-weight:800;white-space:nowrap;font-variant-numeric:tabular-nums}
-.forecast-coverage-legend i{display:inline-block;align-self:center;width:9px;height:9px;border-radius:3px;background:var(--ca-blue)}
-.forecast-coverage-legend .forecast-gap-dot{background:var(--amber)}
-.forecast-future-layout .forecast-schedule{padding-left:24px;border-left:1px solid var(--border)}
-.forecast-future-layout .forecast-schedule .forecast-head{gap:8px}
-.forecast-future-layout .forecast-chart{height:164px}
-.forecast-future-layout .forecast-columns,.forecast-future-layout .forecast-column{height:118px}
-.forecast-future-layout .forecast-columns{background:repeating-linear-gradient(to top,transparent 0,transparent 28.5px,var(--border) 28.5px,var(--border) 29.5px)}
-.forecast-future-layout .forecast-column-bar{width:28px}
-.forecast-future-layout .forecast-column-label{top:126px;font-size:11px;line-height:1.3;text-align:center}
-.forecast-column-label small{display:block;font-size:10px;margin-top:3px}
-.forecast-column-outside .forecast-column-bar{background:color-mix(in srgb,var(--ca-blue) 35%,var(--bg-card))}
-.forecast-potential{padding:20px;border-radius:var(--radius-sm);background:var(--bg-inset)}
-.forecast-potential h3{font-size:13px;color:var(--text-dim);font-weight:600;margin:0 0 9px}
-.forecast-potential>strong{font-size:29px;font-weight:800;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
-.forecast-potential p{font-size:12px;color:var(--text-dim);margin:6px 0 0}
-.forecast-details-row{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:24px;align-items:center;border-top:1px solid var(--border);padding-top:12px}
-.forecast-details-row .forecast-followed{display:contents}
-.forecast-details-row .forecast-followed>summary{grid-column:1;grid-row:1;display:block;list-style:none;padding:6px 0;font-weight:600;font-size:12px;color:var(--text-faint)}
-.forecast-details-row .forecast-followed>summary::-webkit-details-marker{display:none}
-.forecast-details-row .forecast-followed>summary:hover,.forecast-details-row .forecast-followed>summary:focus-visible{color:var(--violet)}
+.forecast-estimated{font-size:14px;color:var(--text-dim)}
+.forecast-estimated strong{font-size:38px;font-weight:800;letter-spacing:-1px;color:var(--text);font-variant-numeric:tabular-nums}
+.forecast-difference{display:table;padding:7px 10px;border-radius:7px;background:var(--green-bg);color:var(--text);font-size:13px;margin:14px 0 0}
+.forecast-difference.shortfall{background:var(--amber-bg)}
+.forecast-scale{margin-top:24px}
+.forecast-threshold{height:30px;position:relative;font-size:12px;color:var(--text-dim)}
+.forecast-threshold span{position:absolute;left:var(--threshold);transform:translateX(-50%);white-space:nowrap}
+.forecast-threshold:after{content:"";position:absolute;left:var(--threshold);top:24px;height:32px;border-left:3px solid var(--text);transform:translateX(-1.5px);z-index:1}
+.forecast-threshold.at-end span{transform:translateX(-100%)}.forecast-threshold.at-end:after{display:none}
+.forecast-coverage-track{display:flex;height:20px;overflow:hidden;border-radius:6px;background:var(--bg-inset)}
+.forecast-coverage-track.shortfall{background:var(--amber)}
+.forecast-coverage-track>span{display:block;height:100%;background:var(--ca-blue);flex:none}
+.forecast-coverage-track>.forecast-excess{background:var(--green)}
+.forecast-coverage-legend{display:flex;justify-content:space-between;gap:16px;color:var(--text-dim);font-size:12px;margin-top:12px}
+.forecast-coverage-legend>span{flex:1;min-width:0}.forecast-coverage-legend>span:last-child{text-align:right}
+.forecast-coverage-legend strong{display:block;font-size:15px;margin-top:4px;color:var(--text);font-variant-numeric:tabular-nums}
+.forecast-coverage-legend i{display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--ca-blue);margin-right:6px}
+.forecast-coverage-legend .forecast-gap-dot{background:var(--amber)}.forecast-coverage-legend .forecast-excess-dot{background:var(--green)}
+.forecast-potentials{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10px 16px}
+.forecast-potential{min-width:0;padding:12px 16px;border-radius:var(--radius-sm);background:var(--bg-inset)}
+.forecast-potential:first-child{grid-column:1;grid-row:1/3;display:flex;flex-direction:column;justify-content:center;padding:20px}
+.forecast-potential:nth-child(2){grid-column:2;grid-row:1}.forecast-review-card{grid-column:2;grid-row:2}
+.forecast-potential h3{font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--text-dim);margin:0 0 6px}
+.forecast-potential h3:before{display:none}
+.forecast-potential>strong{display:block;font-size:23px;font-weight:800;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+.forecast-potential:first-child>strong{font-size:28px;margin:8px 0}
+.forecast-potential small{font-size:12px;font-weight:400;color:var(--text-dim);letter-spacing:0}
+.forecast-potential-foot{display:flex;align-items:center;justify-content:space-between;gap:0 10px;flex-wrap:wrap;font-size:11px;color:var(--text-dim)}
+.forecast-potential:first-child .forecast-potential-foot{display:block;font-size:12px}
+.forecast-potential:first-child .forecast-link{display:block}
+.revenue-forecast .forecast-link{color:var(--violet);text-decoration:none}
+.revenue-forecast .forecast-link:hover{color:var(--text);text-decoration:underline}
+.forecast-details-row{position:relative;border-top:1px solid var(--border);padding-top:12px}
+.forecast-followed>summary{cursor:pointer;list-style:none;display:table;font-size:13px;font-weight:600;color:var(--text);padding:10px 0;max-width:50%}
+.forecast-followed>summary::-webkit-details-marker{display:none}.forecast-followed>summary:before{content:none}
 .forecast-followed:not([open]) .forecast-hide-label,.forecast-followed[open] .forecast-show-label{display:none}
-.forecast-followed:not([open])>:not(summary){display:none}
-.forecast-details-row .forecast-table-toolbar{grid-column:1/-1;grid-row:2}
-.forecast-details-row .forecast-dashboard-tables{grid-column:1/-1;grid-row:3}
-.forecast-quick-filters{display:flex;align-items:center;flex-wrap:wrap;gap:6px 20px;grid-column:2;grid-row:1}
-.revenue-forecast .forecast-link{color:var(--text-faint)}
-.revenue-forecast .forecast-link:hover,.revenue-forecast .forecast-link:focus-visible{color:var(--violet)}
-.forecast-table-scroll{position:relative}
-@media(max-width:1100px){.forecast-future-layout{grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}.forecast-coverage{grid-column:1/-1}.forecast-details-row{column-gap:16px}.forecast-quick-filters{gap:6px 14px}}
-@media(max-width:650px){.forecast-future-layout{grid-template-columns:minmax(0,1fr);gap:22px}.forecast-coverage{grid-column:1}.forecast-need{font-size:32px}.forecast-details-row{grid-template-columns:minmax(0,1fr);row-gap:8px}.forecast-quick-filters{grid-column:1;grid-row:2}.forecast-details-row .forecast-table-toolbar{grid-row:3}.forecast-details-row .forecast-dashboard-tables{grid-row:4}.revenue-forecast .forecast-help{min-height:24px;min-width:24px}.forecast-details-row .forecast-followed>summary{padding:12px 0}}
-/* Let expanded detail content span the toolbar grid instead of an anonymous column. */
-.forecast-followed::details-content{display:contents}
-.forecast-details-row .forecast-followed>summary::before{content:none}
+.forecast-help{position:absolute;right:0;top:15px;width:auto!important;height:auto!important;max-width:48%;font:inherit;font-size:12px!important;border:0!important;background:none!important;border-radius:0!important}
+.forecast-table-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:16px 0 12px}
+.forecast-quick-filters{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+.forecast-quick-filters button{font:inherit;font-size:12px;padding:10px;border:0;border-bottom:2px solid transparent;border-radius:8px;background:none;color:var(--text-dim);cursor:pointer}
+.forecast-quick-filters button[aria-selected=true]{background:var(--bg-inset);color:var(--text);border-bottom-color:var(--ca-blue)}
+.forecast-quick-filters button:hover{color:var(--violet)}
+#forecast-dashboard-search{width:230px;max-width:100%;padding:9px 11px;font:inherit;font-size:13px;border:1px solid var(--border);border-radius:8px;color:var(--text);background:var(--bg-card)}
+.forecast-table-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:4px 0 12px}
+.forecast-table-head>strong{font-size:13px;font-variant-numeric:tabular-nums}
+.forecast-table-scroll{overflow:auto}
+.forecast-dashboard-tables table{width:100%;border-collapse:collapse;font-size:13px}
+.forecast-dashboard-tables th,.forecast-dashboard-tables td{text-align:left;padding:12px 8px;border-bottom:1px solid var(--border);vertical-align:middle}
+.forecast-dashboard-tables th{font-size:12px;color:var(--text-dim);font-weight:500}
+.forecast-dashboard-tables td:first-child{width:60%;overflow-wrap:anywhere}
+.forecast-dashboard-tables td small{display:block;color:var(--text-dim);font-size:12px;margin-top:3px}
+.forecast-dashboard-tables .forecast-table-amount{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.forecast-dashboard-tables td:last-child{text-align:right}.forecast-dashboard-tables td:last-child button{font-size:12px}
+.forecast-all{text-align:right;margin-top:10px}
+@media(max-width:1100px){.forecast-future-layout{grid-template-columns:1fr;gap:24px}.forecast-potentials{max-width:none}}
+@media(max-width:650px){.forecast-estimated strong{font-size:32px}.forecast-future-layout{gap:20px}.forecast-potentials{gap:10px}.forecast-potential,.forecast-potential:first-child{padding:12px}.forecast-potential>strong,.forecast-potential:first-child>strong{font-size:21px}.forecast-potential-foot{font-size:11px}.forecast-followed>summary{font-size:12px}.forecast-help{font-size:11px!important}.forecast-quick-filters{gap:4px}.forecast-quick-filters button{padding:8px;font-size:11px}#forecast-dashboard-search{width:100%;font-size:16px}.forecast-dashboard-tables th,.forecast-dashboard-tables td{padding:11px 3px}.forecast-dashboard-tables td:first-child{width:auto}.forecast-dashboard-tables .forecast-table-amount{font-size:12px}.forecast-dashboard-tables td:last-child{width:65px}.forecast-dashboard-tables td:last-child button{font-size:11px}.forecast-coverage-legend{font-size:11px}}
+
+.revenue-forecast .forecast-help:before{content:none}
+.forecast-threshold.at-start span{transform:none}
+@media(pointer:coarse){.revenue-forecast .forecast-link{min-height:44px}}
 </style>
 <script>try{var _t=localStorage.getItem("cabestan_dashboard_theme");if(_t==="dark"||_t==="light")document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 </head>
@@ -1496,9 +1436,9 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 <dialog id="forecast-manager" class="forecast-dialog" aria-labelledby="forecast-manager-title">
   <div class="forecast-head"><div><h2 id="forecast-manager-title">Vérifier les devis</h2><p class="small">Les devis acceptés et rapprochés sans ambiguïté sont ajoutés automatiquement. Tes choix manuels restent prioritaires.</p></div><button class="btn" type="button" data-f-action="close-manager">Fermer</button></div>
   <nav class="forecast-tabs" aria-label="Listes de devis"><button type="button" data-f-tab="review" aria-pressed="true">À examiner</button><button type="button" data-f-tab="selected" aria-pressed="false">Dans le prévisionnel</button><button type="button" data-f-tab="all" aria-pressed="false">Tous les devis</button></nav>
-  <div class="forecast-situation-filters" role="group" aria-label="Situation du devis"><button type="button" data-f-situation="" aria-pressed="true">Toutes les situations</button><button type="button" data-f-situation="waiting" aria-pressed="false">En attente client</button><button type="button" data-f-situation="validation" aria-pressed="false">En attente de validation</button><button type="button" data-f-situation="confirmed" aria-pressed="false">Chantiers confirmés</button><button type="button" data-f-situation="complete" aria-pressed="false">Entièrement facturés</button>
+  <div class="forecast-situation-filters" role="group" aria-label="Situation du devis"><button type="button" data-f-situation="" aria-pressed="true">Toutes les situations</button><button type="button" data-f-situation="waiting" aria-pressed="false">En attente client</button><button type="button" data-f-situation="validation" aria-pressed="false">En attente de validation</button><button type="button" data-f-situation="confirmed" aria-pressed="false">À facturer (estimation)</button><button type="button" data-f-situation="complete" aria-pressed="false">Entièrement facturés</button>
             <button type="button" data-f-situation="review" aria-pressed="false">À vérifier</button></div>
-  <p class="small">Situation saisie prioritaire, sinon date d’accord et état du devis. Validé et imprimé avec numéro : en attente client. Attente valid. : en attente de validation. Un chantier confirmé peut encore nécessiter une vérification du montant restant.</p>
+  <p class="small">Situation saisie prioritaire, sinon date d’accord et état du devis. Validé et imprimé avec numéro : en attente client. Attente valid. : en attente de validation. Un chantier accepté peut encore nécessiter une vérification du montant restant.</p>
   <label class="forecast-search-label" for="forecast-search">Rechercher un client, un numéro ou un titre</label><input id="forecast-search" type="search" placeholder="Rechercher…">
   <label class="forecast-search-label" for="forecast-year">Date du devis</label><select id="forecast-year"><option value="">Toutes les années</option></select>
   <p id="forecast-filter" class="small"></p><p id="forecast-storage-message" class="forecast-warning" role="alert"></p>
@@ -1510,7 +1450,7 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
   <div id="forecast-probable-invoices"></div>
   <div id="forecast-history"></div>
   <div id="forecast-advances"></div>
-  <label for="forecast-situation">Situation du chantier</label><select id="forecast-situation"><option value="confirmed">Travaux confirmés</option><option value="waiting">En attente client</option><option value="validation">En attente de validation</option></select>
+  <label for="forecast-situation">Situation du chantier</label><select id="forecast-situation"><option value="confirmed">À facturer (estimation)</option><option value="waiting">En attente client</option><option value="validation">En attente de validation</option></select>
   <label for="forecast-amount">Montant HT restant à facturer (€)</label><input id="forecast-amount" type="number" min="0" step="0.01" required>
   <details class="forecast-method"><summary>Voir les éléments du rapprochement</summary><div id="forecast-evidence"></div></details>
   <p id="forecast-form-error" class="forecast-warning" role="alert"></p><div class="forecast-footer"><button type="button" class="btn" data-f-action="close-editor">Annuler</button><button type="button" class="forecast-link" id="forecast-remove-editor" data-f-action="remove-editor">Retirer du prévisionnel</button><button type="submit" class="btn primary">Enregistrer la prévision</button></div></form>
@@ -2199,16 +2139,16 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   function forecastOutlookHTML(outlook, isCA, money3, escape) {
     if (!outlook) return "";
     const total2 = isCA ? outlook.totalCA : outlook.totalMB;
-    const result = total2 === null ? escape(outlook.unavailable) : "<strong>" + money3(total2) + " HT</strong> \xB7 r\xE9alis\xE9 + " + (isCA ? "CA confirm\xE9" : "marge estim\xE9e sur le confirm\xE9");
-    let calculation = "CA r\xE9alis\xE9 (" + money3(outlook.actualCA) + ") + confirm\xE9 restant (" + money3(outlook.futureCA) + ") = " + money3(outlook.totalCA) + " HT.";
+    const result = total2 === null ? escape(outlook.unavailable) : "<strong>" + money3(total2) + " HT</strong> \xB7 r\xE9alis\xE9 + " + (isCA ? "CA \xE0 facturer (estimation)" : "marge estim\xE9e sur le CA \xE0 facturer (estimation)");
+    let calculation = "CA r\xE9alis\xE9 (" + money3(outlook.actualCA) + ") + CA \xE0 facturer estim\xE9 (" + money3(outlook.futureCA) + ") = " + money3(outlook.totalCA) + " HT.";
     if (!isCA && outlook.totalMB !== null) {
       calculation += "<br>Taux de marge pond\xE9r\xE9 " + escape(outlook.reference) + " : " + (outlook.rate * 100).toLocaleString("fr-FR", { maximumFractionDigits: 1 }) + " % (total des marges / total des CA).";
       calculation += "<br>Enveloppe de co\xFBts : " + money3(outlook.totalCA) + " \xD7 (1 \u2212 taux de marge) = " + money3(outlook.annualCosts) + ".";
       calculation += "<br>Co\xFBts d\xE9j\xE0 comptabilis\xE9s : CA \u2212 marge r\xE9alis\xE9e = " + money3(outlook.actualCosts) + ". Co\xFBts encore estim\xE9s : " + money3(outlook.futureCosts) + " (minimum z\xE9ro).";
       calculation += "<br>Marge estim\xE9e totale : " + money3(outlook.actualMB) + " + " + money3(outlook.futureCA) + " \u2212 " + money3(outlook.futureCosts) + " = " + money3(outlook.totalMB) + " HT.";
-      calculation += "<br>Les co\xFBts futurs sont r\xE9partis au prorata du CA confirm\xE9 par mois. Les achats d\xE9j\xE0 engag\xE9s sont pris en compte, sans mesure du stock disponible.";
+      calculation += "<br>Les co\xFBts futurs sont r\xE9partis au prorata du CA \xE0 facturer (estimation) par mois. Les achats d\xE9j\xE0 engag\xE9s sont pris en compte, sans mesure du stock disponible.";
     }
-    return '<div class="forecast-outlook"><p>' + result + "</p><details><summary>Comprendre le pr\xE9visionnel</summary><p>" + calculation + "</p><p>Le confirm\xE9 est r\xE9parti uniform\xE9ment sur les mois restant apr\xE8s la p\xE9riode RES, jusqu\u2019\xE0 d\xE9cembre. Les devis en attente client ou de validation sont exclus. Cette r\xE9partition est un sc\xE9nario, pas un calendrier de facturation. Ce sc\xE9nario ne s\u2019ajoute pas \xE0 la projection statistique du cap annuel.</p></details></div>";
+    return '<div class="forecast-outlook"><p>' + result + "</p><details><summary>Comprendre le pr\xE9visionnel</summary><p>" + calculation + "</p><p>Le montant \xE0 facturer estim\xE9 est r\xE9parti uniform\xE9ment sur les mois restant apr\xE8s la p\xE9riode RES, jusqu\u2019\xE0 d\xE9cembre. Les devis en attente client ou de validation sont exclus. Cette r\xE9partition est un sc\xE9nario, pas un calendrier de facturation. Ce sc\xE9nario ne s\u2019ajoute pas \xE0 la projection statistique du cap annuel.</p></details></div>";
   }
 
   // src/app/domain/clients.js
@@ -3278,27 +3218,37 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   }
 
   // src/app/views/forecast-summary.js
-  function renderForecastSummary({ summary, goal, reviewCount, warning, expanded, search, tables, money: money3, escape: esc2 }) {
+  function renderForecastSummary({ summary, goal, reviewCount, reviewAmount, reviewUnknown, warning, expanded, search, tables, activeTab, counts, money: money3, escape: esc2 }) {
     const coverage = forecastCoverage(summary, goal);
-    const confirmed2 = summary.confirmed;
-    const count = (kind) => summary.active.filter((r) => r.choice.situation === kind && r.choice.remaining !== 0).length;
-    const help = "Montants HT. Le reste \xE0 produire correspond \xE0 l\u2019objectif annuel moins le CA r\xE9alis\xE9. La jauge inclut tous les devis confirm\xE9s et v\xE9rifi\xE9s. Pour les graphiques annuels, le confirm\xE9 est r\xE9parti uniform\xE9ment sur les mois restant apr\xE8s la p\xE9riode RES, jusqu\u2019\xE0 d\xE9cembre. Cette r\xE9partition est un sc\xE9nario, pas un calendrier de facturation. Les attentes client et de validation restent s\xE9par\xE9es. Les rapprochements sont indicatifs ; les choix manuels restent prioritaires. Ce sc\xE9nario ne s\u2019ajoute pas \xE0 la projection statistique.";
-    return `<div class="forecast-head"><h2 id="forecast-title">Chiffre d\u2019affaires pr\xE9visionnel <button type="button" class="sp-help forecast-help" data-tip="${esc2(help)}" aria-label="Comprendre le pr\xE9visionnel">\u24D8</button></h2><button class="btn" data-f-action="manage">V\xE9rifier les devis</button></div>${warning}
+    const estimated = summary.confirmed;
+    const scale = coverage ? Math.max(coverage.need, estimated) : 0;
+    const covered = coverage ? Math.min(coverage.need, estimated) : 0;
+    const surplus = coverage ? -coverage.balance : 0;
+    const labels = { confirmed: "\xC0 facturer (estimation)", waiting: "En attente client", validation: "En attente de validation", review: "\xC0 examiner" };
+    const help = "Montants HT. Le besoin restant correspond \xE0 l\u2019objectif annuel moins le CA r\xE9alis\xE9. Les devis accept\xE9s et v\xE9rifi\xE9s alimentent le montant \xE0 facturer estim\xE9, qui reste susceptible d\u2019ajustements. Les attentes et les devis \xE0 examiner restent hors estimation. Pour les devis \xE0 examiner, le montant saisi ou le reste candidat est affich\xE9 lorsqu\u2019il est connu ; sinon, le montant total du devis sert de rep\xE8re, sans constituer un reste \xE0 facturer valid\xE9. Les montants inconnus sont signal\xE9s. Le sc\xE9nario annuel r\xE9partit l\u2019estimation uniform\xE9ment apr\xE8s la p\xE9riode RES jusqu\u2019\xE0 d\xE9cembre ; il ne constitue pas un calendrier de facturation et ne s\u2019ajoute pas \xE0 la projection statistique.";
+    const potential = (kind, amount, note) => `<aside class="forecast-potential" aria-label="${labels[kind]}"><h3>${labels[kind]}</h3><strong>${money3(amount)} <small>HT</small></strong><div class="forecast-potential-foot"><span>${note}</span><button class="forecast-link" data-f-jump="${kind}">${counts[kind] === 1 ? "Voir le devis" : `Voir les ${counts[kind]} devis`} \u2192</button></div></aside>`;
+    return `<div class="forecast-head"><div><h2 id="forecast-title">Chiffre d\u2019affaires pr\xE9visionnel</h2><p class="small">Restant \xE0 facturer \xB7 exercice ${esc2(summary.year)} \xB7 montants HT</p></div></div>${warning}
     <div class="forecast-future-layout">
       <section id="cap-forecast" class="forecast-coverage" aria-label="Couverture du CA restant \xE0 produire">
-        <h3>Reste \xE0 produire d\u2019ici fin ${esc2(summary.year)}</h3><strong class="forecast-need">${coverage ? money3(coverage.need) : "Indisponible"}</strong>
-        ${coverage ? `<div class="forecast-coverage-track" role="img" aria-label="${esc2(money3(coverage.need))} restant \xE0 produire, ${esc2(money3(confirmed2))} confirm\xE9s${coverage.balance >= 0 ? ", " + esc2(money3(coverage.balance)) + " \xE0 trouver" : ", besoin couvert"}"><span style="width:${coverage.percent}%"></span></div>` : '<p class="small">Un objectif et une p\xE9riode r\xE9alis\xE9e compl\xE8te sont n\xE9cessaires pour calculer le besoin.</p>'}
-        <div class="forecast-coverage-legend"><span><i></i>Confirm\xE9 <strong>${money3(confirmed2)}</strong></span>${coverage ? `<span><i class="forecast-gap-dot"></i>${coverage.balance < 0 ? "Au-del\xE0 du besoin" : "\xC0 trouver"} <strong>${money3(Math.abs(coverage.balance))}</strong></span>` : ""}</div>
-        <p class="small">${summary.annualConfirmed > 0 ? "Confirm\xE9 r\xE9parti uniform\xE9ment sur les mois restants jusqu\u2019\xE0 d\xE9cembre." : "La projection annuelle n\xE9cessite une p\xE9riode RES exploitable et des mois restant dans l\u2019exercice."}</p>
+        <div class="forecast-estimated"><strong>${money3(estimated)}</strong> <span>HT \xB7 \xC0 facturer (estimation)</span></div>
+        ${coverage ? `<p class="forecast-difference ${surplus < 0 ? "shortfall" : ""}"><strong>${surplus > 0 ? "+" : surplus < 0 ? "\u2212" : ""}${money3(Math.abs(surplus))}</strong> HT par rapport \xE0 l\u2019objectif, <em>selon cette estimation</em>.</p>
+        <div class="forecast-scale"><div class="forecast-threshold ${surplus <= 0 ? "at-end" : coverage.need === 0 ? "at-start" : ""}" style="--threshold:${scale ? coverage.need / scale * 100 : 100}%"><span>Objectif</span></div>
+          <div class="forecast-coverage-track ${surplus < 0 ? "shortfall" : ""}" role="img" aria-label="${esc2(money3(estimated))} HT estim\xE9s pour un besoin de ${esc2(money3(coverage.need))} HT ; ${esc2(money3(Math.abs(surplus)))} HT ${surplus < 0 ? "\xE0 trouver" : "de d\xE9passement estim\xE9"}"><span style="width:${scale ? covered / scale * 100 : 0}%"></span>${surplus > 0 ? `<span class="forecast-excess" style="width:${surplus / scale * 100}%"></span>` : ""}</div>
+          <div class="forecast-coverage-legend"><span><span><i></i>${surplus < 0 ? "Besoin couvert par l\u2019estim\xE9" : "Besoin couvert"}</span><strong>${money3(covered)} HT</strong></span><span><span><i class="${surplus < 0 ? "forecast-gap-dot" : "forecast-excess-dot"}"></i>${surplus < 0 ? "Reste \xE0 trouver" : "D\xE9passement estim\xE9"}</span><strong>${surplus > 0 ? "+" : ""}${money3(Math.abs(surplus))} HT</strong></span></div>
+        </div>` : '<p class="small">Besoin indisponible : un objectif et une p\xE9riode RES couverte sont n\xE9cessaires.</p>'}
       </section>
-      <aside class="forecast-potential" aria-label="En attente client"><h3>En attente client</h3><strong>${money3(summary.waiting)}</strong><p>Devis sans accord client</p><button class="forecast-link" data-f-filter="waiting" aria-haspopup="dialog">Voir les devis \xB7 ${count("waiting")}</button></aside>
-      <aside class="forecast-potential" aria-label="En attente de validation"><h3>En attente de validation</h3><strong>${money3(summary.validation)}</strong><p>Devis \xE0 valider</p><button class="forecast-link" data-f-filter="validation" aria-haspopup="dialog">Voir les devis \xB7 ${count("validation")}</button></aside>
+      <div class="forecast-potentials">
+        ${potential("waiting", summary.waiting, "Hors estimation")}
+        ${potential("validation", summary.validation, "Hors estimation")}
+        <aside class="forecast-potential forecast-review-card" aria-label="\xC0 examiner"><h3>\xC0 examiner</h3><strong>${reviewUnknown === reviewCount && reviewCount > 0 ? "\xC0 d\xE9terminer" : money3(reviewAmount) + " <small>HT</small>"}</strong><div class="forecast-potential-foot"><span>Montants indicatifs \xB7 hors totaux${reviewUnknown ? ` \xB7 ${reviewUnknown} non renseign\xE9(s)` : ""}</span><button class="forecast-link" data-f-jump="review">V\xE9rifier ${reviewCount} devis \u2192</button></div></aside>
+      </div>
     </div>
     ${summary.reviewCount ? `<p class="forecast-warning">${summary.reviewCount} devis s\xE9lectionn\xE9(s) \xE0 v\xE9rifier apr\xE8s actualisation du rapprochement. Leurs montants saisis sont conserv\xE9s, mais suspendus des totaux. <button class="forecast-link" data-f-action="selected">V\xE9rifier</button></p>` : ""}
-    <div class="forecast-details-row"><details id="forecast-followed" class="forecast-followed" ${expanded ? "open" : ""}><summary><span class="forecast-show-label">Afficher le tableau des devis \u2192</span><span class="forecast-hide-label">Masquer le tableau des devis \u2191</span></summary>
-      <div class="forecast-table-toolbar"><input id="forecast-dashboard-search" type="search" aria-label="Rechercher les devis suivis" placeholder="Rechercher\u2026" value="${esc2(search)}"></div><div id="forecast-dashboard-tables" class="forecast-dashboard-tables">${tables}</div></details>
-      <nav class="forecast-quick-filters" aria-label="Cat\xE9goriser les devis"><button class="forecast-link" data-f-filter="confirmed" aria-haspopup="dialog">Confirm\xE9s \xB7 ${count("confirmed")}</button><button class="forecast-link" data-f-filter="waiting" aria-haspopup="dialog">En attente client \xB7 ${count("waiting")}</button><button class="forecast-link" data-f-action="review" aria-haspopup="dialog">\xC0 examiner \xB7 ${reviewCount}</button><button class="forecast-link" data-f-filter="validation" aria-haspopup="dialog">\xC0 valider \xB7 ${count("validation")}</button></nav>
+    <div class="forecast-details-row"><details id="forecast-followed" class="forecast-followed" ${expanded ? "open" : ""}><summary><span class="forecast-show-label">Afficher les devis \u2192</span><span class="forecast-hide-label">Masquer les devis \u2191</span></summary>
+      <div class="forecast-table-toolbar"><nav class="forecast-quick-filters" role="tablist" aria-label="Situation des devis">${Object.entries(labels).map(([kind, label]) => `<button type="button" role="tab" id="forecast-tab-${kind}" data-f-filter="${kind}" aria-controls="forecast-dashboard-tables" aria-selected="${activeTab === kind}" tabindex="${activeTab === kind ? 0 : -1}">${label} \xB7 ${counts[kind]}</button>`).join("")}</nav><input id="forecast-dashboard-search" type="search" aria-label="Rechercher dans les devis de cet onglet" placeholder="Client, num\xE9ro ou titre\u2026" value="${esc2(search)}"></div><div id="forecast-dashboard-tables" class="forecast-dashboard-tables" role="tabpanel" aria-labelledby="forecast-tab-${activeTab}">${tables}</div></details>
+      <button type="button" class="forecast-link sp-help forecast-help" data-tip="${esc2(help)}" aria-label="Comprendre le pr\xE9visionnel">Comprendre le calcul \u24D8</button>
     </div>
+    <div class="forecast-all"><button class="forecast-link" data-f-action="manage">Tous les devis / g\xE9rer les s\xE9lections</button></div>
     ${summary.unintegrated.length ? `<details class="forecast-method"><summary>${summary.unintegrated.length} facture(s) / avoir(s) apr\xE8s la p\xE9riode RES \xB7 \xE0 rapprocher</summary><p>Ces pi\xE8ces ne sont pas ajout\xE9es automatiquement : elles pourraient recouper les devis s\xE9lectionn\xE9s.</p><ul>${summary.unintegrated.map((d) => `<li>${esc2(d.date)} \xB7 ${esc2(d.number || d.type)} \xB7 ${esc2(d.client)} : ${money3(d.amount)} HT</li>`).join("")}</ul></details>` : ""}`;
   }
 
@@ -3375,10 +3325,14 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     const editor = document.getElementById("forecast-editor");
     const el = (id) => document.getElementById(id);
     let data, goal, rows = [], summary, tab = "review", editingKey = null, returnFocus;
-    let situationFilter = "", dashboardSearch = "";
+    let situationFilter = "", dashboardSearch = "", dashboardTab = "confirmed";
     const situationOf = (r) => forecastStatus(r) === "Enti\xE8rement factur\xE9" ? "complete" : forecastStatus(r) === "\xC0 v\xE9rifier" ? "review" : r.choice?.action === "include" ? r.choice.remaining === 0 ? "complete" : r.choice.situation : r.status === "complete" ? "complete" : quoteSituation(r) || "review";
     const selected = (r) => r.choice?.action === "include";
     const candidate = (r) => !r.missing && !selected(r) && r.eligible && r.choice?.action !== "exclude";
+    const reviewRows = () => rows.filter((r) => candidate(r) || selected(r) && (r.review || r.missing));
+    const reviewValue = (r) => [r.choice?.remaining, r.proposed, r.amount].find(Number.isFinite);
+    const displayStatus = (r) => forecastStatus(r).replace("Confirm\xE9 \xB7 \xC0 facturer", "\xC0 facturer (estimation)").replace("Confirm\xE9 \xB7 Partiellement factur\xE9", "\xC0 facturer (estimation) \xB7 Partiellement factur\xE9");
+    const dashboardRows = (kind) => kind === "review" ? reviewRows() : rows.filter((r) => selected(r) && !r.review && !r.missing && r.choice.situation === kind && r.choice.remaining > 0);
     const matchingLabel = (r) => r.groupMatch ? "Couverture compl\xE8te probable du groupe de devis" : r.nameConflict ? "Nom associ\xE9 \xE0 plusieurs ID \xB7 \xE0 v\xE9rifier" : `${REASON_LABELS[r.reason] || MATCH_LABELS[r.status]}${r.matchBasis === "name" ? " \xB7 par nom client" : ""}`;
     const describe = (r) => r.missing ? "Absent de cet export \xB7 \xE0 v\xE9rifier" : r.review && selected(r) ? "Rapprochement modifi\xE9 \xB7 \xE0 v\xE9rifier" : r.choice?.action === "exclude" ? "\xC9cart\xE9 manuellement" : matchingLabel(r);
     function recalculate() {
@@ -3395,23 +3349,32 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         host.innerHTML = `<div class="forecast-head"><div><h2 id="forecast-title">Chiffre d\u2019affaires pr\xE9visionnel</h2></div><button class="btn" data-f-action="import">Importer les Pi\xE8ces</button></div><p class="small">Ajoute un export Pi\xE8ces incluant tous les devis, m\xEAme non factur\xE9s. Les brouillons sont exclus automatiquement.</p>${warning}${summary.included.length ? '<p class="forecast-warning">Tes choix sont conserv\xE9s. R\xE9importe les Pi\xE8ces pour les rapprocher et r\xE9activer le pr\xE9visionnel.</p>' : ""}`;
         return;
       }
+      const review = reviewRows();
       host.innerHTML = renderForecastSummary({
         summary,
         goal,
-        reviewCount: rows.filter(candidate).length,
+        reviewCount: review.length,
+        reviewAmount: review.reduce((n, r) => n + (reviewValue(r) ?? 0), 0),
+        reviewUnknown: review.filter((r) => !Number.isFinite(reviewValue(r))).length,
+        counts: Object.fromEntries(["confirmed", "waiting", "validation", "review"].map((k) => [k, dashboardRows(k).length])),
+        activeTab: dashboardTab,
         warning,
         expanded,
         search: dashboardSearch,
-        tables: dashboardTable("confirmed") + dashboardTable("waiting") + dashboardTable("validation"),
+        tables: dashboardTable(dashboardTab),
         money: formatMoney,
         escape: esc2
       });
     }
     function dashboardTable(situation) {
-      const label = { confirmed: "Confirm\xE9s", waiting: "En attente client", validation: "En attente de validation" }[situation];
-      const list = rows.filter((r) => selected(r) && r.choice.situation === situation).filter((r) => `${r.client} ${r.number} ${r.title}`.toLocaleLowerCase("fr").includes(dashboardSearch.toLocaleLowerCase("fr"))).sort((a, b) => a.client.localeCompare(b.client) || String(a.number).localeCompare(String(b.number)));
-      const total2 = list.filter((r) => !r.review && !r.missing).reduce((n, r) => n + r.choice.remaining, 0);
-      return `<section aria-label="Devis ${esc2(label.toLocaleLowerCase("fr"))}"><div class="forecast-table-head"><h3>${esc2(label)} <span class="small">\xB7 ${list.length}</span></h3><strong>${money3(total2)}</strong></div><div class="forecast-table-note small">${situation === "confirmed" ? "Reste \xE0 facturer" : "Hors pr\xE9visionnel confirm\xE9"}</div><div class="forecast-table-scroll"><table><thead><tr><th>Client / devis</th><th>HT</th><th><span class="sr-only">Action</span></th></tr></thead><tbody>${list.map((r) => `<tr><td>${esc2(r.client || "Client non renseign\xE9")}<small>${esc2(r.number || "Sans num\xE9ro")}${r.review || r.missing ? " \xB7 \xC0 v\xE9rifier \xB7 hors totaux" : ""}</small></td><td class="forecast-table-amount">${formatMoney(r.choice.remaining)}</td><td><button class="forecast-link" ${r.missing ? 'data-f-action="selected"' : `data-f-edit="${rows.indexOf(r)}"`} aria-label="${r.review || r.missing ? "V\xE9rifier" : "Modifier"} ${esc2(r.client)} \xB7 ${esc2(r.number)}">${r.review || r.missing ? "V\xE9rifier" : "Modifier"}</button></td></tr>`).join("") || '<tr><td colspan="3" class="small">Aucun devis</td></tr>'}</tbody></table></div></section>`;
+      const label = { confirmed: "\xC0 facturer (estimation)", waiting: "En attente client", validation: "En attente de validation", review: "\xC0 examiner" }[situation];
+      const list = dashboardRows(situation).filter((r) => `${r.client} ${r.number} ${r.title}`.toLocaleLowerCase("fr").includes(dashboardSearch.toLocaleLowerCase("fr"))).sort((a, b) => a.client.localeCompare(b.client) || String(a.number).localeCompare(String(b.number)));
+      const review = situation === "review";
+      const total2 = list.reduce((n, r) => n + (review ? reviewValue(r) ?? 0 : r.choice.remaining), 0);
+      return `<section aria-label="Devis ${esc2(label.toLocaleLowerCase("fr"))}"><div class="forecast-table-head"><span class="small">${list.length} devis \xB7 ${review ? "\xC0 v\xE9rifier \xB7 hors totaux" : situation === "confirmed" ? "Reste \xE0 facturer estim\xE9" : "Hors estimation"}</span><strong>${review ? "Montants \xE0 v\xE9rifier" : money3(total2)}</strong></div><div class="forecast-table-scroll"><table><thead><tr><th scope="col">Client / devis</th><th scope="col" class="forecast-table-amount">${review ? "Montant indicatif HT" : "Reste HT"}</th><th scope="col"><span class="sr-only">Action</span></th></tr></thead><tbody>${list.map((r) => {
+        const value = review ? reviewValue(r) : r.choice.remaining;
+        return `<tr><td><strong>${esc2(r.client || "Client non renseign\xE9")}</strong><small>${esc2(r.number || "Sans num\xE9ro")} \xB7 ${esc2(r.title || "")}</small>${review ? `<small>${esc2(describe(r))}${!Number.isFinite(r.choice?.remaining) && !Number.isFinite(r.proposed) && Number.isFinite(r.amount) ? " \xB7 Montant total du devis, reste \xE0 d\xE9terminer" : ""}</small>` : ""}</td><td class="forecast-table-amount">${Number.isFinite(value) ? formatMoney(value) : "\xC0 d\xE9terminer"}</td><td><button class="forecast-link" ${r.missing ? 'data-f-action="selected"' : `data-f-edit="${rows.indexOf(r)}"`} aria-label="${review ? "V\xE9rifier" : "Voir le d\xE9tail de"} ${esc2(r.client)} \xB7 ${esc2(r.number)}">${review ? "V\xE9rifier le devis" : "Voir le d\xE9tail"} \u2192</button></td></tr>`;
+      }).join("") || '<tr><td colspan="3" class="small">Aucun devis</td></tr>'}</tbody></table></div></section>`;
     }
     function renderList() {
       const yearSelect = el("forecast-year"), previousYear = yearSelect.value;
@@ -3427,14 +3390,14 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       manager.querySelectorAll("[data-f-situation]").forEach((button) => {
         const value = button.dataset.fSituation;
         const count = contextual.filter((r) => !value || situationOf(r) === value).length;
-        button.textContent = (value ? { waiting: "En attente client", validation: "En attente de validation", confirmed: "Chantiers confirm\xE9s", complete: "Enti\xE8rement factur\xE9s", review: "\xC0 v\xE9rifier" }[value] : "Toutes les situations") + " \xB7 " + count;
+        button.textContent = (value ? { waiting: "En attente client", validation: "En attente de validation", confirmed: "\xC0 facturer (estimation)", complete: "Enti\xE8rement factur\xE9s", review: "\xC0 v\xE9rifier" }[value] : "Toutes les situations") + " \xB7 " + count;
         button.setAttribute("aria-pressed", String(value === situationFilter));
       });
       const filtered = contextual.filter((r) => !situationFilter || situationOf(r) === situationFilter);
       el("forecast-filter").textContent = tab === "all" ? "Ajout manuel possible, m\xEAme si une facturation compl\xE8te semble correspondre." : "Brouillons exclus \xB7 rapprochements indicatifs";
       el("forecast-list").innerHTML = filtered.length ? filtered.map((r) => {
         const index = rows.indexOf(r);
-        return `<article class="forecast-row"><div><strong>${esc2(r.client || "Client non renseign\xE9")}</strong><p class="small">${esc2(r.number || "Sans num\xE9ro")} \xB7 ${esc2(r.date || "Date absente")}</p><p class="small">${esc2(r.title)}</p></div><div class="forecast-row-amount">${r.choice?.billed && !r.review ? money3(0) : selected(r) ? money3(r.choice.remaining) : Number.isFinite(r.proposed) ? money3(r.proposed) : "\xC0 d\xE9terminer"}<small>restant \xE0 facturer</small></div><div><span class="forecast-situation ${situationOf(r)}">${esc2(forecastStatus(r))}</span><span class="forecast-badge ${r.review || ["ambiguous", "no-id"].includes(r.status) ? "warn" : ""}">${esc2(describe(r))}</span>${r.accepted ? `<p class="small">Accord du ${esc2(r.agreement_date)}${r.auto ? " \xB7 ajout automatique" : ""}</p>` : ""}</div><div class="forecast-row-actions">${!r.missing ? `<button class="btn" data-f-edit="${index}">${selected(r) ? r.review ? "V\xE9rifier" : "Modifier" : "Ajouter"}</button>` : ""}${selected(r) ? `<button class="forecast-link" data-f-remove="${index}">Retirer</button>` : tab === "review" ? `<button class="forecast-link" data-f-exclude="${index}">\xC9carter</button>` : ""}</div></article>`;
+        return `<article class="forecast-row"><div><strong>${esc2(r.client || "Client non renseign\xE9")}</strong><p class="small">${esc2(r.number || "Sans num\xE9ro")} \xB7 ${esc2(r.date || "Date absente")}</p><p class="small">${esc2(r.title)}</p></div><div class="forecast-row-amount">${r.choice?.billed && !r.review ? money3(0) : selected(r) ? money3(r.choice.remaining) : Number.isFinite(r.proposed) ? money3(r.proposed) : "\xC0 d\xE9terminer"}<small>restant \xE0 facturer</small></div><div><span class="forecast-situation ${situationOf(r)}">${esc2(displayStatus(r))}</span><span class="forecast-badge ${r.review || ["ambiguous", "no-id"].includes(r.status) ? "warn" : ""}">${esc2(describe(r))}</span>${r.accepted ? `<p class="small">Accord du ${esc2(r.agreement_date)}${r.auto ? " \xB7 ajout automatique" : ""}</p>` : ""}</div><div class="forecast-row-actions">${!r.missing ? `<button class="btn" data-f-edit="${index}">${selected(r) ? r.review ? "V\xE9rifier" : "Modifier" : "Ajouter"}</button>` : ""}${selected(r) ? `<button class="forecast-link" data-f-remove="${index}">Retirer</button>` : tab === "review" ? `<button class="forecast-link" data-f-exclude="${index}">\xC9carter</button>` : ""}</div></article>`;
       }).join("") : '<p class="forecast-empty">Aucun devis dans cette vue.</p>';
       el("forecast-storage-message").textContent = storage.warning;
     }
@@ -3498,15 +3461,17 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     host.addEventListener("input", (e) => {
       if (e.target.id !== "forecast-dashboard-search") return;
       dashboardSearch = e.target.value;
-      el("forecast-dashboard-tables").innerHTML = dashboardTable("confirmed") + dashboardTable("waiting") + dashboardTable("validation");
+      el("forecast-dashboard-tables").innerHTML = dashboardTable(dashboardTab);
     });
     host.addEventListener("click", (e) => {
       const b = e.target.closest("button");
       if (!b) return;
       if (b.classList.contains("sp-help")) return;
-      if (b.dataset.fFilter) {
-        const kind = b.dataset.fFilter;
-        openManager("selected", kind);
+      if (b.dataset.fFilter || b.dataset.fJump) {
+        dashboardTab = b.dataset.fFilter || b.dataset.fJump;
+        dashboardSearch = "";
+        renderSummary(true);
+        el("forecast-tab-" + dashboardTab).focus();
         return;
       }
       if (b.dataset.fEdit !== void 0) {
@@ -3515,7 +3480,17 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         return;
       }
       if (b.dataset.fAction === "import") el("forecast-input").click();
-      else openManager(b.dataset.fAction === "selected" ? "selected" : "review");
+      else openManager(b.dataset.fAction === "selected" ? "selected" : b.dataset.fAction === "manage" ? "all" : "review");
+    });
+    host.addEventListener("keydown", (e) => {
+      if (!e.target.matches("[role=tab]") || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
+      e.preventDefault();
+      const tabs = ["confirmed", "waiting", "validation", "review"];
+      const index = tabs.indexOf(dashboardTab);
+      dashboardTab = tabs[e.key === "Home" ? 0 : e.key === "End" ? 3 : (index + (e.key === "ArrowRight" ? 1 : 3)) % 4];
+      dashboardSearch = "";
+      renderSummary(true);
+      el("forecast-tab-" + dashboardTab).focus();
     });
     manager.addEventListener("click", (e) => {
       const b = e.target.closest("button");
@@ -3591,7 +3566,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     });
     editor.addEventListener("close", () => {
       if (manager.open) el("forecast-search").focus();
-      else host.querySelector('[data-f-action="manage"]')?.focus();
+      else (returnFocus?.isConnected ? returnFocus : el("forecast-tab-" + dashboardTab) || host.querySelector('[data-f-action="manage"]'))?.focus();
     });
     return {
       render(nextData, nextGoal) {
@@ -3686,7 +3661,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         if (outlook?.totalMB !== null && outlook?.totalMB !== void 0) {
           datasets.push({
             type: "bar",
-            label: "Marge estim\xE9e sur le confirm\xE9 HT",
+            label: "Marge estim\xE9e sur le CA \xE0 facturer (estimation) HT",
             data: outlook.monthlyMargin,
             backgroundColor: "rgba(79, 188, 188, 0.42)",
             borderColor: COLORS2.green,
@@ -3698,7 +3673,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
           });
           datasets.push({
             type: "bar",
-            label: "Achats & co\xFBts estim\xE9s sur le confirm\xE9 HT",
+            label: "Achats & co\xFBts estim\xE9s sur le CA \xE0 facturer (estimation) HT",
             data: outlook.monthlyCosts,
             backgroundColor: "rgba(255, 95, 133, 0.38)",
             borderColor: COLORS2.red,
@@ -3711,7 +3686,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         } else {
           datasets.push({
             type: "bar",
-            label: "CA confirm\xE9 \xE0 facturer HT (s\xE9lection)",
+            label: "CA \xE0 facturer (estimation) HT (s\xE9lection)",
             data: DATA2.forecast.monthly,
             backgroundColor: COLORS2.blue,
             stack: "forecast",
@@ -3824,10 +3799,10 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
                   const cv = caArr[i];
                   const lines = cv != null ? ["CA total : " + fmtEUR2(cv)] : [];
                   if (DATA2?.forecast?.monthly[i] != null) {
-                    lines.push("CA confirm\xE9 \xE0 facturer : " + fmtEUR2(DATA2.forecast.monthly[i]) + " HT");
+                    lines.push("CA \xE0 facturer (estimation) : " + fmtEUR2(DATA2.forecast.monthly[i]) + " HT");
                     if (outlook?.monthlyCosts[i] != null) {
                       lines.push("Co\xFBts estim\xE9s apr\xE8s d\xE9duction des d\xE9penses d\xE9j\xE0 engag\xE9es.");
-                      lines.push("R\xE9partition mensuelle au prorata du CA confirm\xE9.");
+                      lines.push("R\xE9partition mensuelle au prorata du CA \xE0 facturer (estimation).");
                     } else lines.push("R\xE9partition marge / co\xFBts indisponible.");
                   }
                   if (currentMonthProjection && i === currentMonthProjection.monthIndex) {
@@ -4013,7 +3988,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       const outlook = forecastOutlook(DATA2);
       if (outlook && (isCA || outlook.totalMB !== null)) {
         datasets.push({
-          label: isCA ? "R\xE9alis\xE9 + CA confirm\xE9 HT" : "R\xE9alis\xE9 + marge estim\xE9e HT",
+          label: isCA ? "R\xE9alis\xE9 + CA \xE0 facturer (estimation) HT" : "R\xE9alis\xE9 + marge estim\xE9e HT",
           data: isCA ? outlook.ca : outlook.mb,
           borderColor: currentColor,
           backgroundColor: "transparent",
@@ -6520,7 +6495,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var spb = document.querySelector(".sp-body");
     if (spb) spb.addEventListener("scroll", hide);
   })();
-  var APP_VERSION = "20261008-111931";
+  var APP_VERSION = "20261008-121556";
   function showUpdateBanner(base, v) {
     if (document.getElementById("update-banner")) return;
     var d = document.createElement("div");
