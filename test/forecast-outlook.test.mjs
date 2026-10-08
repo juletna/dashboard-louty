@@ -84,3 +84,11 @@ test('uniform confirmed scenario reaches December even with rounded zero months 
   assert.equal(result.totalCA,200);assert.equal(result.ca[11],200);
   for(let i=9;i<12;i++)assert.equal(Math.round((result.monthlyCosts[i]+result.monthlyMargin[i])*100),Math.round(input.forecast.monthly[i]*100));
 });
+
+test('contribution rate uses the margin reference years and stays unavailable when a year lacks it',()=>{
+  const input=data();
+  input.years[2024].monthly.contribution_coop[0]=6;input.years[2025].monthly.contribution_coop[0]=21;
+  assert.equal(forecastProjection(input).contributionRate,.1); // 27 / 270, same years as the margin rate.
+  input.years[2025].monthly.contribution_coop=Array(12).fill(null);
+  assert.equal(forecastProjection(input).contributionRate,null);
+});

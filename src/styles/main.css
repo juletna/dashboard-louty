@@ -1269,6 +1269,9 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .forecast-potential-foot{display:flex;align-items:center;justify-content:space-between;gap:0 10px;flex-wrap:wrap;font-size:11px;color:var(--text-dim)}
 .forecast-potential-waiting .forecast-potential-foot{display:block;font-size:12px}
 .forecast-potential-waiting .forecast-link{display:block}
+.forecast-potential.is-empty{background:transparent;border:1px dashed var(--border);color:var(--text-dim)}
+.forecast-potential.is-empty>strong,.forecast-potential.is-empty h3{color:var(--text-dim);opacity:.55;font-weight:inherit}
+.forecast-potential.is-empty>strong{font-weight:800}
 .revenue-forecast .forecast-link{color:var(--violet);text-decoration:none}
 .revenue-forecast .forecast-link:hover{color:var(--text);text-decoration:underline}
 .forecast-details-row{position:relative;border-top:1px solid var(--border);padding-top:12px}

@@ -1278,6 +1278,9 @@ table.cmp tbody td:nth-child(3) { font-weight:600; color:var(--text-dim); }
 .forecast-potential-foot{display:flex;align-items:center;justify-content:space-between;gap:0 10px;flex-wrap:wrap;font-size:11px;color:var(--text-dim)}
 .forecast-potential-waiting .forecast-potential-foot{display:block;font-size:12px}
 .forecast-potential-waiting .forecast-link{display:block}
+.forecast-potential.is-empty{background:transparent;border:1px dashed var(--border);color:var(--text-dim)}
+.forecast-potential.is-empty>strong,.forecast-potential.is-empty h3{color:var(--text-dim);opacity:.55;font-weight:inherit}
+.forecast-potential.is-empty>strong{font-weight:800}
 .revenue-forecast .forecast-link{color:var(--violet);text-decoration:none}
 .revenue-forecast .forecast-link:hover{color:var(--text);text-decoration:underline}
 .forecast-details-row{position:relative;border-top:1px solid var(--border);padding-top:12px}
@@ -2125,6 +2128,9 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     const referenceCA = referenceYears.reduce((sum, year) => sum + sumPeriod(data.years[year], "ca"), 0);
     const referenceMB = referenceYears.reduce((sum, year) => sum + sumPeriod(data.years[year], "marge_brute"), 0);
     const rate = referenceCA > 0 ? referenceMB / referenceCA : null;
+    const contributionKnown = referenceYears.length > 0 && referenceYears.every((year) => hasObservedValue(data.years[year].monthly.contribution_coop));
+    const referenceContribution = contributionKnown ? referenceYears.reduce((sum, year) => sum + (sumPeriod(data.years[year], "contribution_coop") ?? 0), 0) : null;
+    const contributionRate = referenceContribution !== null && referenceMB > 0 ? referenceContribution / referenceMB : null;
     const totalCA = forecast.actual + futureCA;
     const futureMargin = futureCA === 0 ? 0 : rate === null ? null : futureCA * rate;
     const futureCosts = futureMargin === null ? null : futureCA - futureMargin;
@@ -2138,6 +2144,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       totalMB: totalMB === null ? null : round(totalMB),
       futureCosts,
       rate,
+      contributionRate,
       referenceYears,
       reference: referenceYears.join(" et ") || "historique indisponible",
       unavailable: actualMB === null ? "Marge r\xE9alis\xE9e indisponible sur la p\xE9riode." : futureMargin === null ? "Taux de marge historique indisponible." : null
@@ -3261,8 +3268,20 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       incompleteMonth: incompleteChargesMonth(year, month)
     };
   }
-  function projectedPlanResult(projectedMargin, plan) {
-    return Number.isFinite(projectedMargin) && Number.isFinite(plan.salary) && Number.isFinite(plan.charges) ? projectedMargin - plan.salary - plan.charges : null;
+  function projectedPlanResultDetail(projectedMargin, plan, contributionRate = null) {
+    if (!Number.isFinite(projectedMargin) || !Number.isFinite(plan.salary) || !Number.isFinite(plan.charges)) return null;
+    const planMargin = plan.salary + plan.charges + plan.surplus;
+    const adjusted = Number.isFinite(contributionRate) && contributionRate >= 0 && Number.isFinite(planMargin);
+    const adjustment = adjusted ? contributionRate * (projectedMargin - planMargin) : 0;
+    return {
+      margin: projectedMargin,
+      salary: plan.salary,
+      charges: plan.charges,
+      contributionRate: adjusted ? contributionRate : null,
+      planMargin: adjusted ? planMargin : null,
+      adjustment,
+      result: projectedMargin - plan.salary - plan.charges - adjustment
+    };
   }
 
   // src/app/views/annual-cap.js
@@ -3310,10 +3329,26 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     ].filter(Boolean);
     return head + '<p class="tip-period">' + escape(period) + '</p><div class="tip-calc">' + row("CA r\xE9alis\xE9", e(actualCA)) + (closed ? "" : row("+ Reste \xE0 facturer" + count, e(futureCA))) + row("= Projection", e(totalCA), "tip-total") + "</div>" + (excluded.length ? '<p class="tip-formula">Non compt\xE9s : ' + escape(excluded.join(" \xB7 ")) + "</p>" : "") + '<p class="tip-result">\u2248 ' + e(totalCA) + " HT sur " + escape(year) + "</p>";
   }
-  function renderCapProjections(host, { year, salary, result, margin, revenue, goals, salaryHelp, revenueHelp }, { money: money3, escape }) {
+  var RESULT_INTRO = "Ce qu\u2019il te resterait fin ann\xE9e : la marge gagn\xE9e, moins ton salaire et les charges pr\xE9vus.";
+  function percent(rate) {
+    return (rate * 100).toLocaleString("fr-FR", { maximumFractionDigits: 1 }) + " %";
+  }
+  function projectedResultHelp({ detail, projection, year }, { money: money3, escape }) {
+    const head = '<strong class="tip-title">Projection r\xE9sultat ' + escape(year) + "</strong><p>" + RESULT_INTRO + "</p>";
+    if (!detail || !projection) return head + "<p>Calcul indisponible : importe les Pi\xE8ces et une p\xE9riode RES compl\xE8te \xE0 date.</p>";
+    const e = (value) => escape(money3(value));
+    const { end, actualMB, futureCA, rate, reference } = projection;
+    const closed = end === 12;
+    const period = "R\xE9alis\xE9 janv. \u2192 " + monthName(year, end, "short") + " " + year + (closed ? "" : " \xB7 estim\xE9 " + monthName(year, end + 1, "short") + (end + 1 === 12 ? "" : " \u2192 d\xE9c."));
+    const adjusted = detail.contributionRate !== null && Math.round(detail.adjustment) !== 0;
+    const margin = "Marge = " + e(actualMB) + " r\xE9alis\xE9s" + (closed || !(futureCA > 0) ? "" : " + " + e(futureCA) + " HT \xE0 venir \xD7 " + (rate === null ? "taux indisponible" : percent(rate) + " (moy. " + escape(reference) + ")")) + ".";
+    const surplus = detail.result >= 0;
+    return head + '<p class="tip-period">' + escape(period) + '</p><div class="tip-calc">' + row("Marge brute projet\xE9e", e(detail.margin)) + row("\u2212 Salaire brut pr\xE9vu (12 mois)", e(detail.salary)) + row("\u2212 Charges pr\xE9vues (12 mois)", e(detail.charges)) + (adjusted ? row(detail.adjustment > 0 ? "\u2212 Ajustement contribution" : "+ Ajustement contribution", e(Math.abs(detail.adjustment))) : "") + row("= R\xE9sultat projet\xE9", e(detail.result), "tip-total") + '</div><p class="tip-formula">' + margin + (adjusted ? " Ajustement = " + percent(detail.contributionRate) + " \xD7 l\u2019\xE9cart de marge avec le plan (" + e(detail.margin - detail.planMargin) + ")." : "") + ' Salaire et charges sont ceux du plan, pas le r\xE9alis\xE9.</p><p class="tip-result">\u2248 ' + e(Math.abs(detail.result)) + (surplus ? " d\u2019exc\xE9dent" : " de d\xE9ficit") + "</p>";
+  }
+  function renderCapProjections(host, { year, salary, result, margin, revenue, goals, salaryHelp, resultHelp, revenueHelp }, { money: money3, escape }) {
     const cards = [
       ["Salaire net d\xE9gageable", salary, goals.salary, true, salaryHelp, "D\xE9tail du calcul du salaire net d\xE9gageable"],
-      ["Projection r\xE9sultat " + year, result, goals.result],
+      ["Projection r\xE9sultat " + year, result, goals.result, false, resultHelp, "D\xE9tail du calcul de la projection du r\xE9sultat"],
       ["Projection marge brute " + year, margin, goals.margin],
       ["Projection chiffre d\u2019affaires " + year, revenue, goals.revenue, false, revenueHelp, "D\xE9tail du calcul de la projection du chiffre d\u2019affaires"]
     ];
@@ -3352,11 +3387,13 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     const surplus = coverage ? -coverage.balance : 0;
     const labels = { confirmed: "\xC0 facturer (estimation)", waiting: "En attente client", validation: "En attente de validation", review: "\xC0 examiner" };
     const help = "Montants HT. Le besoin restant correspond \xE0 l\u2019objectif annuel moins le CA r\xE9alis\xE9. Les devis accept\xE9s et v\xE9rifi\xE9s alimentent le montant \xE0 facturer estim\xE9, qui reste susceptible d\u2019ajustements. Les attentes et les devis \xE0 examiner restent hors estimation. Pour les devis \xE0 examiner, le montant saisi ou le reste candidat est affich\xE9 lorsqu\u2019il est connu ; sinon, le montant total du devis sert de rep\xE8re, sans constituer un reste \xE0 facturer valid\xE9. Les montants inconnus sont signal\xE9s. Le sc\xE9nario annuel r\xE9partit l\u2019estimation uniform\xE9ment apr\xE8s la p\xE9riode RES jusqu\u2019\xE0 d\xE9cembre ; il ne constitue pas un calendrier de facturation et alimente les projections du cap annuel.";
-    const potential = (kind, amount, note) => `<aside class="forecast-potential forecast-potential-${kind}" aria-label="${labels[kind]}"><h3>${labels[kind]}</h3><strong>${money3(amount)} <small>HT</small></strong><div class="forecast-potential-foot"><span>${note}</span><button class="forecast-link" data-f-jump="${kind}">${counts[kind] === 1 ? "Voir le devis" : `Voir les ${counts[kind]} devis`} \u2192</button></div></aside>`;
-    const showWaiting = summary.waiting !== 0;
-    const showValidation = summary.validation !== 0;
+    const potential = (kind, amount, note) => {
+      const empty = amount === 0 && !counts[kind];
+      const foot = empty ? "<span>Aucun devis</span>" : `<span>${note}</span><button class="forecast-link" data-f-jump="${kind}">${counts[kind] === 1 ? "Voir le devis" : `Voir les ${counts[kind]} devis`} \u2192</button>`;
+      return `<aside class="forecast-potential forecast-potential-${kind}${empty ? " is-empty" : ""}" aria-label="${labels[kind]}"${empty ? ' aria-disabled="true"' : ""}><h3>${labels[kind]}</h3><strong>${money3(amount)} <small>HT</small></strong><div class="forecast-potential-foot">${foot}</div></aside>`;
+    };
     const showReview = reviewAmount !== 0 || reviewUnknown > 0;
-    const columns = Number(showWaiting) + Number(showValidation || showReview);
+    const columns = 2;
     return `<div class="forecast-head"><div><h2 id="forecast-title">Chiffre d\u2019affaires pr\xE9visionnel</h2><p class="small">Restant \xE0 facturer \xB7 exercice ${esc2(summary.year)} \xB7 montants HT</p></div></div>${warning}
     <div class="forecast-future-layout" data-potential-columns="${columns}">
       <section id="cap-forecast" class="forecast-coverage" aria-label="Couverture du CA restant \xE0 produire">
@@ -3367,13 +3404,13 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
           <div class="forecast-coverage-legend"><span><span><i></i>${surplus < 0 ? "Besoin couvert par l\u2019estim\xE9" : "Besoin couvert"}</span><strong>${money3(covered)} HT</strong></span><span><span><i class="${surplus < 0 ? "forecast-gap-dot" : "forecast-excess-dot"}"></i>${surplus < 0 ? "Reste \xE0 trouver" : "D\xE9passement estim\xE9"}</span><strong>${surplus > 0 ? "+" : ""}${money3(Math.abs(surplus))} HT</strong></span></div>
         </div>` : '<p class="small">Besoin indisponible : un objectif et une p\xE9riode RES couverte sont n\xE9cessaires.</p>'}
       </section>
-      ${columns ? `<div class="forecast-potentials" style="--potential-columns:${columns}">
-        ${showWaiting ? potential("waiting", summary.waiting, "Hors estimation") : ""}
-        ${showValidation || showReview ? `<div class="forecast-potential-stack">
-        ${showValidation ? potential("validation", summary.validation, "Hors estimation") : ""}
+      ${`<div class="forecast-potentials" style="--potential-columns:${columns}">
+        ${potential("waiting", summary.waiting, "Hors estimation")}
+        <div class="forecast-potential-stack">
+        ${potential("validation", summary.validation, "Hors estimation")}
         ${showReview ? `<aside class="forecast-potential forecast-review-card" aria-label="\xC0 examiner"><h3>\xC0 examiner</h3><strong>${reviewUnknown === reviewCount && reviewCount > 0 ? "\xC0 d\xE9terminer" : money3(reviewAmount) + " <small>HT</small>"}</strong><div class="forecast-potential-foot"><span>Montants indicatifs \xB7 hors totaux${reviewUnknown ? ` \xB7 ${reviewUnknown} non renseign\xE9(s)` : ""}</span><button class="forecast-link" data-f-jump="review">V\xE9rifier ${reviewCount} devis \u2192</button></div></aside>` : ""}
-        </div>` : ""}
-      </div>` : ""}
+        </div>
+      </div>`}
     </div>
     ${summary.reviewCount ? `<p class="forecast-warning">${summary.reviewCount} devis s\xE9lectionn\xE9(s) \xE0 v\xE9rifier apr\xE8s actualisation du rapprochement. Leurs montants saisis sont conserv\xE9s, mais suspendus des totaux. <button class="forecast-link" data-f-action="selected">V\xE9rifier</button></p>` : ""}
     <div class="forecast-details-row"><details id="forecast-followed" class="forecast-followed" ${expanded ? "open" : ""}><summary><span class="forecast-show-label">Afficher les devis \u2192</span><span class="forecast-hide-label">Masquer les devis \u2191</span></summary>
@@ -5327,10 +5364,11 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var hist = historicalPlanReference2(data);
     var capacity = salaryCapacityAtDate(data.years[cur.year], cur.year, cur.mois_renseignes, data.res_export_iso || data.file_mtime_iso, NET_FROM_GROSS, hist.contributionRate);
     const projection = forecastProjection(data);
+    const resultDetail = projectedPlanResultDetail(projection?.totalMB ?? null, PLAN, projection?.contributionRate ?? null);
     renderCapProjections(document.getElementById("cap-projections"), {
       year: cur.year,
       salary: capacity.monthlyNet,
-      result: projectedPlanResult(projection?.totalMB ?? null, PLAN),
+      result: resultDetail?.result ?? null,
       margin: projection?.totalMB ?? null,
       revenue: projection?.totalCA ?? null,
       goals: {
@@ -5339,6 +5377,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         margin: C.MB_AN_OBJ,
         revenue: C.CA_OBJ
       },
+      resultHelp: projectedResultHelp({ detail: resultDetail, projection, year: cur.year }, { money: fmtEUR, escape: esc }),
       salaryHelp: salaryCapacityHelp(capacity, { money: fmtEUR, escape: esc }),
       revenueHelp: revenueProjectionHelp(
         {
@@ -5355,7 +5394,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         { money: fmtEUR, escape: esc }
       )
     }, { money: fmtEUR, escape: esc });
-    document.getElementById("cap-projection-method").textContent = "Le salaire d\xE9gageable correspond \xE0 la marge brute \xE0 date moins les charges de fonctionnement et la contribution coop\xE9rative, avant d\xE9duction des r\xE9mun\xE9rations d\xE9j\xE0 vers\xE9es, pour un r\xE9sultat \xE0 z\xE9ro. La contribution \xE9tant comptabilis\xE9e avec retard, on retient le plus \xE9lev\xE9 entre le montant saisi et la part historique de la marge brute" + (hist.contributionRate !== null ? " (" + fmtPct(hist.contributionRate, 1) + ", moyenne des exercices " + hist.label + ")" : "") + ". Ce disponible est converti en net et divis\xE9 par les mois couverts, le mois de l\u2019export \xE9tant proratis\xE9 au jour inclus." + (capacity.elapsedMonths !== null ? " P\xE9riode retenue : " + capacity.elapsedMonths.toLocaleString("fr-FR", { maximumFractionDigits: 2 }) + " mois." : " Calcul indisponible : date ou donn\xE9es de la p\xE9riode manquantes.") + (capacity.availableGross < 0 ? " Aucun salaire n\u2019est finan\xE7able : d\xE9ficit avant r\xE9mun\xE9ration de " + fmtEUR(-capacity.availableGross) + "." : "") + " Le r\xE9sultat annuel projet\xE9 d\xE9duit de la marge projet\xE9e le salaire brut annuel pr\xE9vu et les charges annuelles pr\xE9vues dans les objectifs." + (projection ? " Taux historique : " + (projection.rate === null ? "indisponible" : fmtPct(projection.rate, 1) + " (" + projection.reference + ")") + "." + (projection.unavailable ? " " + projection.unavailable : "") + (projection.end === 12 ? " Exercice enti\xE8rement couvert : les cartes affichent le r\xE9alis\xE9, sans ajout des devis restants." : " \xC0 facturer retenu : " + fmtEUR(projection.futureCA) + " HT, r\xE9parti jusqu\u2019\xE0 d\xE9cembre.") : " Projection indisponible : importe les Pi\xE8ces et une p\xE9riode RES compl\xE8te \xE0 date.");
+    document.getElementById("cap-projection-method").textContent = "Le salaire d\xE9gageable correspond \xE0 la marge brute \xE0 date moins les charges de fonctionnement et la contribution coop\xE9rative, avant d\xE9duction des r\xE9mun\xE9rations d\xE9j\xE0 vers\xE9es, pour un r\xE9sultat \xE0 z\xE9ro. La contribution \xE9tant comptabilis\xE9e avec retard, on retient le plus \xE9lev\xE9 entre le montant saisi et la part historique de la marge brute" + (hist.contributionRate !== null ? " (" + fmtPct(hist.contributionRate, 1) + ", moyenne des exercices " + hist.label + ")" : "") + ". Ce disponible est converti en net et divis\xE9 par les mois couverts, le mois de l\u2019export \xE9tant proratis\xE9 au jour inclus." + (capacity.elapsedMonths !== null ? " P\xE9riode retenue : " + capacity.elapsedMonths.toLocaleString("fr-FR", { maximumFractionDigits: 2 }) + " mois." : " Calcul indisponible : date ou donn\xE9es de la p\xE9riode manquantes.") + (capacity.availableGross < 0 ? " Aucun salaire n\u2019est finan\xE7able : d\xE9ficit avant r\xE9mun\xE9ration de " + fmtEUR(-capacity.availableGross) + "." : "") + " Le r\xE9sultat annuel projet\xE9 d\xE9duit de la marge projet\xE9e le salaire brut annuel pr\xE9vu et les charges annuelles pr\xE9vues dans les objectifs ; la contribution coop\xE9rative suit l\u2019\xE9cart de marge avec le plan au taux historique." + (projection ? " Taux historique : " + (projection.rate === null ? "indisponible" : fmtPct(projection.rate, 1) + " (" + projection.reference + ")") + "." + (projection.unavailable ? " " + projection.unavailable : "") + (projection.end === 12 ? " Exercice enti\xE8rement couvert : les cartes affichent le r\xE9alis\xE9, sans ajout des devis restants." : " \xC0 facturer retenu : " + fmtEUR(projection.futureCA) + " HT, r\xE9parti jusqu\u2019\xE0 d\xE9cembre.") : " Projection indisponible : importe les Pi\xE8ces et une p\xE9riode RES compl\xE8te \xE0 date.");
   }
   function renderAnnualCap(data) {
     var host = document.getElementById("annual-cap");

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { salaryCapacityAtDate, projectedPlanResult } from '../src/app/domain/annual-cap.js';
+import { salaryCapacityAtDate, projectedPlanResultDetail } from '../src/app/domain/annual-cap.js';
 const year = { months_present:[1,2,3], monthly:{ marge_brute:[1000,1000,500], charges_fonct:[100,100,50], contribution_coop:[20,20,10], remunerations:[9000,9000,9000] } };
 test('salary capacity uses actual margin and costs, ignoring paid salary, with current month prorated', () => {
   const result = salaryCapacityAtDate(year, '2026', 3, '2026-03-15T12:00:00', 0.65);
@@ -24,10 +24,29 @@ test('zero and negative capacity are distinguished from unavailable metrics', ()
   }
 });
 test('annual result preserves losses and uses planned annual salary and costs', () => {
-  const plan = { salary:30000, charges:15000 };
-  assert.equal(projectedPlanResult(60000, plan), 15000);
-  assert.equal(projectedPlanResult(40000, plan), -5000);
-  assert.equal(projectedPlanResult(null, plan), null);
+  const plan = { salary:30000, charges:15000, surplus:5000 };
+  assert.equal(projectedPlanResultDetail(60000, plan).result, 15000);
+  assert.equal(projectedPlanResultDetail(40000, plan).result, -5000);
+  assert.equal(projectedPlanResultDetail(null, plan), null);
+  assert.equal(projectedPlanResultDetail(60000, { salary:30000, charges:null }), null);
+});
+test('contribution follows the margin gap with the plan and a projection on plan lands on the surplus', () => {
+  const plan = { salary:30000, charges:15000, surplus:5000 };
+  assert.equal(projectedPlanResultDetail(50000, plan, 0.1).result, 5000);
+  const above = projectedPlanResultDetail(60000, plan, 0.1);
+  assert.equal(above.adjustment, 1000);
+  assert.equal(above.result, 14000);
+  assert.equal(projectedPlanResultDetail(40000, plan, 0.1).result, -4000);
+  assert.equal(projectedPlanResultDetail(60000, plan, 0).result, 15000);
+});
+test('result is not adjusted without a usable contribution rate or plan margin', () => {
+  const plan = { salary:30000, charges:15000, surplus:5000 };
+  for (const rate of [null, undefined, NaN, -0.1]) {
+    const detail = projectedPlanResultDetail(60000, plan, rate);
+    assert.equal(detail.result, 15000);
+    assert.equal(detail.contributionRate, null);
+  }
+  assert.equal(projectedPlanResultDetail(60000, { salary:30000, charges:15000 }, 0.1).result, 15000);
 });
 test('contribution is never taken below the historical share of margin', () => {
   const data = { months_present:[1,2,3], monthly:{ marge_brute:[1000,1000,1000], charges_fonct:[100,100,100], contribution_coop:[20,20,null] } };

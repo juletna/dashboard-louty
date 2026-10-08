@@ -21,6 +21,10 @@ export function forecastProjection(data) {
   const referenceCA = referenceYears.reduce((sum, year) => sum + sumPeriod(data.years[year], 'ca'), 0);
   const referenceMB = referenceYears.reduce((sum, year) => sum + sumPeriod(data.years[year], 'marge_brute'), 0);
   const rate = referenceCA > 0 ? referenceMB / referenceCA : null;
+  // Same reference years as the margin rate: the contribution follows the margin, not a fixed amount.
+  const contributionKnown = referenceYears.length > 0 && referenceYears.every(year => hasObservedValue(data.years[year].monthly.contribution_coop));
+  const referenceContribution = contributionKnown ? referenceYears.reduce((sum, year) => sum + (sumPeriod(data.years[year], 'contribution_coop') ?? 0), 0) : null;
+  const contributionRate = referenceContribution !== null && referenceMB > 0 ? referenceContribution / referenceMB : null;
   const totalCA = forecast.actual + futureCA;
   const futureMargin = futureCA === 0 ? 0 : rate === null ? null : futureCA * rate;
   const futureCosts = futureMargin === null ? null : futureCA - futureMargin;
@@ -28,7 +32,7 @@ export function forecastProjection(data) {
   return {
     end, actualCA:forecast.actual, actualMB, futureCA:round(futureCA),
     totalCA:round(totalCA), totalMB:totalMB === null ? null : round(totalMB),
-    futureCosts, rate, referenceYears, reference:referenceYears.join(' et ') || 'historique indisponible',
+    futureCosts, rate, contributionRate, referenceYears, reference:referenceYears.join(' et ') || 'historique indisponible',
     unavailable:actualMB === null ? 'Marge réalisée indisponible sur la période.' : futureMargin === null ? 'Taux de marge historique indisponible.' : null,
   };
 }

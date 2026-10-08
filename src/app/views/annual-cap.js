@@ -73,10 +73,43 @@ export function revenueProjectionHelp({ projection, year, quotes = {}, exportIso
     '<p class="tip-result">≈ ' + e(totalCA) + ' HT sur ' + escape(year) + '</p>';
 }
 
-export function renderCapProjections(host, { year, salary, result, margin, revenue, goals, salaryHelp, revenueHelp }, { money, escape }) {
+const RESULT_INTRO = 'Ce qu’il te resterait fin année : la marge gagnée, moins ton salaire et les charges prévus.';
+
+function percent(rate) {
+  return (rate * 100).toLocaleString('fr-FR', { maximumFractionDigits:1 }) + ' %';
+}
+
+// detail: projectedPlanResultDetail(); projection: forecastProjection(), for the covered period and the margin rate.
+export function projectedResultHelp({ detail, projection, year }, { money, escape }) {
+  const head = '<strong class="tip-title">Projection résultat ' + escape(year) + '</strong><p>' + RESULT_INTRO + '</p>';
+  if (!detail || !projection) return head + '<p>Calcul indisponible : importe les Pièces et une période RES complète à date.</p>';
+  const e = (value) => escape(money(value));
+  const { end, actualMB, futureCA, rate, reference } = projection;
+  const closed = end === 12;
+  const period = 'Réalisé janv. → ' + monthName(year, end, 'short') + ' ' + year +
+    (closed ? '' : ' · estimé ' + monthName(year, end + 1, 'short') + (end + 1 === 12 ? '' : ' → déc.'));
+  const adjusted = detail.contributionRate !== null && Math.round(detail.adjustment) !== 0;
+  const margin = 'Marge = ' + e(actualMB) + ' réalisés' +
+    (closed || !(futureCA > 0) ? '' : ' + ' + e(futureCA) + ' HT à venir × ' + (rate === null ? 'taux indisponible' : percent(rate) + ' (moy. ' + escape(reference) + ')')) + '.';
+  const surplus = detail.result >= 0;
+  return head + '<p class="tip-period">' + escape(period) + '</p>' +
+    '<div class="tip-calc">' +
+      row('Marge brute projetée', e(detail.margin)) +
+      row('− Salaire brut prévu (12 mois)', e(detail.salary)) +
+      row('− Charges prévues (12 mois)', e(detail.charges)) +
+      (adjusted ? row(detail.adjustment > 0 ? '− Ajustement contribution' : '+ Ajustement contribution', e(Math.abs(detail.adjustment))) : '') +
+      row('= Résultat projeté', e(detail.result), 'tip-total') +
+    '</div>' +
+    '<p class="tip-formula">' + margin +
+      (adjusted ? ' Ajustement = ' + percent(detail.contributionRate) + ' × l’écart de marge avec le plan (' + e(detail.margin - detail.planMargin) + ').' : '') +
+      ' Salaire et charges sont ceux du plan, pas le réalisé.</p>' +
+    '<p class="tip-result">≈ ' + e(Math.abs(detail.result)) + (surplus ? ' d’excédent' : ' de déficit') + '</p>';
+}
+
+export function renderCapProjections(host, { year, salary, result, margin, revenue, goals, salaryHelp, resultHelp, revenueHelp }, { money, escape }) {
   const cards = [
     ['Salaire net dégageable', salary, goals.salary, true, salaryHelp, 'Détail du calcul du salaire net dégageable'],
-    ['Projection résultat ' + year, result, goals.result],
+    ['Projection résultat ' + year, result, goals.result, false, resultHelp, 'Détail du calcul de la projection du résultat'],
     ['Projection marge brute ' + year, margin, goals.margin],
     ['Projection chiffre d’affaires ' + year, revenue, goals.revenue, false, revenueHelp, 'Détail du calcul de la projection du chiffre d’affaires'],
   ];

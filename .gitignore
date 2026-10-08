@@ -1,2 +1,5 @@
 .DS_Store
 node_modules/
+
+# Exports Louty réels convertis en JSON (données clients, jamais versionnées)
+test/private/

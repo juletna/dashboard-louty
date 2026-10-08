@@ -3,8 +3,8 @@ import { forecastOutlookHTML } from './views/forecast-outlook.js';
 import './parser.js';
 import { advanceMatches, paymentDetails as derivePaymentDetails } from './domain/payments.js';
 import { customerModalRows, renderCustomerAdvances } from './views/customer-payments.js';
-import { salaryCapacityAtDate, projectedPlanResult } from './domain/annual-cap.js';
-import { renderCapProjections, revenueProjectionHelp, salaryCapacityHelp } from './views/annual-cap.js';
+import { salaryCapacityAtDate, projectedPlanResultDetail } from './domain/annual-cap.js';
+import { projectedResultHelp, renderCapProjections, revenueProjectionHelp, salaryCapacityHelp } from './views/annual-cap.js';
 import { createForecastView } from './views/forecast.js';
 import { createCartesianCharts } from './charts/cartesian.js';
 import {
@@ -531,11 +531,13 @@ function updateCapProjections(data) {
   var hist = historicalPlanReference(data);
   var capacity = salaryCapacityAtDate(data.years[cur.year], cur.year, cur.mois_renseignes, data.res_export_iso || data.file_mtime_iso, NET_FROM_GROSS, hist.contributionRate);
   const projection = forecastProjection(data);
+  const resultDetail = projectedPlanResultDetail(projection?.totalMB ?? null, PLAN, projection?.contributionRate ?? null);
   renderCapProjections(document.getElementById('cap-projections'), {
-    year:cur.year, salary:capacity.monthlyNet, result:projectedPlanResult(projection?.totalMB ?? null, PLAN),
+    year:cur.year, salary:capacity.monthlyNet, result:resultDetail?.result ?? null,
     margin:projection?.totalMB ?? null, revenue:projection?.totalCA ?? null,
     goals:{ salary:PLAN.salary / 12 * NET_FROM_GROSS, result:PLAN.surplus,
       margin:C.MB_AN_OBJ, revenue:C.CA_OBJ },
+    resultHelp:projectedResultHelp({ detail:resultDetail, projection, year:cur.year }, { money:fmtEUR, escape:esc }),
     salaryHelp:salaryCapacityHelp(capacity, { money:fmtEUR, escape:esc }),
     revenueHelp:revenueProjectionHelp({ projection, year:cur.year, exportIso:data.res_export_iso || data.file_mtime_iso,
       quotes:{ confirmed:data.forecast?.active?.filter(r => r.choice.situation === 'confirmed').length,
@@ -546,7 +548,7 @@ function updateCapProjections(data) {
     'Le salaire dégageable correspond à la marge brute à date moins les charges de fonctionnement et la contribution coopérative, avant déduction des rémunérations déjà versées, pour un résultat à zéro. La contribution étant comptabilisée avec retard, on retient le plus élevé entre le montant saisi et la part historique de la marge brute' + (hist.contributionRate !== null ? ' (' + fmtPct(hist.contributionRate, 1) + ', moyenne des exercices ' + hist.label + ')' : '') + '. Ce disponible est converti en net et divisé par les mois couverts, le mois de l’export étant proratisé au jour inclus.' +
     (capacity.elapsedMonths !== null ? ' Période retenue : ' + capacity.elapsedMonths.toLocaleString('fr-FR', { maximumFractionDigits:2 }) + ' mois.' : ' Calcul indisponible : date ou données de la période manquantes.') +
     (capacity.availableGross < 0 ? ' Aucun salaire n’est finançable : déficit avant rémunération de ' + fmtEUR(-capacity.availableGross) + '.' : '') +
-    ' Le résultat annuel projeté déduit de la marge projetée le salaire brut annuel prévu et les charges annuelles prévues dans les objectifs.' +
+    ' Le résultat annuel projeté déduit de la marge projetée le salaire brut annuel prévu et les charges annuelles prévues dans les objectifs ; la contribution coopérative suit l’écart de marge avec le plan au taux historique.' +
     (projection ? ' Taux historique : ' + (projection.rate === null ? 'indisponible' : fmtPct(projection.rate, 1) + ' (' + projection.reference + ')') + '.' + (projection.unavailable ? ' ' + projection.unavailable : '') + (projection.end === 12 ? ' Exercice entièrement couvert : les cartes affichent le réalisé, sans ajout des devis restants.' : ' À facturer retenu : ' + fmtEUR(projection.futureCA) + ' HT, réparti jusqu’à décembre.') : ' Projection indisponible : importe les Pièces et une période RES complète à date.');
 }
 

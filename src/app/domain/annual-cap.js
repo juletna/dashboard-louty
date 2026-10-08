@@ -43,7 +43,17 @@ export function salaryCapacityAtDate(year, yearKey, endMonth, exportISO, netCoef
   };
 }
 
-export function projectedPlanResult(projectedMargin, plan) {
-  return Number.isFinite(projectedMargin) && Number.isFinite(plan.salary) && Number.isFinite(plan.charges)
-    ? projectedMargin - plan.salary - plan.charges : null;
+// The planned charges include a cooperative contribution that follows the margin. When the projected
+// margin differs from the margin funding the plan, the contribution moves by contributionRate x gap,
+// so a projection on plan lands exactly on the planned surplus.
+export function projectedPlanResultDetail(projectedMargin, plan, contributionRate = null) {
+  if (!Number.isFinite(projectedMargin) || !Number.isFinite(plan.salary) || !Number.isFinite(plan.charges)) return null;
+  const planMargin = plan.salary + plan.charges + plan.surplus;
+  const adjusted = Number.isFinite(contributionRate) && contributionRate >= 0 && Number.isFinite(planMargin);
+  const adjustment = adjusted ? contributionRate * (projectedMargin - planMargin) : 0;
+  return {
+    margin:projectedMargin, salary:plan.salary, charges:plan.charges,
+    contributionRate:adjusted ? contributionRate : null, planMargin:adjusted ? planMargin : null, adjustment,
+    result:projectedMargin - plan.salary - plan.charges - adjustment,
+  };
 }
