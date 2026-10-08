@@ -498,16 +498,16 @@
   @media (max-width: 700px) {
     #bloc-sante .grid.grid-3 > .kpi + .kpi { border-left: none; border-top: 1px solid var(--border); }
   }
-  /* Santé sur une seule ligne : jauge (2/5) + 3 KPI (1/5 chacun) */
-  .sante-oneline { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; align-items: stretch; gap: 14px; margin-top: 8px; }
+  /* Santé : jauge à gauche sur deux rangées, 4 KPI en grille 2×2 */
+  .sante-oneline { display: grid; grid-template-columns: 1.4fr 1fr 1fr; align-items: stretch; gap: 14px; margin-top: 8px; }
   .sante-oneline > * { min-width: 0; }
-  .sante-oneline .sante-gauge { display: flex; flex-direction: column; justify-content: center; }
+  .sante-oneline .sante-gauge { display: flex; flex-direction: column; justify-content: center; grid-row: span 2; }
   .sante-oneline .financial-health-chart { margin: 12px 0 10px; }
-  /* 3 indicateurs en cartes grises distinctes (spécificité qui bat #bloc-sante .card .kpi{background:transparent}) */
+  /* 4 indicateurs en cartes grises distinctes (spécificité qui bat #bloc-sante .card .kpi{background:transparent}) */
   #bloc-sante .card .sante-oneline > .kpi { display: flex; flex-direction: column; justify-content: center; background: var(--bg-inset); border-radius: var(--radius-sm); padding: 14px 16px; }
   @media (max-width: 900px) {
     .sante-oneline { grid-template-columns: 1fr 1fr; }
-    .sante-oneline .sante-gauge { grid-column: 1 / -1; }
+    .sante-oneline .sante-gauge { grid-column: 1 / -1; grid-row: auto; }
   }
   @media (max-width: 520px) {
     .sante-oneline { grid-template-columns: 1fr; }

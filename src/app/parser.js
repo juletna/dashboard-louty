@@ -234,7 +234,7 @@ export function parseBAL(XLSX, workbook) {
     var dFourn = owed(sumPref(['40']));
     var dSocial = owed(sumPref(['42', '43']) + g('44551000'));
     var dCca = owed(ccass);
-    var dettesTotales = dTva + dAcomptes + dFourn + dSocial + dCca;
+    var dettesTotales = dTva + dAcomptes + acomptesEnCA + dFourn + dSocial + dCca;
     var positionNette = tresorerie - dettesTotales;
 
     // Date de fin de balance : ligne 2 (index 1), colonne "au" (index 3)

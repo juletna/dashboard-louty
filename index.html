@@ -507,16 +507,16 @@
   @media (max-width: 700px) {
     #bloc-sante .grid.grid-3 > .kpi + .kpi { border-left: none; border-top: 1px solid var(--border); }
   }
-  /* Santé sur une seule ligne : jauge (2/5) + 3 KPI (1/5 chacun) */
-  .sante-oneline { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; align-items: stretch; gap: 14px; margin-top: 8px; }
+  /* Santé : jauge à gauche sur deux rangées, 4 KPI en grille 2×2 */
+  .sante-oneline { display: grid; grid-template-columns: 1.4fr 1fr 1fr; align-items: stretch; gap: 14px; margin-top: 8px; }
   .sante-oneline > * { min-width: 0; }
-  .sante-oneline .sante-gauge { display: flex; flex-direction: column; justify-content: center; }
+  .sante-oneline .sante-gauge { display: flex; flex-direction: column; justify-content: center; grid-row: span 2; }
   .sante-oneline .financial-health-chart { margin: 12px 0 10px; }
-  /* 3 indicateurs en cartes grises distinctes (spécificité qui bat #bloc-sante .card .kpi{background:transparent}) */
+  /* 4 indicateurs en cartes grises distinctes (spécificité qui bat #bloc-sante .card .kpi{background:transparent}) */
   #bloc-sante .card .sante-oneline > .kpi { display: flex; flex-direction: column; justify-content: center; background: var(--bg-inset); border-radius: var(--radius-sm); padding: 14px 16px; }
   @media (max-width: 900px) {
     .sante-oneline { grid-template-columns: 1fr 1fr; }
-    .sante-oneline .sante-gauge { grid-column: 1 / -1; }
+    .sante-oneline .sante-gauge { grid-column: 1 / -1; grid-row: auto; }
   }
   @media (max-width: 520px) {
     .sante-oneline { grid-template-columns: 1fr; }
@@ -3077,7 +3077,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var dFourn = owed(sumPref(["40"]));
     var dSocial = owed(sumPref(["42", "43"]) + g("44551000"));
     var dCca = owed(ccass);
-    var dettesTotales = dTva + dAcomptes + dFourn + dSocial + dCca;
+    var dettesTotales = dTva + dAcomptes + acomptesEnCA + dFourn + dSocial + dCca;
     var positionNette = tresorerie - dettesTotales;
     var dateFin = null;
     try {
@@ -3273,19 +3273,23 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       return { label: `${item.client}${item.client_id ? " \xB7 client " + item.client_id : ""}${item.activity ? " \xB7 " + item.activity : ""} \xB7 ${due ? "\xC9ch\xE9ance " + due.slice(0, 10) : docs.length + (kind === "receivables" ? " facture(s)" : " acompte(s) encaiss\xE9(s)")}${item.identity_ambiguous ? " \xB7 identit\xE9 \xE0 v\xE9rifier" : ""}`, amount: item.amount };
     });
   }
-  function renderCustomerAdvances(sante, details, { money: money3, escape: esc2, documents }) {
+  function renderCustomerAdvances(sante, details, { money: money3, escape: esc2, documents, open: precomputed }) {
     const clients = details?.advances || [];
-    const history = clients.reduce((sum, c) => sum + c.amount, 0);
+    const total2 = clients.reduce((sum, c) => sum + c.amount, 0);
     const historyCount = clients.reduce((n, c) => n + (c.documents || []).length, 0);
     const known = sante && sante.acompte_ca_accounts_present === true && Number.isFinite(sante.acomptes_en_ca);
     const hasPieces = Array.isArray(documents) && documents.length > 0;
-    const open = hasPieces ? openAdvances(matchQuotes(documents)) : [];
+    const open = precomputed || (hasPieces ? openAdvances(matchQuotes(documents)) : []);
     const openHT = Math.round(open.reduce((n, a) => n + a.advanceHT, 0) * 100) / 100;
     const gap = known && hasPieces ? Math.round((sante.acomptes_en_ca - openHT) * 100) / 100 : null;
     const note = !sante ? "Importe la Balance pour comparer avec les comptes d\u2019acomptes." : sante.acompte_ca_accounts_present === void 0 ? "R\xE9importe la Balance pour lire les comptes d\u2019acomptes de cet ancien cache." : !known ? "Aucun compte d\u2019acompte (7040) dans cette Balance." : !hasPieces ? "Importe les Pi\xE8ces pour retrouver les devis concern\xE9s." : Math.abs(gap) <= 1 ? "La Balance et les Pi\xE8ces concordent." : `\xC9cart de ${money3(Math.abs(gap))} HT entre la Balance et les devis rapproch\xE9s : ${gap > 0 ? "un acompte n\u2019est rattach\xE9 \xE0 aucun devis" : "un acompte rapproch\xE9 est d\xE9j\xE0 repris en Balance"}.`;
     const rows = open.length ? "<ul>" + open.map((a) => `<li><strong>${esc2(a.client)}</strong>${a.client_id ? " \xB7 client " + esc2(a.client_id) : ""} \xB7 devis ${esc2(a.quote || "sans num\xE9ro")} \xB7 acompte ${esc2(a.numbers.join(", "))} : ${money3(a.advanceHT)} HT (${money3(a.advanceTTC)} TTC) \xB7 reste \xE0 facturer net d\u2019acompte ${money3(a.remainingHT)} HT</li>`).join("") + "</ul>" : `<p class="small">${hasPieces ? "Aucun acompte encaiss\xE9 en attente de reprise dans les Pi\xE8ces." : "Pi\xE8ces non import\xE9es."}</p>`;
     const past = historyCount - open.reduce((n, a) => n + a.numbers.length, 0);
-    return `<section class="customer-advances" aria-label="Acomptes clients"><h4>Acomptes \xE0 reprendre sur facture finale</h4><div class="forecast-cap-values"><div><span>Acomptes en CA r\xE9alis\xE9 \xB7 Balance (HT)</span><strong>${known ? money3(sante.acomptes_en_ca) : "Indisponible"}</strong></div><div><span>Acomptes ouverts retrouv\xE9s dans les Pi\xE8ces (HT)</span><strong>${hasPieces ? money3(openHT) : "Pi\xE8ces non import\xE9es"}</strong></div></div><p class="small">Un acompte factur\xE9 est d\xE9j\xE0 compt\xE9 dans le CA r\xE9alis\xE9. Il reste \xE0 reprendre sur la facture finale, qui sera donc du montant du devis moins l\u2019acompte. ${esc2(note)}</p>${rows}${hasPieces && historyCount ? `<details><summary>Historique des acomptes encaiss\xE9s (${historyCount})</summary><p class="small">${past > 0 ? past + " d\xE9j\xE0 repris ou non rattach\xE9(s) \xE0 un devis ouvert. " : ""}Total encaiss\xE9 dans les Pi\xE8ces : ${money3(history)} TTC.</p><ul>${clients.flatMap((c) => (c.documents || []).map((d) => `<li><strong>${esc2(c.client)}</strong>${c.client_id ? " \xB7 client " + esc2(c.client_id) : ""} \xB7 ${esc2(d.number || "Sans num\xE9ro")} \xB7 ${esc2(d.date?.slice(0, 10) || "Date absente")} : ${money3(d.amount)} TTC${d.duplicate ? " \xB7 doublon \xE0 v\xE9rifier" : ""}${c.identity_ambiguous ? " \xB7 identit\xE9 \xE0 v\xE9rifier" : ""}</li>`)).join("")}</ul></details>` : ""}</section>`;
+    const balanceText = known ? money3(sante.acomptes_en_ca) : "indisponible";
+    const piecesText = hasPieces ? money3(openHT) : "non import\xE9es";
+    const status = known && hasPieces ? Math.abs(gap) <= 1 ? " \xB7 concordent" : " \xB7 \xE9cart \xE0 v\xE9rifier" : "";
+    const history = historyCount ? `<details><summary>Historique des acomptes encaiss\xE9s (${historyCount})</summary><p class="small">${past > 0 ? past + " d\xE9j\xE0 repris ou non rattach\xE9(s) \xE0 un devis ouvert. " : ""}Total encaiss\xE9 dans les Pi\xE8ces : ${money3(total2)} TTC.</p><ul>${clients.flatMap((c) => (c.documents || []).map((d) => `<li><strong>${esc2(c.client)}</strong>${c.client_id ? " \xB7 client " + esc2(c.client_id) : ""} \xB7 ${esc2(d.number || "Sans num\xE9ro")} \xB7 ${esc2(d.date?.slice(0, 10) || "Date absente")} : ${money3(d.amount)} TTC${d.duplicate ? " \xB7 doublon \xE0 v\xE9rifier" : ""}${c.identity_ambiguous ? " \xB7 identit\xE9 \xE0 v\xE9rifier" : ""}</li>`)).join("")}</ul></details>` : "";
+    return `<section class="customer-advances" aria-label="Acomptes clients"><details><summary>Rapprochement des acomptes \xB7 Balance ${balanceText} \xB7 Pi\xE8ces ${piecesText}${status}</summary><p class="small">Un acompte factur\xE9 est d\xE9j\xE0 compt\xE9 dans le CA r\xE9alis\xE9. Il reste \xE0 reprendre sur la facture finale, qui sera donc du montant du devis moins l\u2019acompte. Montants HT. ${esc2(note)}</p>${rows}${hasPieces ? history : ""}</details></section>`;
   }
 
   // src/app/domain/annual-cap.js
@@ -6119,13 +6123,15 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var creances_cls = "accent-orange";
     if (dsoRatio !== null && dsoRatio > 0.25) creances_cls = "accent-red";
     var tva = sante.dettes_tva != null ? sante.dettes_tva : Math.max(0, sante.tva_a_payer || 0);
-    var dFourn = sante.dettes_fournisseurs || 0, dSoc = sante.dettes_sociales_fiscales || 0, dAcc = sante.dettes_acomptes_clients || 0;
+    var dFourn = sante.dettes_fournisseurs || 0, dSoc = sante.dettes_sociales_fiscales || 0, dAccLiab = sante.dettes_acomptes_clients || 0;
+    var dAccCA = sante.acomptes_en_ca || 0, dAcc = dAccLiab + dAccCA;
     var paymentSource = data.revenue_distribution || data.margin_distribution || data.mb_distribution || {};
     var paymentDetails2 = Array.isArray(paymentSource.documents) && paymentSource.documents.some((d) => Object.hasOwn(d, "paid")) ? paymentDetails(paymentSource.documents) : paymentSource.payment_details || null;
     var advanceClients = paymentDetails2 && Array.isArray(paymentDetails2.advances) ? paymentDetails2.advances : [];
     var receivableClients = paymentDetails2 && Array.isArray(paymentDetails2.receivables) ? paymentDetails2.receivables : [];
-    var advanceMatchesFound = advanceMatches(advanceClients, dAcc);
+    var advanceMatchesFound = advanceMatches(advanceClients, dAccLiab);
     var matchedAdvanceClients = advanceMatchesFound.solutions.length === 1 && !advanceMatchesFound.truncated ? advanceMatchesFound.solutions[0] : [];
+    var openAdv = Array.isArray(paymentSource.documents) && paymentSource.documents.length ? openAdvances(matchQuotes(paymentSource.documents)) : [];
     var dexpl = tva + dFourn + dSoc + dAcc;
     var cca = -(sante.comptes_courants_associes || 0);
     var cca_cls = cca < 0 ? "accent-red" : "accent-blue";
@@ -6136,7 +6142,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       { label: "TVA \xE0 reverser", amount: tva },
       { label: "Fournisseurs", amount: dFourn },
       { label: "Dettes sociales / fiscales", amount: dSoc },
-      { label: "Acomptes clients re\xE7us", amount: dAcc, detail: advanceMatchesFound.solutions.length ? "advances" : null }
+      { label: "Acomptes clients re\xE7us", amount: dAccLiab, detail: advanceMatchesFound.solutions.length ? "advances" : null },
+      { label: "Acomptes \xE0 honorer (d\xE9j\xE0 en CA)", amount: dAccCA, detail: openAdv.length ? "open-advances" : null }
     ].filter(function(l) {
       return Math.abs(l.amount) > 0.5;
     });
@@ -6159,27 +6166,32 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         rows: advanceMatchesFound.solutions.map(function(solution, index) {
           return { label: "Hypoth\xE8se " + (index + 1) + " \xB7 " + solution.map(function(item) {
             return item.client;
-          }).join(" + "), amount: dAcc };
+          }).join(" + "), amount: dAccLiab };
         }),
         total: null,
         totalLabel: ""
       };
     } else {
-      advancesModal = { title: "Acompte client \xE0 honorer", subtitle: "\xC9galit\xE9 de montants indicative, bases comptable et TTC \xE0 v\xE9rifier", rows: customerModalRows(matchedAdvanceClients, "advances"), total: dAcc, totalLabel: "Solde d\u2019acomptes Balance" };
+      advancesModal = { title: "Acompte client \xE0 honorer", subtitle: "\xC9galit\xE9 de montants indicative, bases comptable et TTC \xE0 v\xE9rifier", rows: customerModalRows(matchedAdvanceClients, "advances"), total: dAccLiab, totalLabel: "Solde d\u2019acomptes Balance" };
     }
     var customerModalData = {
       advances: advancesModal,
+      "open-advances": { title: "Acomptes \xE0 honorer", subtitle: "Acomptes factur\xE9s d\xE9j\xE0 compt\xE9s dans le CA r\xE9alis\xE9, \xE0 reprendre sur la facture finale \xB7 montants HT", rows: openAdv.map(function(a) {
+        return { label: a.client + (a.client_id ? " \xB7 client " + a.client_id : "") + " \xB7 devis " + (a.quote || "sans num\xE9ro") + " \xB7 reste \xE0 facturer " + fmtEUR(a.remainingHT) + " HT", amount: a.advanceHT };
+      }), total: dAccCA, totalLabel: "Acomptes en CA r\xE9alis\xE9 (Balance)" },
       receivables: { title: "Impay\xE9s clients", subtitle: "Factures confirm\xE9es avec un solde \xAB En attente \xBB positif \xB7 montants TTC", rows: customerModalRows(receivableClients, "receivables"), total: receivableClients.reduce(function(sum, item) {
         return sum + item.amount;
       }, 0), totalLabel: "Total des impay\xE9s dans l\u2019export" }
     };
-    var kpis = '<div class="kpi ' + cca_cls + '"><div class="kpi-top"><span class="kpi-ico">' + ICON.reserve + '</span><div class="kpi-label">Compte courant associ\xE9</div></div><div class="kpi-value">' + fmtEUR(cca) + '</div><div class="kpi-sub">Tes r\xE9serves dans la scop</div></div><div class="kpi ' + creances_cls + '"><div class="kpi-top"><span class="kpi-ico">' + ICON.receipt + '</span><div class="kpi-label">Cr\xE9ances clients</div></div><div class="kpi-value">' + fmtEUR(sante.creances_clients) + '</div><div class="kpi-sub">' + (dsoRatio !== null ? fmtPct(dsoRatio, 0) + " du CA cumul\xE9 \xB7 \xE0 relancer si vieux" : "\xE0 relancer si vieux") + "</div>" + (receivableClients.length ? '<button type="button" class="sante-detail-link" data-customer-detail="receivables">D\xE9tail des impay\xE9s \u2192</button>' : "") + '</div><div class="kpi ' + mn_cls + '"><div class="kpi-top"><span class="kpi-ico">' + ICON.trending + '</span><div class="kpi-label">R\xE9sultat</div></div><div class="kpi-main"><div class="kpi-value">' + fmtEUR(margeNette) + "</div>" + resultatPill + '</div><div class="kpi-sub">' + resultatSub + "</div></div>";
+    var acompteKnown = sante.acompte_ca_accounts_present === true && Number.isFinite(sante.acomptes_en_ca);
+    var acompteKpi = '<div class="kpi accent-orange" data-kpi="acomptes-a-honorer"><div class="kpi-top"><span class="kpi-ico">' + ICON.debt + '</span><div class="kpi-label">Acomptes \xE0 honorer</div></div><div class="kpi-value">' + (acompteKnown ? fmtEUR(dAccCA) : "Indisponible") + '</div><div class="kpi-sub">' + (acompteKnown ? "Encaiss\xE9s, d\xE9j\xE0 en CA \xB7 travaux restant \xE0 r\xE9aliser" : sante.acompte_ca_accounts_present === void 0 ? "R\xE9importe la Balance pour les calculer" : "Aucun compte d\u2019acompte dans cette Balance") + "</div>" + (openAdv.length ? '<button type="button" class="sante-detail-link" data-customer-detail="open-advances">D\xE9tail des acomptes \u2192</button>' : "") + "</div>";
+    var kpis = '<div class="kpi ' + cca_cls + '"><div class="kpi-top"><span class="kpi-ico">' + ICON.reserve + '</span><div class="kpi-label">Compte courant associ\xE9</div></div><div class="kpi-value">' + fmtEUR(cca) + '</div><div class="kpi-sub">Tes r\xE9serves dans la scop</div></div><div class="kpi ' + creances_cls + '"><div class="kpi-top"><span class="kpi-ico">' + ICON.receipt + '</span><div class="kpi-label">Cr\xE9ances clients</div></div><div class="kpi-value">' + fmtEUR(sante.creances_clients) + '</div><div class="kpi-sub">' + (dsoRatio !== null ? fmtPct(dsoRatio, 0) + " du CA cumul\xE9 \xB7 \xE0 relancer si vieux" : "\xE0 relancer si vieux") + "</div>" + (receivableClients.length ? '<button type="button" class="sante-detail-link" data-customer-detail="receivables">D\xE9tail des impay\xE9s \u2192</button>' : "") + '</div><div class="kpi ' + mn_cls + '"><div class="kpi-top"><span class="kpi-ico">' + ICON.trending + '</span><div class="kpi-label">R\xE9sultat</div></div><div class="kpi-main"><div class="kpi-value">' + fmtEUR(margeNette) + "</div>" + resultatPill + '</div><div class="kpi-sub">' + resultatSub + "</div></div>" + acompteKpi;
     var detailHTML = detailLines.map(function(l) {
       var link = l.detail ? '<button type="button" class="sante-detail-link" data-customer-detail="' + l.detail + '">' + (advanceMatchesFound.solutions.length > 1 ? "Voir les rapprochements possibles \u2192" : "Voir le rapprochement \u2192") + "</button>" : "";
       return '<div class="sd-row"><span>' + l.label + '</span><span class="sd-eur">' + fmtEUR(l.amount) + "</span></div>" + link;
     }).join("");
     var detailBlock = detailLines.length ? '<div class="sante-detail"><button type="button" class="sante-detail-toggle">D\xE9tail des dettes exigibles \u2192</button><div class="sante-detail-body" style="display:none">' + detailHTML + "</div></div>" : "";
-    var acomptesAlert = renderCustomerAdvances(sante, paymentDetails2, { money: fmtEUR, escape: esc, documents: paymentSource.documents });
+    var acomptesAlert = renderCustomerAdvances(sante, paymentDetails2, { money: fmtEUR, escape: esc, documents: paymentSource.documents, open: openAdv });
     wrap.innerHTML = '<div class="card sante-card"><h3>Sant\xE9 financi\xE8re<span class="sp-help" data-tip="Photo de ta tr\xE9sorerie \xE0 la date de la balance : ce qui est vraiment \xE0 toi (position nette) une fois les dettes exigibles retir\xE9es, plus tes r\xE9serves, cr\xE9ances et r\xE9sultat.">?</span>' + (asOfDate !== "\u2014" ? '<span class="sante-asof">Balance arr\xEAt\xE9e au ' + asOfDate + "</span>" : "") + '</h3><div class="sante-oneline"><div class="sante-gauge"><div class="pn-top"><div><div class="pn-label">Tr\xE9sorerie</div><div class="pn-value">' + fmtEUR(treso) + '</div></div></div><div class="financial-health-chart"><canvas id="chart-financial-health" role="img" aria-label="' + esc(chartDescription) + '">' + esc(chartDescription) + '</canvas></div><div class="pn-legend"><span class="pn-leg"><span class="pn-dot pos"></span>Position nette <strong>' + fmtEUR(position) + '</strong></span><span class="pn-leg"><span class="pn-dot debt"></span>Dettes exigibles <strong>' + fmtEUR(dexpl) + "</strong></span></div>" + detailBlock + "</div>" + kpis + "</div>" + acomptesAlert + "</div>";
     _renderFinancialHealthChart(treso, position, dexpl);
     var _tog = wrap.querySelector(".sante-detail-toggle");
@@ -6770,7 +6782,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var spb = document.querySelector(".sp-body");
     if (spb) spb.addEventListener("scroll", hide);
   })();
-  var APP_VERSION = "20261008-231848";
+  var APP_VERSION = "20261008-232558";
   function showUpdateBanner(base, v) {
     if (document.getElementById("update-banner")) return;
     var d = document.createElement("div");

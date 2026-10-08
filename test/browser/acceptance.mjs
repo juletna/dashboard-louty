@@ -28,8 +28,9 @@ try {
   assert.equal(await page.locator('#forecast-list .forecast-row').count(),2);
   assert.equal(await page.locator('#forecast-list .forecast-row').filter({hasText:'ajout automatique'}).count(),2);
   await page.keyboard.press('Escape');
+  await page.locator('.customer-advances > details > summary').click();
   assert.match(await page.locator('.customer-advances').innerText(),/Aucun compte d’acompte \(7040\)/);
-  await page.locator('.customer-advances summary').click();
+  await page.locator('.customer-advances details details summary').click();
   assert.match(await page.locator('.customer-advances').innerText(),/1\s?080.*TTC/);
   const shot=async name=>{if(process.env.SMOKE_SCREENSHOT_DIR){mkdirSync(process.env.SMOKE_SCREENSHOT_DIR,{recursive:true});await page.screenshot({path:resolve(process.env.SMOKE_SCREENSHOT_DIR,name+'.png')});}};
   await page.locator('.customer-advances').scrollIntoViewIfNeeded();await shot('advances-desktop-light');
@@ -75,8 +76,9 @@ try {
   await page.locator('#forecast-form button[type=submit]').click();
   await page.locator('#toggle-theme').click();await page.locator('.customer-advances').scrollIntoViewIfNeeded();await shot('advances-mobile-light');
   await page.locator('#file-input').setInputFiles([fixtures.res,fixtures.accepted]);
+  await page.locator('.customer-advances > details > summary').click();
   await page.getByText('Importe la Balance pour comparer avec les comptes d’acomptes.',{exact:false}).waitFor();
-  assert.match(await page.locator('.customer-advances').innerText(),/Indisponible/);
+  assert.match(await page.locator('.customer-advances').innerText(),/Balance indisponible/);
   await page.locator('[data-f-action=manage]').click();
   assert.match(await row('AUTO').innerText(),/Écarté manuellement/);
   const beforeCA = await page.locator('#cap-forecast').innerText();

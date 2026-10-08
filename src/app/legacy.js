@@ -3,6 +3,8 @@ import { forecastOutlookHTML } from './views/forecast-outlook.js';
 import './parser.js';
 import { advanceMatches, paymentDetails as derivePaymentDetails } from './domain/payments.js';
 import { customerModalRows, renderCustomerAdvances } from './views/customer-payments.js';
+import { matchQuotes } from './domain/forecast.js';
+import { openAdvances } from './domain/forecast-advances.js';
 import { salaryCapacityAtDate, projectedPlanResultDetail } from './domain/annual-cap.js';
 import { marginProjectionHelp, projectedResultHelp, renderCapProjections, revenueProjectionHelp, salaryCapacityHelp } from './views/annual-cap.js';
 import { createForecastView } from './views/forecast.js';
@@ -1125,15 +1127,18 @@ function renderSante(data, cur) {
   var creances_cls = 'accent-orange';
   if (dsoRatio !== null && dsoRatio > 0.25) creances_cls = 'accent-red';
   var tva = (sante.dettes_tva != null) ? sante.dettes_tva : Math.max(0, sante.tva_a_payer || 0);
-  var dFourn = sante.dettes_fournisseurs || 0, dSoc = sante.dettes_sociales_fiscales || 0, dAcc = sante.dettes_acomptes_clients || 0;
+  var dFourn = sante.dettes_fournisseurs || 0, dSoc = sante.dettes_sociales_fiscales || 0, dAccLiab = sante.dettes_acomptes_clients || 0;
+  // Acomptes facturés : produits (7040) tant qu'aucune facture finale ne les reprend, mais travaux encore dus.
+  var dAccCA = sante.acomptes_en_ca || 0, dAcc = dAccLiab + dAccCA;
   var paymentSource = data.revenue_distribution || data.margin_distribution || data.mb_distribution || {};
   var paymentDetails = Array.isArray(paymentSource.documents) && paymentSource.documents.some(d => Object.hasOwn(d, 'paid')) ? derivePaymentDetails(paymentSource.documents) : paymentSource.payment_details || null;
   var advanceClients = paymentDetails && Array.isArray(paymentDetails.advances) ? paymentDetails.advances : [];
   var receivableClients = paymentDetails && Array.isArray(paymentDetails.receivables) ? paymentDetails.receivables : [];
   // La Balance ne donne qu'un solde global 4191/4712. On ne montre un client que
   // si les acomptes Pièces permettent un rapprochement exact et non ambigu.
-  var advanceMatchesFound = advanceMatches(advanceClients, dAcc);
+  var advanceMatchesFound = advanceMatches(advanceClients, dAccLiab);
   var matchedAdvanceClients = advanceMatchesFound.solutions.length === 1 && !advanceMatchesFound.truncated ? advanceMatchesFound.solutions[0] : [];
+  var openAdv = Array.isArray(paymentSource.documents) && paymentSource.documents.length ? openAdvances(matchQuotes(paymentSource.documents)) : [];
   var dexpl = tva + dFourn + dSoc + dAcc;
   var cca = -(sante.comptes_courants_associes || 0);
   var cca_cls = cca < 0 ? 'accent-red' : 'accent-blue';
@@ -1142,7 +1147,8 @@ function renderSante(data, cur) {
   var asOfDate = sante.as_of ? new Date(sante.as_of).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
   var detailLines = [
     { label: 'TVA à reverser', amount: tva }, { label: 'Fournisseurs', amount: dFourn },
-    { label: 'Dettes sociales / fiscales', amount: dSoc }, { label: 'Acomptes clients reçus', amount: dAcc, detail: advanceMatchesFound.solutions.length ? 'advances' : null }
+    { label: 'Dettes sociales / fiscales', amount: dSoc }, { label: 'Acomptes clients reçus', amount: dAccLiab, detail: advanceMatchesFound.solutions.length ? 'advances' : null },
+    { label: 'Acomptes à honorer (déjà en CA)', amount: dAccCA, detail: openAdv.length ? 'open-advances' : null }
   ].filter(function (l) { return Math.abs(l.amount) > 0.5; });
 
   var chartDescription = 'Trésorerie ' + fmtEUR(treso) + ' = Position nette ' + fmtEUR(position) + ' + Dettes exigibles ' + fmtEUR(dexpl);
@@ -1166,17 +1172,26 @@ function renderSante(data, cur) {
     advancesModal = {
       title: 'Rapprochements d’acomptes possibles',
       subtitle: 'Égalités de montants à vérifier : base comptable et paiements TTC potentiellement différents' + (advanceMatchesFound.truncated ? ' · recherche partielle, unicité non établie' : ''),
-      rows: advanceMatchesFound.solutions.map(function (solution, index) { return { label: 'Hypothèse ' + (index + 1) + ' · ' + solution.map(function (item) { return item.client; }).join(' + '), amount: dAcc }; }),
+      rows: advanceMatchesFound.solutions.map(function (solution, index) { return { label: 'Hypothèse ' + (index + 1) + ' · ' + solution.map(function (item) { return item.client; }).join(' + '), amount: dAccLiab }; }),
       total: null, totalLabel: ''
     };
   } else {
-    advancesModal = { title: 'Acompte client à honorer', subtitle: 'Égalité de montants indicative, bases comptable et TTC à vérifier', rows: customerModalRows(matchedAdvanceClients, 'advances'), total: dAcc, totalLabel: 'Solde d’acomptes Balance' };
+    advancesModal = { title: 'Acompte client à honorer', subtitle: 'Égalité de montants indicative, bases comptable et TTC à vérifier', rows: customerModalRows(matchedAdvanceClients, 'advances'), total: dAccLiab, totalLabel: 'Solde d’acomptes Balance' };
   }
   var customerModalData = {
     advances: advancesModal,
+    'open-advances': { title: 'Acomptes à honorer', subtitle: 'Acomptes facturés déjà comptés dans le CA réalisé, à reprendre sur la facture finale · montants HT', rows: openAdv.map(function (a) { return { label: a.client + (a.client_id ? ' · client ' + a.client_id : '') + ' · devis ' + (a.quote || 'sans numéro') + ' · reste à facturer ' + fmtEUR(a.remainingHT) + ' HT', amount: a.advanceHT }; }), total: dAccCA, totalLabel: 'Acomptes en CA réalisé (Balance)' },
     receivables: { title: 'Impayés clients', subtitle: 'Factures confirmées avec un solde « En attente » positif · montants TTC', rows: customerModalRows(receivableClients, 'receivables'), total: receivableClients.reduce(function (sum, item) { return sum + item.amount; }, 0), totalLabel: 'Total des impayés dans l’export' }
   };
 
+  var acompteKnown = sante.acompte_ca_accounts_present === true && Number.isFinite(sante.acomptes_en_ca);
+  var acompteKpi =
+    '<div class="kpi accent-orange" data-kpi="acomptes-a-honorer">' +
+      '<div class="kpi-top"><span class="kpi-ico">' + ICON.debt + '</span><div class="kpi-label">Acomptes à honorer</div></div>' +
+      '<div class="kpi-value">' + (acompteKnown ? fmtEUR(dAccCA) : 'Indisponible') + '</div>' +
+      '<div class="kpi-sub">' + (acompteKnown ? 'Encaissés, déjà en CA · travaux restant à réaliser' : sante.acompte_ca_accounts_present === undefined ? 'Réimporte la Balance pour les calculer' : 'Aucun compte d’acompte dans cette Balance') + '</div>' +
+      (openAdv.length ? '<button type="button" class="sante-detail-link" data-customer-detail="open-advances">Détail des acomptes →</button>' : '') +
+    '</div>';
   var kpis =
     '<div class="kpi ' + cca_cls + '">' +
       '<div class="kpi-top"><span class="kpi-ico">' + ICON.reserve + '</span><div class="kpi-label">Compte courant associé</div></div>' +
@@ -1193,7 +1208,7 @@ function renderSante(data, cur) {
       '<div class="kpi-top"><span class="kpi-ico">' + ICON.trending + '</span><div class="kpi-label">Résultat</div></div>' +
       '<div class="kpi-main"><div class="kpi-value">' + fmtEUR(margeNette) + '</div>' + resultatPill + '</div>' +
       '<div class="kpi-sub">' + resultatSub + '</div>' +
-    '</div>';
+    '</div>' + acompteKpi;
 
   var detailHTML = detailLines.map(function (l) {
     var link = l.detail ? '<button type="button" class="sante-detail-link" data-customer-detail="' + l.detail + '">' + (advanceMatchesFound.solutions.length > 1 ? 'Voir les rapprochements possibles →' : 'Voir le rapprochement →') + '</button>' : '';
@@ -1202,7 +1217,7 @@ function renderSante(data, cur) {
   var detailBlock = detailLines.length
     ? '<div class="sante-detail"><button type="button" class="sante-detail-toggle">Détail des dettes exigibles →</button><div class="sante-detail-body" style="display:none">' + detailHTML + '</div></div>'
     : '';
-  var acomptesAlert = renderCustomerAdvances(sante, paymentDetails, { money: fmtEUR, escape: esc, documents: paymentSource.documents });
+  var acomptesAlert = renderCustomerAdvances(sante, paymentDetails, { money: fmtEUR, escape: esc, documents: paymentSource.documents, open: openAdv });
 
   wrap.innerHTML =
     '<div class="card sante-card">' +
@@ -1704,7 +1719,7 @@ document.getElementById('welcome-back').addEventListener('click', function () {
 })();
 
 // Mise à jour automatique : si le fichier hébergé est plus récent, on recharge la dernière version
-var APP_VERSION = "20261008-231848";
+var APP_VERSION = "20261008-232558";
 function showUpdateBanner(base, v) {
   if (document.getElementById('update-banner')) return;
   var d = document.createElement('div');

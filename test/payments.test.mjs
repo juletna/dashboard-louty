@@ -109,3 +109,19 @@ test('Balance distinguishes a numeric zero advance account from missing or blank
     assert.equal(result.dettes_acomptes_clients,value === -100 ? 100 : 0);
   }
 });
+
+test('Balance reads deposits booked as revenue (7040) and counts them as work still owed', () => {
+  const [xlsx, book] = workbook([['Compte','Libellé','','','','Solde'],
+    ['70401210','Acompte TAUX INTERM',null,null,null,-5250.91], ['70401320','Acompte TAUX NORMAL',null,null,null,-833.33],
+    ['70420820','TRAVAUX GROUPE B INTERM',null,null,null,-40000]]);
+  book.Sheets.Rapport = book.Sheets.Pieces;
+  const result = parseBAL(xlsx,book);
+  assert.equal(result.acompte_ca_accounts_present,true);
+  assert.equal(result.acomptes_en_ca,6084.24);
+  assert.equal(result.dettes_acomptes_clients,0);
+  assert.equal(result.dettes_totales,6084.24);
+  const [xlsx2, book2] = workbook([['Compte','Libellé','','','','Solde'], ['70420820','Travaux',null,null,null,-100]]);
+  book2.Sheets.Rapport = book2.Sheets.Pieces;
+  const none = parseBAL(xlsx2,book2);
+  assert.equal(none.acompte_ca_accounts_present,false); assert.equal(none.acomptes_en_ca,0);
+});
