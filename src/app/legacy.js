@@ -4,7 +4,7 @@ import './parser.js';
 import { advanceMatches, paymentDetails as derivePaymentDetails } from './domain/payments.js';
 import { customerModalRows, renderCustomerAdvances } from './views/customer-payments.js';
 import { salaryCapacityAtDate, projectedPlanResult } from './domain/annual-cap.js';
-import { renderCapProjections, salaryCapacityHelp } from './views/annual-cap.js';
+import { renderCapProjections, revenueProjectionHelp, salaryCapacityHelp } from './views/annual-cap.js';
 import { createForecastView } from './views/forecast.js';
 import { createCartesianCharts } from './charts/cartesian.js';
 import {
@@ -536,7 +536,11 @@ function updateCapProjections(data) {
     margin:projection?.totalMB ?? null, revenue:projection?.totalCA ?? null,
     goals:{ salary:PLAN.salary / 12 * NET_FROM_GROSS, result:PLAN.surplus,
       margin:C.MB_AN_OBJ, revenue:C.CA_OBJ },
-    salaryHelp:salaryCapacityHelp(capacity, { money:fmtEUR, escape:esc })
+    salaryHelp:salaryCapacityHelp(capacity, { money:fmtEUR, escape:esc }),
+    revenueHelp:revenueProjectionHelp({ projection, year:cur.year, exportIso:data.res_export_iso || data.file_mtime_iso,
+      quotes:{ confirmed:data.forecast?.active?.filter(r => r.choice.situation === 'confirmed').length,
+        waiting:data.forecast?.waiting, validation:data.forecast?.validation, review:data.forecast?.reviewCount } },
+      { money:fmtEUR, escape:esc })
   }, { money:fmtEUR, escape:esc });
   document.getElementById('cap-projection-method').textContent =
     'Le salaire dégageable correspond à la marge brute à date moins les charges de fonctionnement et la contribution coopérative, avant déduction des rémunérations déjà versées, pour un résultat à zéro. La contribution étant comptabilisée avec retard, on retient le plus élevé entre le montant saisi et la part historique de la marge brute' + (hist.contributionRate !== null ? ' (' + fmtPct(hist.contributionRate, 1) + ', moyenne des exercices ' + hist.label + ')' : '') + '. Ce disponible est converti en net et divisé par les mois couverts, le mois de l’export étant proratisé au jour inclus.' +

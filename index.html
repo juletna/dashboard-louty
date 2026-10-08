@@ -3281,20 +3281,46 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       return head + "<p>Calcul indisponible : date de l\u2019export ou donn\xE9es de la p\xE9riode manquantes.</p>";
     }
     const e = (value) => escape(money3(value));
-    const monthName = new Date(capacity.year, capacity.month - 1, 1).toLocaleDateString("fr-FR", { month: "long" }).replace(/^./, (c) => c.toUpperCase());
-    return head + '<p class="tip-period">' + escape(periodLabel(capacity)) + '</p><div class="tip-calc">' + row("Marge brute", e(capacity.margin)) + row("\u2212 Charges", e(capacity.charges)) + row("\u2212 Contribution" + (capacity.contributionRate === null ? "" : " (estim\xE9e)"), e(capacity.contribution)) + row("= Disponible", e(capacity.availableGross), "tip-total") + '</div><p class="tip-formula">\xD7 ' + capacity.netCoefficient.toLocaleString("fr-FR", { maximumFractionDigits: 4 }) + " (brut \u2192 net) \xF7 " + capacity.elapsedMonths.toLocaleString("fr-FR", { maximumFractionDigits: 2 }) + " mois</p>" + (capacity.availableGross < 0 ? '<p class="tip-result">Aucun salaire finan\xE7able : d\xE9ficit de ' + e(-capacity.availableGross) + " avant r\xE9mun\xE9ration.</p>" : '<p class="tip-result">\u2248 ' + e(capacity.monthlyNet) + " net / mois</p>") + (capacity.incompleteMonth ? '<p class="tip-warning">\u26A0 ' + escape(monthName) + " semble incomplet dans ton export : le chiffre est peut-\xEAtre trop optimiste.</p>" : "");
+    const monthName2 = new Date(capacity.year, capacity.month - 1, 1).toLocaleDateString("fr-FR", { month: "long" }).replace(/^./, (c) => c.toUpperCase());
+    return head + '<p class="tip-period">' + escape(periodLabel(capacity)) + '</p><div class="tip-calc">' + row("Marge brute", e(capacity.margin)) + row("\u2212 Charges", e(capacity.charges)) + row("\u2212 Contribution" + (capacity.contributionRate === null ? "" : " (estim\xE9e)"), e(capacity.contribution)) + row("= Disponible", e(capacity.availableGross), "tip-total") + '</div><p class="tip-formula">\xD7 ' + capacity.netCoefficient.toLocaleString("fr-FR", { maximumFractionDigits: 4 }) + " (brut \u2192 net) \xF7 " + capacity.elapsedMonths.toLocaleString("fr-FR", { maximumFractionDigits: 2 }) + " mois</p>" + (capacity.availableGross < 0 ? '<p class="tip-result">Aucun salaire finan\xE7able : d\xE9ficit de ' + e(-capacity.availableGross) + " avant r\xE9mun\xE9ration.</p>" : '<p class="tip-result">\u2248 ' + e(capacity.monthlyNet) + " net / mois</p>") + (capacity.incompleteMonth ? '<p class="tip-warning">\u26A0 ' + escape(monthName2) + " semble incomplet dans ton export : le chiffre est peut-\xEAtre trop optimiste.</p>" : "");
   }
-  function renderCapProjections(host, { year, salary, result, margin, revenue, goals, salaryHelp }, { money: money3, escape }) {
+  var REVENUE_INTRO = "Ce que tu as d\xE9j\xE0 factur\xE9, plus ce qu\u2019il reste \xE0 facturer sur tes devis accept\xE9s.";
+  function monthName(year, month, style = "long") {
+    return new Date(Number(year), month - 1, 1).toLocaleDateString("fr-FR", { month: style });
+  }
+  function exportLabel(iso) {
+    const date = iso ? new Date(iso) : null;
+    return date && Number.isFinite(date.getTime()) ? date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" }) : null;
+  }
+  function revenueProjectionHelp({ projection, year, quotes = {}, exportIso }, { money: money3, escape }) {
+    const head = '<strong class="tip-title">Projection du chiffre d\u2019affaires ' + escape(year) + "</strong><p>" + REVENUE_INTRO + "</p>";
+    if (!projection || !Number.isFinite(projection.totalCA)) {
+      return head + "<p>Calcul indisponible : importe les Pi\xE8ces et une p\xE9riode RES compl\xE8te \xE0 date.</p>";
+    }
+    const e = (value) => escape(money3(value));
+    const { end, actualCA, futureCA, totalCA } = projection;
+    const closed = end === 12;
+    const exported = exportLabel(exportIso);
+    const period = "R\xE9alis\xE9 janv. \u2192 " + monthName(year, end, "short") + " " + year + (exported ? " (export du " + exported + ")" : "") + (closed ? "" : " \xB7 estim\xE9 " + monthName(year, end + 1, "short") + (end + 1 === 12 ? "" : " \u2192 d\xE9c."));
+    const count = Number.isFinite(quotes.confirmed) ? " (" + quotes.confirmed + " devis)" : "";
+    const excluded = [
+      quotes.waiting > 0 ? "en attente " + money3(quotes.waiting) : null,
+      quotes.validation > 0 ? "\xE0 valider " + money3(quotes.validation) : null,
+      quotes.review > 0 ? quotes.review + " \xE0 examiner" : null
+    ].filter(Boolean);
+    return head + '<p class="tip-period">' + escape(period) + '</p><div class="tip-calc">' + row("CA r\xE9alis\xE9", e(actualCA)) + (closed ? "" : row("+ Reste \xE0 facturer" + count, e(futureCA))) + row("= Projection", e(totalCA), "tip-total") + "</div>" + (excluded.length ? '<p class="tip-formula">Non compt\xE9s : ' + escape(excluded.join(" \xB7 ")) + "</p>" : "") + '<p class="tip-result">\u2248 ' + e(totalCA) + " HT sur " + escape(year) + "</p>";
+  }
+  function renderCapProjections(host, { year, salary, result, margin, revenue, goals, salaryHelp, revenueHelp }, { money: money3, escape }) {
     const cards = [
-      ["Salaire net d\xE9gageable", salary, goals.salary, true],
+      ["Salaire net d\xE9gageable", salary, goals.salary, true, salaryHelp, "D\xE9tail du calcul du salaire net d\xE9gageable"],
       ["Projection r\xE9sultat " + year, result, goals.result],
       ["Projection marge brute " + year, margin, goals.margin],
-      ["Projection chiffre d\u2019affaires " + year, revenue, goals.revenue]
+      ["Projection chiffre d\u2019affaires " + year, revenue, goals.revenue, false, revenueHelp, "D\xE9tail du calcul de la projection du chiffre d\u2019affaires"]
     ];
-    host.innerHTML = cards.map(([title, value, goal, monthly]) => {
+    host.innerHTML = cards.map(([title, value, goal, monthly, helpHtml, helpLabel]) => {
       const available = Number.isFinite(value);
       const delta = available ? Math.round(value - goal) : null;
-      const help = monthly && salaryHelp ? '<span class="sp-help" data-tip-html="' + escape(salaryHelp) + '" tabindex="0" role="button" aria-label="D\xE9tail du calcul du salaire net d\xE9gageable">?</span>' : "";
+      const help = helpHtml ? '<span class="sp-help" data-tip-html="' + escape(helpHtml) + '" tabindex="0" role="button" aria-label="' + escape(helpLabel) + '">?</span>' : "";
       return '<article class="cap-projection"><h4>' + escape(title) + help + '</h4><strong class="cap-projection-value">' + (available ? "\u2248 " + money3(value) : "\u2014") + (monthly ? ' <span class="cap-projection-unit">/ mois</span>' : "") + '</strong><span class="cap-projection-delta ' + (available ? delta >= 0 ? "positive" : "negative" : "unavailable") + '">' + (available ? (delta > 0 ? "+" : "") + money3(delta) + " vs objectif" : "Projection indisponible") + '</span><span class="cap-projection-goal">Objectif : <b>' + money3(goal) + "</b></span>" + (monthly ? '<span class="cap-salary-context">\xC0 date \xB7 r\xE9sultat \xE0 l\u2019\xE9quilibre</span>' : "") + "</article>";
     }).join("");
   }
@@ -5313,7 +5339,21 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         margin: C.MB_AN_OBJ,
         revenue: C.CA_OBJ
       },
-      salaryHelp: salaryCapacityHelp(capacity, { money: fmtEUR, escape: esc })
+      salaryHelp: salaryCapacityHelp(capacity, { money: fmtEUR, escape: esc }),
+      revenueHelp: revenueProjectionHelp(
+        {
+          projection,
+          year: cur.year,
+          exportIso: data.res_export_iso || data.file_mtime_iso,
+          quotes: {
+            confirmed: data.forecast?.active?.filter((r) => r.choice.situation === "confirmed").length,
+            waiting: data.forecast?.waiting,
+            validation: data.forecast?.validation,
+            review: data.forecast?.reviewCount
+          }
+        },
+        { money: fmtEUR, escape: esc }
+      )
     }, { money: fmtEUR, escape: esc });
     document.getElementById("cap-projection-method").textContent = "Le salaire d\xE9gageable correspond \xE0 la marge brute \xE0 date moins les charges de fonctionnement et la contribution coop\xE9rative, avant d\xE9duction des r\xE9mun\xE9rations d\xE9j\xE0 vers\xE9es, pour un r\xE9sultat \xE0 z\xE9ro. La contribution \xE9tant comptabilis\xE9e avec retard, on retient le plus \xE9lev\xE9 entre le montant saisi et la part historique de la marge brute" + (hist.contributionRate !== null ? " (" + fmtPct(hist.contributionRate, 1) + ", moyenne des exercices " + hist.label + ")" : "") + ". Ce disponible est converti en net et divis\xE9 par les mois couverts, le mois de l\u2019export \xE9tant proratis\xE9 au jour inclus." + (capacity.elapsedMonths !== null ? " P\xE9riode retenue : " + capacity.elapsedMonths.toLocaleString("fr-FR", { maximumFractionDigits: 2 }) + " mois." : " Calcul indisponible : date ou donn\xE9es de la p\xE9riode manquantes.") + (capacity.availableGross < 0 ? " Aucun salaire n\u2019est finan\xE7able : d\xE9ficit avant r\xE9mun\xE9ration de " + fmtEUR(-capacity.availableGross) + "." : "") + " Le r\xE9sultat annuel projet\xE9 d\xE9duit de la marge projet\xE9e le salaire brut annuel pr\xE9vu et les charges annuelles pr\xE9vues dans les objectifs." + (projection ? " Taux historique : " + (projection.rate === null ? "indisponible" : fmtPct(projection.rate, 1) + " (" + projection.reference + ")") + "." + (projection.unavailable ? " " + projection.unavailable : "") + (projection.end === 12 ? " Exercice enti\xE8rement couvert : les cartes affichent le r\xE9alis\xE9, sans ajout des devis restants." : " \xC0 facturer retenu : " + fmtEUR(projection.futureCA) + " HT, r\xE9parti jusqu\u2019\xE0 d\xE9cembre.") : " Projection indisponible : importe les Pi\xE8ces et une p\xE9riode RES compl\xE8te \xE0 date.");
   }
